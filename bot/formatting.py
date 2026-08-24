@@ -1,0 +1,362 @@
+"""Armado de los mensajes que ve el usuario en Telegram (parse_mode HTML)."""
+
+from __future__ import annotations
+
+from datetime import date
+from decimal import Decimal
+
+from django.utils import timezone
+
+MEDALLAS = ["🥇", "🥈", "🥉"]
+
+MESES = [
+    "ene", "feb", "mar", "abr", "may", "jun",
+    "jul", "ago", "set", "oct", "nov", "dic",
+]
+DIAS = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"]
+
+
+def escape(text: str) -> str:
+    """Escapa lo que Telegram interpreta como HTML."""
+    return (
+        str(text)
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+
+
+def format_date(value: date) -> str:
+    return f"{DIAS[value.weekday()]} {value.day} {MESES[value.month - 1]}"
+
+
+def searching_message(origin: str, dest: str, flight_date: date) -> str:
+    return (
+        f"🔎 Buscando vuelos <b>{escape(origin)} → {escape(dest)}</b> "
+        f"para el {format_date(flight_date)}…"
+    )
+
+
+def format_results(
+    *,
+    origin: str,
+    dest: str,
+    flight_date: date,
+    offers: list,
+    stats=None,
+    limit: int = 5,
+) -> str:
+    """Mensaje con las N ofertas más baratas y el contexto de precio."""
+    if not offers:
+        return no_results_message(origin, dest, flight_date)
+
+    lineas = [
+        f"✈️ <b>{escape(origin)} → {escape(dest)}</b> · {format_date(flight_date)}",
+        "",
+    ]
+
+    for i, offer in enumerate(offers[:limit]):
+        prefijo = MEDALLAS[i] if i < len(MEDALLAS) else f"{i + 1}."
+        lineas.append(f"{prefijo} {_offer_line(offer)}")
+
+    contexto = _price_context(offers[0].price_pen, stats)
+    if contexto:
+        lineas += ["", contexto]
+
+    lineas += ["", f"🔔 /alerta {escape(origin)} {escape(dest)} para avisarte si baja más."]
+    return "\n".join(lineas)
+
+
+def no_results_message(origin: str, dest: str, flight_date: date) -> str:
+    return (
+        f"😕 No encontré vuelos <b>{escape(origin)} → {escape(dest)}</b> "
+        f"para el {format_date(flight_date)}.\n\n"
+        f"Probá otra fecha, o revisá que la ruta exista: no todas las ciudades "
+        f"tienen vuelo entre sí."
+    )
+
+
+def format_flexible_results(
+    *, origin: str, dest: str, best_by_day: dict, target: date
+) -> str:
+    """Vista compacta: el mejor precio de cada día del rango."""
+    if not best_by_day:
+        return no_results_message(origin, dest, target)
+
+    fechas = sorted(best_by_day)
+    mejor_dia = min(best_by_day, key=lambda d: best_by_day[d])
+
+    lineas = [
+        f"📅 <b>{escape(origin)} → {escape(dest)}</b>, "
+        f"del {fechas[0].day} al {format_date(fechas[-1])} (mejor por día):",
+        "",
+    ]
+
+    for fecha in fechas:
+        estrella = " ⭐" if fecha == mejor_dia else ""
+        lineas.append(f"<b>{fecha.day:02d}</b>: S/ {_money(best_by_day[fecha])}{estrella}")
+
+    lineas += [
+        "",
+        f"El {format_date(mejor_dia)} es el más barato: "
+        f"<b>S/ {_money(best_by_day[mejor_dia])}</b>.",
+        f"Pedime <code>/vuelo {escape(origin)} {escape(dest)} {mejor_dia.isoformat()}</code> "
+        f"para ver los vuelos de ese día.",
+    ]
+    return "\n".join(lineas)
+
+
+def format_routes(rows: list) -> str:
+    """Listado de rutas monitoreadas con su mínimo actual."""
+    if not rows:
+        return "Todavía no hay rutas monitoreadas con histórico."
+
+    lineas = ["🗺 <b>Rutas monitoreadas</b>", ""]
+    for row in rows:
+        precio = f"S/ {_money(row['min_price'])}" if row["min_price"] is not None else "sin datos"
+        lineas.append(
+            f"<code>{escape(row['origin'])}→{escape(row['dest'])}</code>  "
+            f"{escape(row['origin_city'])} a {escape(row['dest_city'])} · {precio}"
+        )
+    lineas += ["", "Usá <code>/vuelo LIM CUZ 2026-09-15</code> para buscar en cualquiera."]
+    return "\n".join(lineas)
+
+
+def quota_exceeded_message(limit: int) -> str:
+    return (
+        f"🚫 Llegaste a tus <b>{limit} búsquedas diarias</b> del plan gratuito.\n\n"
+        f"El contador se reinicia mañana. Si necesitás búsquedas ilimitadas y "
+        f"alertas de bajada de precio, el plan Premium está en camino."
+    )
+
+
+def welcome_message(first_name: str) -> str:
+    saludo = f"¡Hola {escape(first_name)}!" if first_name else "¡Hola!"
+    return (
+        f"{saludo} Soy <b>VueloRadar</b> 🛫\n\n"
+        f"Busco el vuelo más barato en cualquier ruta doméstica del Perú y "
+        f"acumulo histórico de precios para saber si lo que ves hoy es una oferta "
+        f"o un precio normal.\n\n"
+        f"<b>Escribime como quieras:</b>\n"
+        f"• <i>vuelo de Lima a Cusco el 15 de setiembre</i>\n"
+        f"• <i>de Arequipa a Lima la próxima semana</i>\n"
+        f"• <i>quiero ir a Puerto Maldonado el 20</i>\n\n"
+        f"<b>O usá comandos:</b>\n"
+        f"<code>/vuelo LIM CUZ 2026-09-15</code> — búsqueda directa\n"
+        f"<code>/rutas</code> — rutas monitoreadas y su precio mínimo\n"
+        f"<code>/alerta LIM CUZ</code> — avisos cuando aparezca una oferta real\n"
+        f"<code>/ayuda</code> — más detalles"
+    )
+
+
+def help_message(limit: int) -> str:
+    return (
+        f"<b>Cómo usarme</b>\n\n"
+        f"<b>Lenguaje natural.</b> Escribime la ruta y la fecha como se te ocurra:\n"
+        f"<i>vuelo de lima a piura el viernes</i>\n"
+        f"<i>de cusco a arequipa la próxima semana</i>\n\n"
+        f"Si decís algo vago como «esa semana» o «alrededor del 15», "
+        f"te muestro el mejor precio de cada día del rango.\n\n"
+        f"<b>Comandos</b>\n"
+        f"<code>/vuelo ORIGEN DESTINO FECHA</code> — ej. <code>/vuelo LIM CUZ 2026-09-15</code>\n"
+        f"<code>/rutas</code> — rutas monitoreadas con su mínimo actual\n"
+        f"<code>/alerta LIM CUZ</code> — te aviso de cualquier oferta real\n"
+        f"<code>/alerta LIM CUZ 180</code> — te aviso si baja de S/ 180\n"
+        f"<code>/misalertas</code> — ver y desactivar tus alertas\n"
+        f"<code>/ayuda</code> — este mensaje\n\n"
+        f"<b>Tu plan</b>\n"
+        f"Gratis: {limit} búsquedas por día y 2 alertas. Premium: ilimitadas.\n\n"
+        f"<b>Ojo con los precios.</b> Salen de Google Flights e incluyen impuestos, "
+        f"pero el checkout de la aerolínea puede diferir por equipaje o promos de app."
+    )
+
+
+def alert_placeholder_message(origin: str = "", dest: str = "") -> str:
+    ruta = f" para <b>{escape(origin)} → {escape(dest)}</b>" if origin and dest else ""
+    return (
+        f"🔔 Las alertas{ruta} están en camino.\n\n"
+        f"Todavía estoy acumulando histórico: con 2 o 3 semanas de datos puedo "
+        f"distinguir una oferta real de un precio normal. Mientras tanto, "
+        f"buscá cuando quieras y te digo cómo está el precio contra el promedio."
+    )
+
+
+def usage_hint_message() -> str:
+    return (
+        "🤔 No entendí qué vuelo buscás.\n\n"
+        "Probá con algo como <i>«vuelo de Lima a Cusco el 15 de setiembre»</i>, "
+        "o usá el formato exacto:\n"
+        "<code>/vuelo LIM CUZ 2026-09-15</code>\n\n"
+        "Con <code>/rutas</code> ves los códigos disponibles."
+    )
+
+
+def missing_fields_message(missing: list) -> str:
+    faltan = " y ".join(missing) if len(missing) <= 2 else ", ".join(missing[:-1]) + f" y {missing[-1]}"
+    return (
+        f"Casi. Me falta {faltan}.\n\n"
+        f"Decímelo completo, por ejemplo <i>«de Lima a Cusco el 15 de setiembre»</i>, "
+        f"o usá <code>/vuelo LIM CUZ 2026-09-15</code>."
+    )
+
+
+# ------------------------------------------------------------------- internos
+def _offer_line(offer) -> str:
+    partes = [f"<b>S/ {_money(offer.price_pen)}</b>", escape(offer.airline or "aerolínea s/d")]
+    horario = _schedule(offer)
+    if horario:
+        partes.append(horario)
+    partes.append(_stops(offer))
+    return " · ".join(partes)
+
+
+def _schedule(offer) -> str:
+    if offer.departure_dt is None or offer.arrival_dt is None:
+        return ""
+    salida = timezone.localtime(offer.departure_dt).strftime("%H:%M")
+    llegada = timezone.localtime(offer.arrival_dt).strftime("%H:%M")
+    return f"{salida}→{llegada}"
+
+
+def _stops(offer) -> str:
+    if offer.stops is None:
+        return "escalas s/d"
+    if offer.stops == 0:
+        return "directo"
+    if offer.pk is None:
+        return "1 escala vía LIM"
+    return "1 escala" if offer.stops == 1 else f"{offer.stops} escalas"
+
+
+def _price_context(best_price, stats) -> str:
+    """La línea 📊. Se omite entera si no hay histórico confiable."""
+    if stats is None or not stats.avg_30d or not stats.has_enough_history:
+        return ""
+
+    avg = Decimal(stats.avg_30d)
+    if avg <= 0:
+        return ""
+
+    diff = (avg - Decimal(best_price)) / avg * 100
+    pct = abs(int(diff.quantize(Decimal("1"))))
+
+    if diff >= 15:
+        veredicto = f"el mejor precio está <b>{pct}% por debajo</b>. Buen momento."
+    elif diff >= 5:
+        veredicto = f"el mejor precio está {pct}% por debajo. Precio decente."
+    elif diff > -5:
+        veredicto = "el mejor precio está en el promedio. Nada especial."
+    else:
+        veredicto = f"el mejor precio está <b>{pct}% por encima</b>. Conviene esperar."
+
+    return f"📊 Promedio 30d de la ruta: S/ {_money(avg)} — {veredicto}"
+
+
+def _money(value) -> str:
+    valor = Decimal(value)
+    return f"{valor:,.0f}" if valor % 1 == 0 else f"{valor:,.2f}"
+
+
+def alert_created_message(origin, dest, target_price, flight_date, *, created: bool, remaining: int) -> str:
+    verbo = "Listo, alerta creada" if created else "Ya tenías esa alerta, la dejé activa"
+    cuando = f" para el {flight_date.strftime('%d/%m/%Y')}" if flight_date else ""
+
+    if target_price is not None:
+        que = f"si <b>{escape(origin)} → {escape(dest)}</b> baja de <b>S/ {_money(target_price)}</b>"
+    else:
+        que = (
+            f"cuando <b>{escape(origin)} → {escape(dest)}</b> tenga una oferta real "
+            f"(precio en el 10% más barato del último mes)"
+        )
+
+    return (
+        f"✅ {verbo}. Te aviso {que}{cuando}.\n\n"
+        f"Te quedan <b>{remaining}</b> alertas disponibles.\n"
+        f"Con /misalertas las ves y podés desactivarlas."
+    )
+
+
+def alert_limit_message(limit: int) -> str:
+    return (
+        f"🚫 Llegaste a tus <b>{limit} alertas activas</b>.\n\n"
+        f"Desactivá alguna con /misalertas para hacer lugar, o pasate a Premium "
+        f"cuando esté disponible."
+    )
+
+
+def alerts_list_message(alertas: list) -> str:
+    lineas = ["🔔 <b>Tus alertas activas</b>", ""]
+    for a in alertas:
+        lineas.append(f"• {escape(a['describe'])}")
+    lineas += ["", "Tocá una para desactivarla."]
+    return "\n".join(lineas)
+
+
+def no_alerts_message() -> str:
+    return (
+        "No tenés alertas activas.\n\n"
+        "<code>/alerta LIM CUZ</code> — te aviso de cualquier oferta\n"
+        "<code>/alerta LIM CUZ 180</code> — te aviso si baja de S/ 180"
+    )
+
+
+def verdict_line(verdict) -> str:
+    """La línea 🤖 que se agrega a los resultados de búsqueda."""
+    if verdict is None:
+        return ""
+    return f"🤖 <b>Veredicto: {verdict.label}.</b> {escape(verdict.reason)}"
+
+
+def stats_message(m: dict) -> str:
+    """Panel del admin. Números crudos, sin adornos."""
+    lineas = [
+        "📈 <b>VueloRadar — estado</b>",
+        "",
+        "<b>Usuarios</b>",
+        f"  total: {m['usuarios_total']} · activos hoy: {m['usuarios_activos_hoy']} · premium: {m['premium']}",
+        f"  búsquedas hoy: {m['busquedas_hoy']}",
+        "",
+        "<b>Histórico</b>",
+        f"  snapshots hoy: {m['snapshots_hoy']} · total: {m['snapshots_total']:,}",
+        f"  último: {_ago(m['ultimo_snapshot'])}",
+        "",
+        "<b>Alertas</b>",
+        f"  activas: {m['alertas_activas']} · disparadas 24h: {m['alertas_disparadas_24h']}",
+        "",
+        "<b>Scraping</b>",
+        f"  fuente pausada: {'SÍ' if m['fuente_pausada'] else 'no'} · "
+        f"fallos consecutivos: {m['fallos_fuente']}",
+    ]
+
+    if m["ia_mes"]:
+        lineas += ["", "<b>IA este mes</b>"]
+        for fila in m["ia_mes"]:
+            lineas.append(
+                f"  {fila['provider']}: {fila['llamadas']} llamadas · "
+                f"{(fila['entrada'] or 0):,} in / {(fila['salida'] or 0):,} out"
+            )
+    else:
+        lineas += ["", "<b>IA este mes</b>", "  sin llamadas registradas"]
+
+    return "\n".join(lineas)
+
+
+def busy_message(minutes: int = 2) -> str:
+    return (
+        f"⏳ Hay mucha demanda ahora mismo. Tu búsqueda entra en cola, "
+        f"probá de nuevo en ~{minutes} min."
+    )
+
+
+def _ago(cuando) -> str:
+    if cuando is None:
+        return "nunca"
+    from django.utils import timezone
+
+    delta = timezone.now() - cuando
+    horas = delta.total_seconds() / 3600
+    if horas < 1:
+        return f"hace {int(delta.total_seconds() / 60)} min"
+    if horas < 48:
+        return f"hace {horas:.0f}h"
+    return f"hace {horas / 24:.0f} días"

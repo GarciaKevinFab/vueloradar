@@ -1,0 +1,122 @@
+# VUELORADAR PERÚ — stack de producción.
+#
+# La base de datos es Supabase (remota): acá no hay Postgres. El presupuesto de
+# conexiones del free tier obliga a mantener la suma web+workers+beat+bot por
+# debajo de ~15; por eso las concurrencias son bajas y CONN_MAX_AGE=60.
+#
+#   docker compose -f docker-compose.prod.yml up -d
+
+x-app: &app
+  build: .
+  image: vueloradar:latest
+  env_file: .env
+  restart: unless-stopped
+  depends_on:
+    redis:
+      condition: service_healthy
+  environment:
+    LOG_FORMAT: json
+    REDIS_URL: redis://redis:6379/0
+    CELERY_BROKER_URL: redis://redis:6379/0
+    CELERY_RESULT_BACKEND: redis://redis:6379/0
+  volumes:
+    - scraper_fails:/tmp/scraper_fails
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: vueloradar_redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Solo sirve el admin de Django y /healthz. No hay web pública.
+  web:
+    <<: *app
+    container_name: vueloradar_web
+    command: >
+      gunicorn config.wsgi:application
+      --bind 0.0.0.0:8000
+      --workers 2
+      --timeout 60
+      --access-logfile -
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Concurrencia 1: el límite es anti-bloqueo, no performance (CLAUDE.md secc. 7).
+  worker-scraping:
+    <<: *app
+    container_name: vueloradar_worker_scraping
+    command: celery -A config worker -Q scraping -c 1 -l info --without-gossip --without-mingle
+    healthcheck:
+      test: ["CMD", "celery", "-A", "config", "inspect", "ping", "-d", "celery@$$HOSTNAME"]
+      interval: 60s
+      timeout: 20s
+      retries: 3
+      start_period: 40s
+
+  # Alertas, stats, backups: tareas cortas, se puede paralelizar más.
+  worker-default:
+    <<: *app
+    container_name: vueloradar_worker_default
+    command: celery -A config worker -Q default -c 2 -l info --without-gossip --without-mingle
+    volumes:
+      - scraper_fails:/tmp/scraper_fails
+      - backups:/backups
+    healthcheck:
+      test: ["CMD", "celery", "-A", "config", "inspect", "ping", "-d", "celery@$$HOSTNAME"]
+      interval: 60s
+      timeout: 20s
+      retries: 3
+      start_period: 40s
+
+  beat:
+    <<: *app
+    container_name: vueloradar_beat
+    command: celery -A config beat -l info --schedule /tmp/celerybeat-schedule
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/celerybeat-schedule"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  bot:
+    <<: *app
+    container_name: vueloradar_bot
+    command: python manage.py runbot
+    environment:
+      LOG_FORMAT: json
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      BOT_HEARTBEAT_FILE: /tmp/heartbeat/bot
+    volumes:
+      - bot_heartbeat:/tmp/heartbeat
+      - scraper_fails:/tmp/scraper_fails
+    # El proceso puede seguir vivo con el polling colgado: lo que importa es
+    # que el latido sea reciente, no que el PID exista.
+    healthcheck:
+      test: ["CMD-SHELL", "test $$(( $$(date +%s) - $$(stat -c %Y /tmp/heartbeat/bot) )) -lt 180"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  redis_data:
+  backups:
+  bot_heartbeat:
+  scraper_fails:

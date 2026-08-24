@@ -1,0 +1,6 @@
+# Normaliza a LF en el repo: el proyecto se desarrolla en Windows pero corre
+# en contenedores Linux, y un CRLF en un script rompe el shebang.
+* text=auto eol=lf
+
+*.png binary
+*.dump binary

@@ -1,0 +1,35 @@
+# VUELORADAR PERÚ — stack de desarrollo.
+# La base de datos es Supabase (remota), por eso aquí solo vive Redis.
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: vueloradar_redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # --- Postgres local opcional (solo para trabajar offline) ---
+  # Descomenta este bloque y apunta DATABASE_URL a:
+  #   postgresql://vueloradar:vueloradar@localhost:5432/vueloradar
+  # db:
+  #   image: postgres:16-alpine
+  #   container_name: vueloradar_db
+  #   environment:
+  #     POSTGRES_USER: vueloradar
+  #     POSTGRES_PASSWORD: vueloradar
+  #     POSTGRES_DB: vueloradar
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - pg_data:/var/lib/postgresql/data
+
+volumes:
+  redis_data:
+  # pg_data:

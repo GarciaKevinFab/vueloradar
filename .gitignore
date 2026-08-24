@@ -1,0 +1,21 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.sqlite3
+db.sqlite3
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+.idea/
+.vscode/
+
+# Artefactos de herramientas y runtime
+graphify-out/
+celerybeat-schedule*
+.ruff_cache/
+backups/
+scraper_fails/
+*.stackdump

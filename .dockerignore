@@ -1,0 +1,14 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.git/
+.gitignore
+*.sqlite3
+db.sqlite3
+.env
+graphify-out/
+celerybeat-schedule*
+*.log
+backups/

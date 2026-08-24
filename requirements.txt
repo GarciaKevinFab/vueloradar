@@ -1,0 +1,34 @@
+# --- Core ---
+django==5.1.5
+psycopg2-binary==2.9.10
+dj-database-url==2.3.0
+python-dotenv==1.0.1
+
+# --- Async / broker (se usa desde Fase 2) ---
+celery[redis]==5.4.0
+redis==5.2.1
+
+# --- Scraping ---
+fast-flights==3.1.0
+
+# --- Bot (Fase 3) ---
+aiogram==3.17.0
+
+# --- IA (Fase 4) ---
+anthropic==1.0.0
+# Groq, DeepSeek y Ollama son OpenAI-compatible: un solo cliente para los tres.
+openai==3.3.1
+
+# --- CLI ---
+rich==13.9.4
+
+# --- Producción (Fase 5) ---
+gunicorn==26.1.0
+# Scrapers directos de respaldo: Sky y JetSmart.
+playwright==1.62.0
+python-json-logger==4.2.0
+sentry-sdk[django]==2.68.0
+
+# --- Tests ---
+pytest==8.3.4
+pytest-django==4.9.0
