@@ -52,6 +52,7 @@ def format_results(
 
     lineas = [
         f"✈️ <b>{escape(origin)} → {escape(dest)}</b> · {format_date(flight_date)}",
+        "<i>precios finales, con impuestos incluidos</i>",
         "",
     ]
 
@@ -166,8 +167,15 @@ def help_message(limit: int) -> str:
         f"<code>/ayuda</code> — este mensaje\n\n"
         f"<b>Tu plan</b>\n"
         f"Gratis: {limit} búsquedas por día y 2 alertas. Premium: ilimitadas.\n\n"
-        f"<b>Ojo con los precios.</b> Salen de Google Flights e incluyen impuestos, "
-        f"pero el checkout de la aerolínea puede diferir por equipaje o promos de app."
+        f"<b>Sobre los precios</b>\n"
+        f"Son <b>finales, con impuestos</b>: incluyen la tarifa base, el IGV del 18% "
+        f"y la tasa de aeropuerto (TUUA). Es lo que pagás por el pasaje.\n\n"
+        f"Lo que NO incluyen: equipaje en bodega, selección de asiento ni otros "
+        f"extras que cada aerolínea cobra aparte. Una tarifa de S/ 200 en JetSmart "
+        f"o Sky suele ser solo mochila; si viajás con maleta, sumale entre S/ 40 y "
+        f"S/ 90 según la aerolínea.\n\n"
+        f"El dato sale de Google Flights. A veces la app de la aerolínea tiene "
+        f"promos que Google no ve, así que conviene comparar antes de pagar."
     )
 
 

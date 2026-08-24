@@ -30,6 +30,12 @@ Sistema autónomo de monitoreo y búsqueda de vuelos domésticos en Perú. Encue
 - **Modelo hub-and-spoke:** casi todo pasa por Lima (LIM). Las rutas directas interprovinciales son excepciones (CUZ-AQP, CUZ-PEM, CUZ-JUL y pocas más). Si el usuario pide una ruta sin vuelo directo, el sistema debe proponer conexión vía LIM sumando ambos tramos.
 - **Precios en PEN (S/).** Si la fuente devuelve USD, convertir con tipo de cambio del día (cachear 24h).
 - **Precio total real:** siempre precio final con impuestos. Nunca tarifa base.
+  **Verificado el 2026-08-23**: para JetSMART LIM-CUZ del 06/09, la web de la
+  aerolínea muestra S/ 144,52 (tarifa base) y Google Flights S/ 201,00. La
+  diferencia se descompone exacta: 144,52 x 1,18 (IGV) = 170,53, más S/ 30,47
+  de TUUA nacional. **Google Flights ya incluye impuestos**, así que el precio
+  que muestra el bot es el de venta. Los scrapers directos NO: Sky publica
+  tarifa base y por eso su verificación viene apagada.
 - **Aeropuertos monitoreados (IATA):** LIM, CUZ, AQP, PEM, IQT, TPP, PIU, TRU, CIX, JUL, AYP, PCL, CJA, TBP, HUU, JAU, ANS, CHM, TYL, RIM. Mantener en tabla `airports`, no hardcodear.
 - **Rutas monitoreadas:** ~30 rutas activas definidas en tabla `routes` con flag `is_monitored`. Prioridad alta: LIM↔CUZ, LIM↔AQP, LIM↔PEM, LIM↔IQT, LIM↔TPP, LIM↔PIU, LIM↔TRU, LIM↔JUL, LIM↔JAU, CUZ↔PEM, CUZ↔AQP.
 
