@@ -32,6 +32,13 @@ async def _run_search(message, user, origin: str, dest: str, flight_date: date) 
     aviso = await message.answer(formatting.searching_message(origin, dest, flight_date))
 
     offers = await db.search_flights(origin, dest, flight_date)
+
+    if offers is None:
+        # Falla nuestra, no ausencia de vuelos. Decirlo tal cual evita que el
+        # usuario descarte una ruta que sí existe, y no le consume una búsqueda.
+        await aviso.edit_text(formatting.system_error_message())
+        return
+
     stats = await db.get_route_stats(origin, dest) if offers else None
 
     texto = formatting.format_results(
@@ -98,6 +105,10 @@ async def _run_flexible_search(
     resultados = await asyncio.gather(
         *(db.search_flights(origin, dest, fecha) for fecha in fechas)
     )
+
+    if all(o is None for o in resultados):
+        await aviso.edit_text(formatting.system_error_message())
+        return
 
     mejor_por_dia = {}
     for fecha, offers in zip(fechas, resultados):

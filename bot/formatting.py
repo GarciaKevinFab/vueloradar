@@ -368,3 +368,17 @@ def _ago(cuando) -> str:
     if horas < 48:
         return f"hace {horas:.0f}h"
     return f"hace {horas / 24:.0f} días"
+
+
+def system_error_message() -> str:
+    """Cuando la falla es nuestra, no de la ruta.
+
+    Decir "no encontré vuelos" ante un error de sistema es mentirle al usuario:
+    descarta una ruta que sí existe y nadie se entera de que algo se rompió.
+    """
+    return (
+        "⚠️ Se me rompió algo de mi lado buscando esa ruta — no es que no haya "
+        "vuelos.\n\n"
+        "Ya quedó registrado y lo estoy revisando. Probá de nuevo en unos "
+        "minutos."
+    )

@@ -295,3 +295,30 @@ def test_lectura_del_calendario_de_jetsmart(dia, esperado):
 
     calendario = "5\nS/134.44\n6\nS/141.16\n7\nS/134.44\nMejor precio\n8\nS/134.44"
     assert price_for_day(calendario, dia) == esperado
+
+
+# ------------------------------- fallo de sistema vs ruta sin vuelos
+def test_una_busqueda_rota_devuelve_none_no_lista_vacia():
+    """Regresión: una migración sin aplicar hacía que el bot dijera
+    "no encontré vuelos" cuando en realidad la base estaba caída."""
+    from bot.db import _search_sync
+
+    with patch("apps.scraping.services.search_and_store",
+               side_effect=RuntimeError("column ... does not exist")):
+        assert _search_sync("LIM", "CUZ", FECHA) is None
+
+
+@pytest.mark.django_db
+def test_una_ruta_sin_vuelos_devuelve_lista_vacia():
+    from bot.db import _search_sync
+
+    with patch("apps.scraping.services.search_and_store", return_value=[]):
+        assert _search_sync("LIM", "ANS", FECHA) == []
+
+
+def test_el_mensaje_de_error_no_dice_que_no_hay_vuelos():
+    from bot import formatting
+
+    texto = formatting.system_error_message()
+    assert "no es que no haya" in texto
+    assert "No encontré vuelos" not in texto

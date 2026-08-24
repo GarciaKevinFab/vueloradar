@@ -240,6 +240,28 @@ snapshots, 47.395 ofertas, 44 rutas y 20 aeropuertos restauraron intactos.
 
 ## 8. Runbook de incidentes
 
+### "El bot dice que no hay vuelos en una ruta que sí existe"
+
+Primero descartá lo obvio: **¿faltan migraciones?** Es la causa más común y la
+más silenciosa. El código pide una columna que la base todavía no tiene, la
+consulta revienta y el usuario ve "no encontré vuelos".
+
+```bash
+docker compose -f docker-compose.prod.yml exec web python manage.py showmigrations | grep "\[ \]"
+```
+
+Si sale algo, aplicalas:
+
+```bash
+docker compose -f docker-compose.prod.yml exec web python manage.py migrate
+```
+
+**Después de cada `git pull` corré `migrate`.** El `build` no lo hace solo.
+
+Desde la corrección del 2026-08-23 el bot distingue los dos casos: si la falla
+es del sistema responde "se me rompió algo de mi lado", no "no hay vuelos". Si
+ves ese mensaje, mirá los logs del bot.
+
 ### "El bot no responde"
 
 ```bash

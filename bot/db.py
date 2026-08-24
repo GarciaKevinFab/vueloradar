@@ -48,25 +48,36 @@ def consume_search(user):
 
 
 # -------------------------------------------------------------------- vuelos
-async def search_flights(origin: str, dest: str, flight_date: date) -> list:
-    """Corre la búsqueda en un thread aparte: bloquea segundos por el scraping."""
+async def search_flights(origin: str, dest: str, flight_date: date) -> list | None:
+    """Corre la búsqueda en un thread aparte: bloquea segundos por el scraping.
+
+    Devuelve la lista de ofertas, `[]` si la ruta no tiene vuelos ese día, o
+    **`None` si algo se rompió de nuestro lado**. Esa distinción importa: una
+    migración sin aplicar hacía que el bot dijera "no encontré vuelos" cuando
+    en realidad la base estaba rota, y el usuario no tenía forma de saberlo.
+    """
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(_SEARCH_POOL, _search_sync, origin, dest, flight_date)
 
 
-def _search_sync(origin: str, dest: str, flight_date: date) -> list:
+def _search_sync(origin: str, dest: str, flight_date: date) -> list | None:
     from django.db import close_old_connections
 
     from apps.scraping.services import search_and_store
 
-    close_old_connections()
     try:
+        # Dentro del try: si la conexión a la base está rota, eso también es un
+        # fallo del sistema y debe reportarse como tal, no reventar el thread.
+        close_old_connections()
         return search_and_store(origin, dest, flight_date)
     except Exception:  # noqa: BLE001 - el bot responde, no se cae
         logger.exception("bot: búsqueda fallida %s->%s %s", origin, dest, flight_date)
-        return []
+        return None
     finally:
-        close_old_connections()
+        try:
+            close_old_connections()
+        except Exception:  # noqa: BLE001
+            pass
 
 
 @sync_to_async
