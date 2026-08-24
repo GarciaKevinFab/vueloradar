@@ -251,6 +251,28 @@ celery -A config beat                                # scheduler
 3. Rutas internacionales desde LIM (mismo motor, solo cambian los seeds).
 4. Canal público de Telegram con las mejores ofertas del día.
 
+### Verificación del stack en Docker (2026-08-23)
+
+Los seis servicios levantados y en `healthy`. Tres bugs que solo aparecieron
+corriendo de verdad:
+
+- **Healthcheck de los workers en forma `CMD` no expandía `$HOSTNAME`.** La
+  forma exec no invoca shell, así que pingeaba a un nodo llamado literalmente
+  `celery@$HOSTNAME` y siempre daba `unhealthy`. Corregido a `CMD-SHELL`.
+- **El bot no podía escribir su latido**: el volumen nombrado se crea como root
+  y el contenedor corre sin privilegios. El volumen además sobraba — el
+  healthcheck corre *dentro* del contenedor. Eliminado.
+- **El modelo de Groq del plan original (`llama-3.3-70b-versatile`) fue
+  retirado.** Ahora `GROQ_MODEL` se configura por entorno; el default es
+  `openai/gpt-oss-120b`. Verificado: con `ANTHROPIC_API_KEY` vacía, Groq
+  responde el veredicto en español y `AIUsageLog` lo registra.
+
+Recuperación ante caída, verificada: `docker kill` **no** dispara el reinicio
+(Docker lo trata como parada manual) y `kill -9` a PID 1 desde adentro se
+ignora (el kernel protege al PID 1 de su propio namespace). La prueba válida es
+`kill -TERM 1`, que Celery sí maneja: el contenedor salió, se reinició solo
+(`RestartCount: 1`) y volvió a `healthy`.
+
 ### Notas de la Fase 5
 
 - **`DJANGO_SECRET_KEY` no puede tener `$` ni `%`.** Docker Compose interpola los valores del `.env`, así que la clave llegaría mutilada al contenedor y distinta de la local: sesiones y firmas romperían en silencio. Detectado por el warning `"c" variable is not set` de `docker compose config`. La clave se regeneró con un charset seguro.

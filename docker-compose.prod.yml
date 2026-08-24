@@ -61,7 +61,7 @@ services:
     container_name: vueloradar_worker_scraping
     command: celery -A config worker -Q scraping -c 1 -l info --without-gossip --without-mingle
     healthcheck:
-      test: ["CMD", "celery", "-A", "config", "inspect", "ping", "-d", "celery@$$HOSTNAME"]
+      test: ["CMD-SHELL", "celery -A config inspect ping -d celery@$$HOSTNAME"]
       interval: 60s
       timeout: 20s
       retries: 3
@@ -76,7 +76,7 @@ services:
       - scraper_fails:/tmp/scraper_fails
       - backups:/backups
     healthcheck:
-      test: ["CMD", "celery", "-A", "config", "inspect", "ping", "-d", "celery@$$HOSTNAME"]
+      test: ["CMD-SHELL", "celery -A config inspect ping -d celery@$$HOSTNAME"]
       interval: 60s
       timeout: 20s
       retries: 3
@@ -102,14 +102,16 @@ services:
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
-      BOT_HEARTBEAT_FILE: /tmp/heartbeat/bot
+      # Sin volumen: el healthcheck corre dentro del contenedor, así que el
+      # latido solo necesita ser escribible ahí. Un volumen nombrado se crea
+      # como root y el proceso, que corre sin privilegios, no podría escribirlo.
+      BOT_HEARTBEAT_FILE: /tmp/heartbeat
     volumes:
-      - bot_heartbeat:/tmp/heartbeat
       - scraper_fails:/tmp/scraper_fails
     # El proceso puede seguir vivo con el polling colgado: lo que importa es
     # que el latido sea reciente, no que el PID exista.
     healthcheck:
-      test: ["CMD-SHELL", "test $$(( $$(date +%s) - $$(stat -c %Y /tmp/heartbeat/bot) )) -lt 180"]
+      test: ["CMD-SHELL", "test $$(( $$(date +%s) - $$(stat -c %Y /tmp/heartbeat) )) -lt 180"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -118,5 +120,4 @@ services:
 volumes:
   redis_data:
   backups:
-  bot_heartbeat:
   scraper_fails:

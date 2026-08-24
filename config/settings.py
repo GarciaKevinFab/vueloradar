@@ -274,7 +274,9 @@ NL_PARSER_CACHE_TTL = 60 * 60  # respuestas idénticas se cachean 1h
 # Cadena de respaldo: se intenta en orden hasta que uno responda. Si todos
 # fallan el sistema sigue sin veredicto — jamás se bloquea una alerta por IA.
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+# llama-3.3-70b-versatile (el del plan original) fue retirado por Groq en 2026.
+# Verificar con: client.models.list() si este también desaparece.
+GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
