@@ -382,3 +382,128 @@ def system_error_message() -> str:
         "Ya quedó registrado y lo estoy revisando. Probá de nuevo en unos "
         "minutos."
     )
+
+
+def format_round_trip(
+    *,
+    origin: str,
+    dest: str,
+    outbound_date: date,
+    return_date: date,
+    outbound: list,
+    inbound: list,
+    show_sale: bool = False,
+) -> str:
+    """Cotización de ida y vuelta: los dos tramos y el total del viaje."""
+    if not outbound or not inbound:
+        return _incomplete_round_trip(
+            origin, dest, outbound_date, return_date, outbound, inbound
+        )
+
+    ida = min(outbound, key=lambda o: o.price_pen)
+    vuelta = min(inbound, key=lambda o: o.price_pen)
+    ida_directo = _cheapest_nonstop(outbound)
+    vuelta_directo = _cheapest_nonstop(inbound)
+
+    lineas = [
+        f"🔄 <b>{escape(origin)} ⇄ {escape(dest)}</b>",
+        f"{format_date(outbound_date)} · vuelta {format_date(return_date)}",
+        "<i>precios finales, con impuestos incluidos</i>",
+        "",
+        f"<b>Ida</b> · {format_date(outbound_date)}",
+        f"  {_trip_line(ida)}",
+    ]
+    if ida_directo is not None and ida_directo is not ida:
+        lineas.append(f"  {_trip_line(ida_directo)}")
+
+    lineas += [
+        "",
+        f"<b>Vuelta</b> · {format_date(return_date)}",
+        f"  {_trip_line(vuelta)}",
+    ]
+    if vuelta_directo is not None and vuelta_directo is not vuelta:
+        lineas.append(f"  {_trip_line(vuelta_directo)}")
+
+    total = Decimal(ida.price_pen) + Decimal(vuelta.price_pen)
+    lineas += ["", f"💰 <b>Total del viaje: S/ {_money(total)}</b>"]
+
+    if ida_directo is not None and vuelta_directo is not None:
+        total_directo = Decimal(ida_directo.price_pen) + Decimal(vuelta_directo.price_pen)
+        if total_directo != total:
+            extra = total_directo - total
+            lineas.append(
+                f"   Todo directo: S/ {_money(total_directo)} "
+                f"(S/ {_money(extra)} más, sin escalas)"
+            )
+
+    if show_sale:
+        lineas += ["", _sale_breakdown(total)]
+
+    lineas += [
+        "",
+        "<i>Ojo: comprar el ida y vuelta como paquete en la web de la "
+        "aerolínea suele salir menos que sumar dos pasajes sueltos. "
+        "Este total es tu techo.</i>",
+    ]
+    return "\n".join(lineas)
+
+
+def _sale_breakdown(cost) -> str:
+    """El desglose con la ganancia. Solo se le muestra al operador."""
+    from apps.flights.pricing import quote
+
+    q = quote(cost)
+    return (
+        f"🏷 <b>Para cotizar al cliente</b>\n"
+        f"  Costo:    S/ {_money(q.cost)}\n"
+        f"  Tu venta: <b>S/ {_money(q.sale)}</b>\n"
+        f"  Ganancia: S/ {_money(q.margin)} ({q.margin_pct}%)"
+    )
+
+
+def sale_line(cost) -> str:
+    """Versión de una línea, para búsquedas de un solo tramo."""
+    from apps.flights.pricing import quote
+
+    q = quote(cost)
+    return (
+        f"🏷 Cotizá <b>S/ {_money(q.sale)}</b> · "
+        f"ganás S/ {_money(q.margin)} ({q.margin_pct}%)"
+    )
+
+
+def _incomplete_round_trip(origin, dest, outbound_date, return_date, outbound, inbound) -> str:
+    """Un tramo sin vuelos: decir cuál, no dar un total incompleto."""
+    faltante = "la ida" if not outbound else "la vuelta"
+    fecha = outbound_date if not outbound else return_date
+    encontrado = inbound if not outbound else outbound
+    otro = "vuelta" if not outbound else "ida"
+
+    lineas = [
+        f"🔄 <b>{escape(origin)} ⇄ {escape(dest)}</b>",
+        "",
+        f"😕 No encontré vuelos para <b>{faltante}</b> del {format_date(fecha)}.",
+    ]
+    if encontrado:
+        mejor = min(encontrado, key=lambda o: o.price_pen)
+        lineas += [
+            "",
+            f"La {otro} sí: desde <b>S/ {_money(mejor.price_pen)}</b> "
+            f"con {escape(mejor.airline or 'aerolínea s/d')}.",
+        ]
+    lineas += ["", "Probá otra fecha para el tramo que falta."]
+    return "\n".join(lineas)
+
+
+def _trip_line(offer) -> str:
+    partes = [f"<b>S/ {_money(offer.price_pen)}</b>", escape(offer.airline or "aerolínea s/d")]
+    horario = _schedule(offer)
+    if horario:
+        partes.append(horario)
+    partes.append(_stops(offer))
+    return " · ".join(partes)
+
+
+def _cheapest_nonstop(offers: list):
+    directos = [o for o in offers if o.stops == 0]
+    return min(directos, key=lambda o: o.price_pen) if directos else None

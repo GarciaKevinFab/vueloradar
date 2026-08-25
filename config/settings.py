@@ -406,3 +406,17 @@ if not DEBUG:
     CSRF_TRUSTED_ORIGINS = [
         o.strip() for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()
     ]
+
+
+# ============================================== Precio de venta / comisión
+# El operador revende los pasajes, así que además del costo necesita ver su
+# precio de venta. Se calcula como el mayor entre el porcentaje y el piso fijo:
+# un 10% sobre S/ 150 son S/ 15, que no paga el trabajo de gestionar la compra.
+SALE_MARKUP_PCT = Decimal(os.getenv("SALE_MARKUP_PCT", "10"))
+SALE_MARKUP_MIN_PEN = Decimal(os.getenv("SALE_MARKUP_MIN_PEN", "25"))
+# Redondeo del precio final hacia arriba, para no cotizar S/ 487,33.
+SALE_ROUND_TO_PEN = Decimal(os.getenv("SALE_ROUND_TO_PEN", "5"))
+
+# El desglose con la ganancia SOLO se le muestra al admin. Un cliente no
+# debería ver tu margen en el mismo mensaje que su cotización.
+SHOW_SALE_PRICE_TO_ADMIN_ONLY = env_bool("SHOW_SALE_PRICE_TO_ADMIN_ONLY", True)

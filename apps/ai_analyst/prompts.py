@@ -13,7 +13,8 @@ Aeropuertos disponibles (código IATA seguido de la ciudad que sirve):
 Respondé ÚNICAMENTE con un objeto JSON, sin texto antes ni después, sin
 bloques de código, con exactamente estas claves:
 {{"is_flight_search": true|false, "origin_iata": "XXX"|null,
-  "dest_iata": "XXX"|null, "date": "AAAA-MM-DD"|null, "flexible_days": 0}}
+  "dest_iata": "XXX"|null, "date": "AAAA-MM-DD"|null,
+  "return_date": "AAAA-MM-DD"|null, "flexible_days": 0}}
 
 Reglas:
 - Usá SOLO códigos IATA de esa lista. Si la ciudad no está, devolvé null.
@@ -26,6 +27,22 @@ Reglas:
 - Si el mes no se dice, asumí el próximo mes en que esa fecha caiga en el futuro.
 - La fecha debe ser futura. Si el usuario pide una que ya pasó, corregí al año
   siguiente solo si es evidente que se refiere al futuro; si no, devolvé null.
+- return_date: la fecha del vuelo de VUELTA, o null si es solo ida.
+  Un viaje de ida y vuelta se describe de muchas formas y hay que reconocerlas
+  todas. Ejemplos, todos con origin=PEM, dest=LIM, date=2026-10-16 y
+  return_date=2026-10-18:
+    "pasaje para el 16 de octubre, de Puerto Maldonado a Lima, y de Lima a
+     Puerto el 18"
+    "de Puerto Maldonado a Lima el 16 y vuelvo el 18"
+    "ida y vuelta Puerto Maldonado Lima, 16 al 18 de octubre"
+    "voy a Lima el 16 de octubre y regreso el 18"
+  Ojo: el segundo tramo del ejemplo va de Lima a Puerto, o sea el mismo par
+  invertido. Eso es ida y vuelta, NO dos viajes distintos: poné el par en el
+  sentido de la IDA y la fecha del regreso en return_date.
+  Si el usuario menciona un tercer destino distinto (por ejemplo Cusco a Lima
+  y después Lima a Arequipa), eso no es ida y vuelta: devolvé solo el primer
+  tramo y return_date en null.
+  La fecha de vuelta siempre es posterior a la de ida.
 - flexible_days: 0 si la fecha es exacta ("el 15 de setiembre"). Entre 1 y 3 si
   hay vaguedad ("alrededor del 15" es 2, "esa semana" o "la primera semana de
   octubre" es 3, "el fin de semana" es 1).
@@ -53,12 +70,19 @@ NL_PARSER_SCHEMA = {
             "type": ["string", "null"],
             "description": "fecha del vuelo en formato YYYY-MM-DD, o null",
         },
+        "return_date": {
+            "type": ["string", "null"],
+            "description": "fecha del vuelo de vuelta en formato YYYY-MM-DD, o null si es solo ida",
+        },
         "flexible_days": {
             "type": "integer",
             "description": "días de flexibilidad alrededor de la fecha, de 0 a 3",
         },
     },
-    "required": ["is_flight_search", "origin_iata", "dest_iata", "date", "flexible_days"],
+    "required": [
+        "is_flight_search", "origin_iata", "dest_iata", "date",
+        "return_date", "flexible_days",
+    ],
     "additionalProperties": False,
 }
 

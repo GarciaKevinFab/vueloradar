@@ -155,3 +155,57 @@ async def ensure_quota(message, user) -> bool:
     await message.answer(formatting.quota_exceeded_message(quota.limit))
     logger.info("bot: usuario %s bloqueado por cupo", user.telegram_id)
     return False
+
+
+async def run_round_trip(
+    message, user, origin: str, dest: str, outbound_date: date, return_date: date
+) -> None:
+    """Cotiza ida y vuelta: busca los dos tramos y suma el viaje."""
+    try:
+        await _run_round_trip(message, user, origin, dest, outbound_date, return_date)
+    finally:
+        throttle.release_slot()
+
+
+async def _run_round_trip(message, user, origin, dest, outbound_date, return_date) -> None:
+    aviso = await message.answer(
+        f"🔄 Buscando <b>{formatting.escape(origin)} ⇄ {formatting.escape(dest)}</b>\n"
+        f"ida {formatting.format_date(outbound_date)} · "
+        f"vuelta {formatting.format_date(return_date)}…"
+    )
+
+    # Los dos tramos en paralelo: el lock de la fuente ya los serializa donde
+    # importa, y así el usuario espera una vez y no dos.
+    ida, vuelta = await asyncio.gather(
+        db.search_flights(origin, dest, outbound_date),
+        db.search_flights(dest, origin, return_date),
+    )
+
+    if ida is None or vuelta is None:
+        await aviso.edit_text(formatting.system_error_message())
+        return
+
+    await aviso.edit_text(
+        formatting.format_round_trip(
+            origin=origin,
+            dest=dest,
+            outbound_date=outbound_date,
+            return_date=return_date,
+            outbound=ida,
+            inbound=vuelta,
+            show_sale=_can_see_sale_price(message.from_user.id),
+        )
+    )
+    await db.consume_search(user)
+
+
+def _can_see_sale_price(user_id: int) -> bool:
+    """El margen solo lo ve el operador.
+
+    Mandarle a un cliente su cotización con tu ganancia desglosada al lado
+    sería, como mínimo, incómodo.
+    """
+    if not settings.SHOW_SALE_PRICE_TO_ADMIN_ONLY:
+        return True
+    admin = str(settings.TELEGRAM_ADMIN_CHAT_ID or "").strip()
+    return bool(admin) and str(user_id) == admin

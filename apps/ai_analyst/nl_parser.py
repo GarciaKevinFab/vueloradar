@@ -39,12 +39,18 @@ class FlightIntent:
     origin: str | None = None
     dest: str | None = None
     date: date | None = None
+    return_date: date | None = None
     flexible_days: int = 0
 
     @property
     def is_complete(self) -> bool:
         """Tiene todo lo necesario para lanzar una búsqueda."""
         return bool(self.is_flight_search and self.origin and self.dest and self.date)
+
+    @property
+    def is_round_trip(self) -> bool:
+        """Hay vuelta, y es posterior a la ida."""
+        return bool(self.return_date and self.date and self.return_date > self.date)
 
     @property
     def missing(self) -> list[str]:
@@ -118,6 +124,13 @@ def _normalize(crudo: dict, today: date) -> FlightIntent:
 
     fecha = _clean_date(crudo.get("date"), today)
 
+    # La vuelta solo vale si hay ida y es posterior. Una fecha de regreso
+    # anterior a la de salida es un error de lectura del modelo, no un viaje.
+    vuelta = _clean_date(crudo.get("return_date"), today)
+    if vuelta and fecha and vuelta <= fecha:
+        logger.info("nl_parser: fecha de vuelta %s no posterior a la ida, se descarta", vuelta)
+        vuelta = None
+
     flexible = crudo.get("flexible_days") or 0
     try:
         flexible = max(0, min(int(flexible), settings.BOT_MAX_FLEXIBLE_DAYS))
@@ -129,6 +142,7 @@ def _normalize(crudo: dict, today: date) -> FlightIntent:
         origin=origin,
         dest=dest,
         date=fecha,
+        return_date=vuelta,
         flexible_days=flexible,
     )
 
@@ -189,6 +203,9 @@ def _cache_get(clave: str) -> FlightIntent | None:
         origin=crudo.get("origin"),
         dest=crudo.get("dest"),
         date=date.fromisoformat(fecha) if fecha else None,
+        return_date=(
+            date.fromisoformat(crudo["return_date"]) if crudo.get("return_date") else None
+        ),
         flexible_days=crudo.get("flexible_days", 0),
     )
 
@@ -202,6 +219,7 @@ def _cache_set(clave: str, intent: FlightIntent) -> None:
                 "origin": intent.origin,
                 "dest": intent.dest,
                 "date": intent.date.isoformat() if intent.date else None,
+                "return_date": intent.return_date.isoformat() if intent.return_date else None,
                 "flexible_days": intent.flexible_days,
             },
             settings.NL_PARSER_CACHE_TTL,

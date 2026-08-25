@@ -139,6 +139,43 @@ si agregás un aeropuerto, el parser lo entiende sin tocar el prompt.
 | `/alerta LIM CUZ` | Placeholder — el motor llega en Fase 4 |
 | `/ayuda` | Ayuda completa |
 
+### Ida y vuelta
+
+El parser reconoce el viaje completo escrito como lo dice la gente:
+
+```
+"Pasaje para el 16 de octubre iba d dpto a Lima y de lima puerto el 18"
+   -> PEM → LIM el 16/10, vuelta el 18/10
+```
+
+Busca los dos tramos en paralelo, muestra el más barato y el directo de cada
+uno, y **suma el total del viaje**. Si un tramo no tiene vuelos, lo dice en vez
+de inventar un total incompleto.
+
+Aviso que sale siempre: comprar el ida y vuelta **como paquete** en la web de
+la aerolínea suele salir menos que sumar dos pasajes sueltos. El total que da
+el bot es un techo confiable, no la última palabra.
+
+### Precio de venta
+
+Si revendés los pasajes, el bot te muestra la cotización con tu margen:
+
+```
+🏷 Para cotizar al cliente
+  Costo:    S/ 973
+  Tu venta: S/ 1,075
+  Ganancia: S/ 102 (10.5%)
+```
+
+El margen es el **mayor** entre `SALE_MARKUP_PCT` y `SALE_MARKUP_MIN_PEN`: un
+10% sobre un pasaje de S/ 150 son S/ 15, que no paga el trabajo de gestionar la
+compra. El precio final se redondea hacia arriba a múltiplos de
+`SALE_ROUND_TO_PEN` — nadie cotiza S/ 1.070,30.
+
+**Este desglose solo lo ve el admin.** Mandarle a un cliente su cotización con
+tu ganancia al lado sería, como mínimo, incómodo. Se cambia con
+`SHOW_SALE_PRICE_TO_ADMIN_ONLY=False`.
+
 ### Búsqueda flexible
 
 Si el mensaje es vago ("esa semana", "alrededor del 15"), el bot barre la fecha

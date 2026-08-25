@@ -44,7 +44,11 @@ async def handle_free_text(message: Message) -> None:
 
     await pensando.delete()
 
-    if intent.flexible_days > 0:
+    if intent.is_round_trip:
+        await search_flow.run_round_trip(
+            message, user, intent.origin, intent.dest, intent.date, intent.return_date
+        )
+    elif intent.flexible_days > 0:
         await search_flow.run_flexible_search(
             message, user, intent.origin, intent.dest, intent.date, intent.flexible_days
         )
