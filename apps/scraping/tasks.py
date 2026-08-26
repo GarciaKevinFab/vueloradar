@@ -135,19 +135,27 @@ def scan_all_monitored(self, priority_max: int | None = None) -> dict:
         logger.warning("scan_all_monitored: no hay rutas monitoreadas que barrer")
         return {"routes": 0, "dates": 0, "tasks": 0}
 
-    dates = build_scan_dates(timezone.localdate())
+    hoy = timezone.localdate()
+    dates = build_scan_dates(hoy)
+    # Una alerta sobre una fecha que nadie consulta no se dispara nunca. La
+    # granularidad ralla el horizonte lejano de a 3 días, así que las fechas
+    # que a alguien le importan se agregan explícitamente.
+    por_alerta = _alert_dates_by_route(hoy)
     queued = 0
 
     for route in routes:
-        for flight_date in dates:
+        fechas_ruta = sorted(set(dates) | por_alerta.get(route.pk, set()))
+        for flight_date in fechas_ruta:
             scan_route_date.apply_async(
                 args=[route.pk, flight_date.isoformat()], queue="scraping"
             )
             queued += 1
 
+    extra = sum(len(f - set(dates)) for f in por_alerta.values())
     logger.info(
-        "scan_all_monitored: %d rutas x %d fechas = %d consultas encoladas",
-        len(routes), len(dates), queued,
+        "scan_all_monitored: %d rutas x %d fechas = %d consultas encoladas "
+        "(%d extra por fechas con alerta)",
+        len(routes), len(dates), queued, extra,
     )
 
     # Las stats se recalculan cuando el barrido ya tuvo tiempo de aterrizar.
@@ -219,6 +227,32 @@ def pause_source(self, source: str = PRIMARY_SOURCE, seconds: int | None = None)
 
 
 # ------------------------------------------------------------------- internos
+def _alert_dates_by_route(today: Date) -> dict:
+    """Fechas de vuelo con alerta activa, agrupadas por ruta.
+
+    Solo fechas futuras y dentro del horizonte: alertar sobre un vuelo que ya
+    salió no le sirve a nadie, y pedirle a Google algo a dos años tampoco.
+    """
+    from apps.alerts.models import Alert
+
+    limite = today + timedelta(days=settings.SCAN_MAX_HORIZON_DAYS)
+    filas = (
+        Alert.objects.filter(
+            is_active=True,
+            flight_date__isnull=False,
+            flight_date__gt=today,
+            flight_date__lte=limite,
+        )
+        .values_list("route_id", "flight_date")
+        .distinct()
+    )
+
+    agrupadas: dict[int, set] = {}
+    for route_id, flight_date in filas:
+        agrupadas.setdefault(route_id, set()).add(flight_date)
+    return agrupadas
+
+
 def _maybe_pause_source(failures: int) -> None:
     """Dispara la pausa si se alcanzó el umbral de fallos consecutivos."""
     if failures and failures >= settings.SOURCE_MAX_CONSECUTIVE_FAILURES:

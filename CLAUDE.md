@@ -251,6 +251,19 @@ celery -A config beat                                # scheduler
 3. Rutas internacionales desde LIM (mismo motor, solo cambian los seeds).
 4. Canal público de Telegram con las mejores ofertas del día.
 
+### Alertas y granularidad del barrido (2026-08-26)
+
+El barrido ralla el horizonte lejano de a 3 días, así que **una alerta sobre
+una fecha fuera de esa grilla no se disparaba nunca**: nadie consultaba esa
+fecha, así que no había snapshot que evaluar. Fallo silencioso, el peor tipo.
+
+`scan_all_monitored` ahora suma al barrido las fechas de las alertas activas
+(futuras y dentro del horizonte). Cuesta un puñado de consultas extra y hace
+que la función sirva para lo que existe.
+
+Caso real: alerta para LIM→PEM el 18/10 (día +53). La grilla pasaba por el 13,
+16 y 19. Ahora el 18 entra explícitamente.
+
 ### Verificación del stack en Docker (2026-08-23)
 
 Los seis servicios levantados y en `healthy`. Tres bugs que solo aparecieron

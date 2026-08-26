@@ -289,3 +289,82 @@ def test_purge_borra_ofertas_viejas_y_conserva_snapshots(route):
     assert result["deleted"] == 1
     assert FlightOffer.objects.count() == 1
     assert PriceSnapshot.objects.count() == 1, "los snapshots no se purgan nunca"
+
+
+# --------------------------------- fechas con alerta entran al barrido
+@pytest.mark.django_db
+def test_el_barrido_agrega_las_fechas_que_tienen_alerta(peru_airports):
+    """Regresión: una alerta sobre una fecha fuera de la granularidad del
+    barrido nunca se disparaba, porque nadie consultaba esa fecha."""
+    from datetime import date as Date
+
+    from django.utils import timezone
+
+    from apps.alerts.models import Alert
+    from apps.flights.models import Route
+    from apps.scraping.schedule import build_scan_dates
+    from apps.scraping.tasks import scan_all_monitored
+    from apps.users.models import TelegramUser
+
+    ruta = Route.objects.create(origin_id="LIM", destination_id="PEM", is_monitored=True)
+    user = TelegramUser.objects.create(telegram_id=999001, first_name="Test")
+
+    hoy = timezone.localdate()
+    barridas = build_scan_dates(hoy)
+    # Una fecha del horizonte que la granularidad NO cubre.
+    huerfana = next(
+        hoy + timedelta(days=d) for d in range(20, 60)
+        if hoy + timedelta(days=d) not in barridas
+    )
+
+    Alert.objects.create(
+        user=user, route=ruta, alert_type=Alert.TYPE_PRICE_BELOW,
+        target_price_pen=Decimal("300"), flight_date=huerfana,
+    )
+
+    with patch("apps.scraping.tasks.scan_route_date.apply_async") as encolar, \
+         patch("apps.scraping.tasks.compute_route_stats.apply_async"):
+        resultado = scan_all_monitored.apply().get()
+
+    encoladas = {c.kwargs.get("args", c.args[0] if c.args else [None, None])[1]
+                 for c in encolar.call_args_list}
+    assert huerfana.isoformat() in encoladas, "la fecha con alerta debe barrerse"
+    assert resultado["tasks"] == len(barridas) + 1
+
+
+@pytest.mark.django_db
+def test_una_alerta_sin_fecha_no_agrega_nada_al_barrido(peru_airports):
+    from apps.alerts.models import Alert
+    from apps.flights.models import Route
+    from apps.scraping.tasks import scan_all_monitored
+    from apps.users.models import TelegramUser
+
+    ruta = Route.objects.create(origin_id="LIM", destination_id="CUZ", is_monitored=True)
+    user = TelegramUser.objects.create(telegram_id=999002, first_name="Test")
+    Alert.objects.create(
+        user=user, route=ruta, alert_type=Alert.TYPE_DEAL_DETECTED, flight_date=None
+    )
+
+    with patch("apps.scraping.tasks.scan_route_date.apply_async"), \
+         patch("apps.scraping.tasks.compute_route_stats.apply_async"):
+        assert scan_all_monitored.apply().get()["tasks"] == 30
+
+
+@pytest.mark.django_db
+def test_una_fecha_ya_pasada_no_se_barre(peru_airports):
+    from django.utils import timezone
+
+    from apps.alerts.models import Alert
+    from apps.flights.models import Route
+    from apps.scraping.tasks import _alert_dates_by_route
+    from apps.users.models import TelegramUser
+
+    ruta = Route.objects.create(origin_id="LIM", destination_id="AQP", is_monitored=True)
+    user = TelegramUser.objects.create(telegram_id=999003, first_name="Test")
+    Alert.objects.create(
+        user=user, route=ruta, alert_type=Alert.TYPE_PRICE_BELOW,
+        target_price_pen=Decimal("200"),
+        flight_date=timezone.localdate() - timedelta(days=5),
+    )
+
+    assert _alert_dates_by_route(timezone.localdate()) == {}
