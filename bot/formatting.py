@@ -64,6 +64,10 @@ def format_results(
     if contexto:
         lineas += ["", contexto]
 
+    enlace = buy_link([(origin, dest, flight_date)])
+    if enlace:
+        lineas += ["", enlace]
+
     lineas += ["", f"🔔 /alerta {escape(origin)} {escape(dest)} para avisarte si baja más."]
     return "\n".join(lineas)
 
@@ -439,11 +443,17 @@ def format_round_trip(
     if show_sale:
         lineas += ["", _sale_breakdown(total)]
 
+    enlace = buy_link(
+        [(origin, dest, outbound_date), (dest, origin, return_date)],
+        etiqueta="Comprar el ida y vuelta",
+    )
+    if enlace:
+        lineas += ["", enlace]
+
     lineas += [
         "",
-        "<i>Ojo: comprar el ida y vuelta como paquete en la web de la "
-        "aerolínea suele salir menos que sumar dos pasajes sueltos. "
-        "Este total es tu techo.</i>",
+        "<i>Ese link ya busca el paquete completo, que suele salir menos que "
+        "sumar dos pasajes sueltos. Los S/ de arriba son tu techo.</i>",
     ]
     return "\n".join(lineas)
 
@@ -507,3 +517,21 @@ def _trip_line(offer) -> str:
 def _cheapest_nonstop(offers: list):
     directos = [o for o in offers if o.stops == 0]
     return min(directos, key=lambda o: o.price_pen) if directos else None
+
+
+def buy_link(legs: list, *, etiqueta: str = "Ver y comprar en Google Flights") -> str:
+    """Link a Google Flights para los tramos dados.
+
+    Con dos tramos invertidos arma la búsqueda de ida y vuelta, que es donde
+    está el precio de paquete. Devuelve "" si no se pudo construir: un link
+    roto no debe impedir que el usuario vea los precios.
+    """
+    from apps.scraping.providers.google_flights import build_search_url
+
+    try:
+        url = build_search_url(legs)
+    except Exception:  # noqa: BLE001
+        return ""
+    if not url:
+        return ""
+    return f'🔗 <a href="{url}">{escape(etiqueta)}</a>'

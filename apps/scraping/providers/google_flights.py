@@ -287,3 +287,49 @@ def _read_datetime(leg: list, date_index: int, time_index: int) -> datetime | No
         )
     except (TypeError, ValueError):
         return None
+
+
+def build_search_url(
+    legs: list[tuple[str, str, date]],
+    *,
+    currency: str = "PEN",
+    language: str = "es",
+) -> str:
+    """URL de Google Flights para uno o varios tramos.
+
+    Con dos tramos que sean el mismo par invertido arma una búsqueda de **ida y
+    vuelta**, no dos búsquedas sueltas. Eso importa: el precio de paquete suele
+    ser más bajo que la suma de dos pasajes de solo ida, así que este link
+    lleva al usuario justo donde está el mejor precio.
+
+    Devuelve "" si no se puede construir; el caller debe tolerarlo.
+    """
+    if not legs:
+        return ""
+
+    try:
+        flights = [
+            FlightQuery(date=fecha.strftime("%Y-%m-%d"), from_airport=o, to_airport=d)
+            for o, d, fecha in legs
+        ]
+        trip = "round-trip" if _is_round_trip(legs) else "one-way"
+        query = create_query(
+            flights=flights,
+            trip=trip,
+            seat="economy",
+            passengers=Passengers(adults=1),
+            currency=currency,
+            language=language,
+        )
+        return query.url()
+    except Exception:  # noqa: BLE001 - un link roto no vale tumbar la respuesta
+        logger.warning("google_flights: no se pudo armar la URL de %s", legs, exc_info=True)
+        return ""
+
+
+def _is_round_trip(legs: list[tuple[str, str, date]]) -> bool:
+    """Dos tramos con el par invertido y la vuelta posterior a la ida."""
+    if len(legs) != 2:
+        return False
+    (o1, d1, f1), (o2, d2, f2) = legs
+    return o1 == d2 and d1 == o2 and f2 > f1

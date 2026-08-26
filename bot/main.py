@@ -53,7 +53,15 @@ def build_bot() -> Bot:
         raise ImproperlyConfigured(
             "Falta TELEGRAM_TOKEN en el .env. Pedile uno a @BotFather en Telegram."
         )
-    return Bot(token=token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    return Bot(
+        token=token,
+        default=DefaultBotProperties(
+            parse_mode=ParseMode.HTML,
+            # Sin esto Telegram pega una tarjeta de Google debajo de cada
+            # resultado y tapa los precios, que es lo que el usuario vino a ver.
+            link_preview_is_disabled=True,
+        ),
+    )
 
 
 async def run_polling() -> None:

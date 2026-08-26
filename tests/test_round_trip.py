@@ -161,3 +161,65 @@ def test_un_tramo_sin_vuelos_no_inventa_un_total():
     assert "Total del viaje" not in t
     assert "No encontré vuelos" in t and "la ida" in t
     assert "S/ 442" in t, "igual dice cuánto salía el tramo que sí encontró"
+
+
+# ------------------------------------------------------------ link de compra
+def test_la_busqueda_simple_trae_link_de_compra():
+    t = formatting.format_results(
+        origin="LIM", dest="CUZ", flight_date=date(2026, 10, 15),
+        offers=[FakeOffer("201")],
+    )
+
+    assert "google.com/travel/flights" in t
+    assert "comprar" in t.lower()
+
+
+def test_el_link_de_ida_y_vuelta_es_uno_solo_y_de_paquete():
+    """No dos links de solo ida: el paquete es donde está el mejor precio."""
+    from apps.scraping.providers.google_flights import build_search_url
+
+    t = formatting.format_round_trip(
+        origin="PEM", dest="LIM",
+        outbound_date=date(2026, 10, 16), return_date=date(2026, 10, 18),
+        outbound=IDA, inbound=VUELTA,
+    )
+
+    assert t.count("google.com/travel/flights") == 1
+    assert "Comprar el ida y vuelta" in t
+
+    ida_sola = build_search_url([("PEM", "LIM", date(2026, 10, 16))])
+    assert ida_sola not in t, "no debe ser el link de un solo tramo"
+
+
+def test_el_url_de_ida_y_vuelta_difiere_del_de_solo_ida():
+    from apps.scraping.providers.google_flights import build_search_url
+
+    ida = build_search_url([("PEM", "LIM", date(2026, 10, 16))])
+    vuelta_incluida = build_search_url(
+        [("PEM", "LIM", date(2026, 10, 16)), ("LIM", "PEM", date(2026, 10, 18))]
+    )
+
+    assert ida and vuelta_incluida
+    assert ida != vuelta_incluida
+
+
+def test_dos_tramos_que_no_son_ida_y_vuelta():
+    """Cusco a Lima y después Lima a Arequipa no es un round trip."""
+    from apps.scraping.providers.google_flights import _is_round_trip
+
+    assert _is_round_trip([
+        ("CUZ", "LIM", date(2026, 10, 16)), ("LIM", "AQP", date(2026, 10, 18))
+    ]) is False
+    assert _is_round_trip([
+        ("PEM", "LIM", date(2026, 10, 16)), ("LIM", "PEM", date(2026, 10, 18))
+    ]) is True
+
+
+def test_sin_tramos_no_hay_link():
+    assert formatting.buy_link([]) == ""
+
+
+def test_un_link_roto_no_tumba_el_mensaje():
+    with patch("apps.scraping.providers.google_flights.create_query",
+               side_effect=RuntimeError("boom")):
+        assert formatting.buy_link([("LIM", "CUZ", date(2026, 10, 15))]) == ""

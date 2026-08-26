@@ -156,6 +156,16 @@ Aviso que sale siempre: comprar el ida y vuelta **como paquete** en la web de
 la aerolínea suele salir menos que sumar dos pasajes sueltos. El total que da
 el bot es un techo confiable, no la última palabra.
 
+### Link de compra
+
+Cada resultado trae el link a Google Flights. En ida y vuelta es **uno solo y
+apunta a la búsqueda de paquete**, no dos links de solo ida — ahí es donde
+está el precio combinado, que suele ser más bajo que sumar dos pasajes.
+
+La vista previa de enlaces va desactivada (`link_preview_is_disabled`): sin
+eso Telegram pega una tarjeta de Google debajo de cada resultado y tapa
+justamente los precios que el usuario vino a ver.
+
 ### Precio de venta
 
 Si revendés los pasajes, el bot te muestra la cotización con tu margen:
