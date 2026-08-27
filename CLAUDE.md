@@ -121,6 +121,13 @@ vueloradar/
 │   │   └── notify.py         # avisos al admin por Telegram
 │   ├── alerts/               # Alert, AlertTrigger + engine, services, notifications, digest
 │   ├── users/                # TelegramUser + services (cupo diario)
+│   ├── web/                  # capa pública (solo lee, nunca scrapea)
+│   │   ├── verdict.py        # veredicto por fecha y de tendencia (lógica pura)
+│   │   ├── queries.py        # lecturas del histórico para las páginas
+│   │   ├── chart.py          # SVG del histórico, generado en el servidor
+│   │   ├── cloudflare.py     # purga del caché del borde tras cada barrido
+│   │   ├── sitemaps.py       # sitemap.xml
+│   │   └── templates/web/    # base, home, route
 │   └── ai_analyst/
 │       ├── llm_router.py     # cadena con fallback + circuit breaker
 │       ├── analyst.py        # veredicto comprar/esperar
@@ -195,6 +202,7 @@ Fase 2.
 | 3 | Bot de Telegram con búsqueda on-demand y lenguaje natural | 2026-08-22 |
 | 4 | Motor de alertas + veredicto de compra con router de IA | 2026-08-22 |
 | 5 | Docker Compose, scrapers directos, observabilidad, DEPLOY.md | 2026-08-23 |
+| 6 | Capa web pública: fichas por ruta, veredicto, SEO y Cloudflare | 2026-08-26 |
 
 Los prompts originales de cada fase están en `~/Downloads/0X_FASEX_*.md`.
 
@@ -210,7 +218,8 @@ correr el checklist pre-lanzamiento de `DEPLOY.md` en un VPS real.
 | Base de datos | Supabase `htqyzxzqlzjqzhkzemgo` (us-west-2), migrada y poblada |
 | Barrido automático | Beat a las 06:00 y 18:00 hora Perú, ~1.300 consultas por corrida |
 | Bot | [@Vuelosradar_bot](https://t.me/Vuelosradar_bot) (id 8695027914), modo polling |
-| Tests | 227, en verde, sin tocar red ni Supabase |
+| Tests | 336, en verde, sin tocar red ni Supabase |
+| Web pública | 40 rutas en `/vuelos/<ORI>-<DES>/`, veredicto por fecha, CTA al bot, OG, sitemap y robots |
 
 Datos acumulados al 2026-08-23: 20 aeropuertos, 44 rutas monitoreadas, 8.289
 snapshots, 47.395 ofertas crudas, 40 rutas con estadísticas de 30 días.
@@ -232,17 +241,36 @@ celery -A config beat                                # scheduler
   VPS. El primer `build` tarda 10-15 min por Chromium.
 - **Ningún backup fue restaurado.** El `pg_dump` diario está programado, pero
   un backup que nunca se restauró no es un backup (ver `DEPLOY.md` §7).
-- **JetSmart está a medias.** URL verificada, extracción no. Ver notas de Fase 5.
+- **JetSmart: verificado en vivo el 2026-08-27.** No apareció challenge alguno;
+  el deep link sirvió la página completa. El bloqueo del 23-08 no se reprodujo,
+  así que trátese como intermitente. Si vuelve, el provider devuelve `[]` y deja
+  screenshot: **no se escribe código para evadir detección de bots.**
+  Dos correcciones salieron de esa verificación:
+  1. **El calendario es TARIFA BASE, no precio final** — al revés de lo que
+     decía esta nota. Sin `publishes_base_fare = True` sus precios entraban ~30%
+     bajos y habrían disparado alertas falsas.
+  2. `price_for_day` tomaba la primera aparición de un número de día; con la
+     grilla mostrando dos meses, el 6/10 devolvía el precio del 6/09 (175% de
+     error). Ahora sigue el encabezado de mes y **falla cerrado** si no puede
+     desambiguar. En el layout actual no hay días repetidos (30 días, 0
+     colisiones), pero la grilla arrastra días del mes vecino, así que la
+     protección importa.
 
 ### Deuda técnica conocida
 
-- **Sky publica tarifa base, sin impuestos.** Por eso
-  `VERIFY_DEALS_WITH_DIRECT_SCRAPER=False`. Resolver esto es lo que habilitaría
-  la verificación de precios antes de alertar.
+- **Impuestos de Sky: resuelto.** `apps/scraping/taxes.py` convierte tarifa base
+  a precio final (IGV sobre la tarifa, TUUA sumada después) y
+  `DirectScraperProvider.search()` lo aplica a todo proveedor con
+  `publishes_base_fare = True`. La fórmula reproduce al céntimo la observación
+  del 2026-08-23. `VERIFY_DEALS_WITH_DIRECT_SCRAPER` sigue en False, pero ya
+  **no por los impuestos**: falta revalidar los selectores en vivo.
 - **4 rutas sin datos** (CHM y RIM en ambos sentidos): esos aeropuertos no
   tienen servicio comercial regular. Es dato correcto, no un bug.
 - **El histórico todavía es corto para las alertas `deal_detected`**, que
   exigen 20 muestras por ruta. Con dos barridos diarios eso se cumple solo.
+- **`evaluate_trend` necesita 14 días de serie y hay 7.** No es un bug: la web
+  ahora dice cuántos días faltan (`Verdict.missing_days`) en vez de un "no sé"
+  sin plazo. Los veredictos por fecha sí funcionan desde ya.
 
 ### Próximos pasos sugeridos (fuera de las 5 fases)
 
@@ -286,10 +314,63 @@ ignora (el kernel protege al PID 1 de su propio namespace). La prueba válida es
 `kill -TERM 1`, que Celery sí maneja: el contenedor salió, se reinició solo
 (`RestartCount: 1`) y volvió a `healthy`.
 
+### Notas de la Fase 6
+
+- **Dos veredictos, no uno.** `evaluate()` juzga el precio de **una fecha**
+  contra la distribución de la ruta (válido: ese precio es una muestra de esa
+  distribución). `evaluate_trend()` juzga el **mínimo de hoy** contra la serie
+  de mínimos diarios. Mezclarlos fue un bug real: comparar el mínimo entre 46
+  fechas contra la distribución de todas las fechas da "chollo" siempre, por
+  construcción. Si se toca esto, mantener la separación.
+- **Serie plana.** Cuando el precio no se mueve, `p25 == mediana` y el precio
+  de siempre se leía como oferta. Por eso `BUENO` exige además `price < median`.
+- **`evaluate_trend` calla con menos de 14 días** de serie. Hoy hay 7, así que
+  la tendencia dice "sin histórico suficiente" y se resuelve sola en una semana.
+  Los veredictos por fecha sí funcionan desde ya (350+ muestras por ruta).
+- **Los umbrales salen de los mismos settings que las alertas**
+  (`DEAL_P25_FACTOR`, `VERDICT_MIN_SAMPLES`): la web y el bot no pueden decir
+  cosas distintas del mismo precio. Hay un test que lo fija.
+- **Caché en el borde**: las vistas declaran `s-maxage=1800` y
+  `compute_route_stats` purga la zona al terminar. Sin
+  `CLOUDFLARE_API_TOKEN` la purga no corre y solo lo loguea. Ver `DEPLOY-WEB.md`.
+- **La portada usa consultas agregadas** (`bulk_upcoming_prices`,
+  `bulk_price_history`). Pedir el histórico ruta por ruta costaba 121 consultas
+  y 22 s con 40 rutas, y ese costo lo paga entero el primer visitante tras cada
+  purga del borde. Hay un test que fija el máximo de consultas.
+- **Solo se publican rutas con histórico.** `route_detail` filtra por
+  `published_routes()`, igual que el sitemap: CHM y RIM no tienen servicio
+  comercial y devolvían páginas vacías con 200 (pasivo SEO). Ahora son 404.
+- **Estáticos con WhiteNoise** (`STATIC_ROOT`, `CompressedManifestStaticFilesStorage`).
+  Los tests usan el storage plano en `settings_test.py` porque no corren
+  `collectstatic`; sin ese override, `{% static %}` falla por manifiesto ausente.
+- **`500.html` es autocontenida.** Django la renderiza con contexto vacío y sin
+  context processors: no puede heredar de `base.html`. Y ojo, el motor procesa
+  las etiquetas **incluso dentro de comentarios HTML** — un `{% url %}` dentro
+  de un `<!-- -->` rompe la plantilla.
+- **Django fuerza `DEBUG=False` durante los tests**, así que la suite ya
+  ejercita las plantillas de error de producción. Lo que NO cubre es el storage
+  con manifiesto (los tests usan el plano): para eso está
+  `scripts/check_production.py`, que renderiza con `config.settings` reales.
+  Correrlo antes de desplegar; `check --deploy` no resuelve un solo estático.
+- **La web convierte a Telegram con enlace profundo**: el botón de cada ficha
+  apunta a `t.me/<bot>?start=ORI-DES` y `cmd_start_deep_link` resuelve el
+  payload a una ruta. Si el payload no valida, cae en la bienvenida normal.
+  Perder ese contexto desperdicia la única conversión del embudo.
+- **Los activos de marca se derivan de `brand/logo-source.png`** con
+  `scripts/build_brand_assets.py` (iconos con esquinas transparentes y
+  `og.png` de 1200x630). Se corre a mano y los resultados se versionan; por eso
+  Pillow no está en `requirements.txt`. El radio de las esquinas se detecta del
+  propio logo, no está hardcodeado.
+- **`og:image` tiene que ser URL absoluta** o WhatsApp la descarta, y WhatsApp
+  es el canal real de difusión en Perú (94% de penetración).
+- **La web no publica tarifas de Google en crudo**, solo estadísticas propias
+  derivadas del histórico. Es lo que nos hace defendibles y además lo que baja
+  el riesgo de exponer públicamente la dependencia de `fast-flights`.
+
 ### Notas de la Fase 5
 
 - **`DJANGO_SECRET_KEY` no puede tener `$` ni `%`.** Docker Compose interpola los valores del `.env`, así que la clave llegaría mutilada al contenedor y distinta de la local: sesiones y firmas romperían en silencio. Detectado por el warning `"c" variable is not set` de `docker compose config`. La clave se regeneró con un charset seguro.
-- **El precio de Sky en el listado es TARIFA BASE, sin impuestos** ("+ Tasas e impuestos" en la tarjeta). Choca con la regla del dominio de usar siempre precio final, así que Sky **no sirve para comparar contra Google en términos absolutos**. Por eso `VERIFY_DEALS_WITH_DIRECT_SCRAPER` viene en False.
+- **El precio de Sky en el listado es TARIFA BASE, sin impuestos** ("+ Tasas e impuestos" en la tarjeta). Ya no es un bloqueante: Sky se declara con `publishes_base_fare = True` y `DirectScraperProvider.search()` normaliza a precio final vía `apps/scraping/taxes.py`. `VERIFY_DEALS_WITH_DIRECT_SCRAPER` sigue en False solo por la fragilidad de los selectores, no por los impuestos.
 - **La URL de Sky que sirve es la del motor de venta**, `initial-sale.skyairline.com/es/peru?origin=..&destination=..&departureDate=..&flightType=OW&ADT=1`. El buscador público es una SPA sin URL de resultados. Verificado en vivo el 2026-08-23: 7 vuelos LIM-CUZ con horarios y precios en soles.
 - **JetSmart está a medias.** La URL (`booking.jetsmart.com/Flight/InternalSelect`) está verificada, pero el motor está detrás de un challenge anti-bot y aterriza en un **calendario de precios**, no en la lista de vuelos: devuelve el precio del día sin horarios ni número de vuelo. A favor, sus precios **sí incluyen impuestos**. Necesita verificación en vivo antes de habilitarlo.
 - **Los scrapers directos nunca entran al barrido masivo.** `get_active_providers()` devuelve solo Google Flights; los directos salen por `get_providers_for_route()` y únicamente en rutas con `use_direct_scrapers=True`. Un Chromium por consulta x 1.300 consultas sería inviable.

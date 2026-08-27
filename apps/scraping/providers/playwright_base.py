@@ -20,6 +20,7 @@ from pathlib import Path
 from django.conf import settings
 from django.utils import timezone
 
+from ..taxes import base_fare_to_final
 from .base import FlightProvider, PriceParseError, RawFlightOffer, parse_price
 
 logger = logging.getLogger(__name__)
@@ -52,9 +53,13 @@ class DirectScraperProvider(FlightProvider):
     airline_name = ""
 
     def search(self, origin: str, dest: str, date: date) -> list[RawFlightOffer]:
-        """Nunca propaga: ante cualquier fallo devuelve `[]` y deja screenshot."""
+        """Nunca propaga: ante cualquier fallo devuelve `[]` y deja screenshot.
+
+        Normaliza acá, y no en cada scraper, para que la regla "todo precio que
+        sale de un provider es final con impuestos" valga por construcción.
+        """
         try:
-            return self._search(origin, dest, date)
+            return self._normalize(self._search(origin, dest, date))
         except Exception:  # noqa: BLE001
             logger.error(
                 "%s: búsqueda directa fallida para %s→%s en %s",
@@ -64,6 +69,20 @@ class DirectScraperProvider(FlightProvider):
 
     def _search(self, origin: str, dest: str, date: date) -> list[RawFlightOffer]:
         raise NotImplementedError
+
+    def _normalize(self, ofertas: list[RawFlightOffer]) -> list[RawFlightOffer]:
+        """Convierte tarifa base a precio final si la fuente publica base."""
+        if not self.publishes_base_fare:
+            return ofertas
+
+        for oferta in ofertas:
+            base = oferta.price_pen
+            oferta.price_pen = base_fare_to_final(base)
+            logger.debug(
+                "%s: tarifa base S/ %s -> precio final S/ %s",
+                self.source_name, base, oferta.price_pen,
+            )
+        return ofertas
 
     # ------------------------------------------------------------- navegador
     @contextmanager

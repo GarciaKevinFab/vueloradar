@@ -1,14 +1,15 @@
 """Scraper directo de Sky Airline Perú.
 
-ATENCIÓN: **el precio que publica Sky en el listado es TARIFA BASE, sin
-impuestos.** La tarjeta dice literalmente "+ Tasas e impuestos". Eso choca con
-la regla del dominio (CLAUDE.md secc. 3: siempre precio final con impuestos),
-así que este provider **no sirve para comparar contra Google Flights en
-términos absolutos**: siempre va a parecer 20-30% más barato. Sirve para
-confirmar que el vuelo existe y para comparar precios entre fechas.
+**El precio que publica Sky en el listado es TARIFA BASE, sin impuestos** — la
+tarjeta dice literalmente "+ Tasas e impuestos". Como eso choca con la regla del
+dominio (CLAUDE.md secc. 3: siempre precio final), el provider se declara con
+`publishes_base_fare = True` y `DirectScraperProvider.search()` le aplica
+IGV + TUUA antes de devolver nada. De la clase para afuera, las ofertas de Sky
+ya son comparables contra Google Flights.
 
-Por eso `VERIFY_DEALS_WITH_DIRECT_SCRAPER` viene en False: activarlo sin
-resolver primero el tema de los impuestos corrompería las alertas.
+Lo que sigue pendiente NO son los impuestos sino la fragilidad: estos selectores
+se verificaron una sola vez, en vivo, el 2026-08-23. Por eso
+`VERIFY_DEALS_WITH_DIRECT_SCRAPER` sigue en False por defecto.
 
 Los selectores se van a romper cuando Sky cambie su web. Están todos juntos
 arriba con la fecha en que se verificaron. Ante un fallo el scraper deja un
@@ -58,6 +59,9 @@ _STOPS_RE = re.compile(r"\b(\d+)\s*ESCALA", re.IGNORECASE)
 
 class SkyProvider(DirectScraperProvider):
     source_name = "sky"
+    #: El listado de Sky es tarifa base; `DirectScraperProvider.search()` le
+    #: aplica IGV + TUUA antes de devolverla (ver apps/scraping/taxes.py).
+    publishes_base_fare = True
     airline_name = "Sky Airline"
 
     def _search(self, origin: str, dest: str, date: date) -> list[RawFlightOffer]:

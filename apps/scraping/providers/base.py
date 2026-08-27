@@ -131,6 +131,11 @@ class FlightProvider(ABC):
 
     source_name: str
 
+    #: ¿Esta fuente publica tarifa base en vez de precio final con impuestos?
+    #: Si es True, sus ofertas se normalizan antes de salir de `search()`, para
+    #: que el resto del sistema pueda asumir siempre precio final.
+    publishes_base_fare: bool = False
+
     @abstractmethod
     def search(self, origin: str, dest: str, date: date) -> list[RawFlightOffer]:
         """Devuelve las ofertas encontradas, o `[]` si la fuente falló."""
