@@ -22,3 +22,7 @@ scraper_fails/
 
 # Estaticos generados por collectstatic
 staticfiles/
+
+# Credenciales que se pasan a mano; nunca deben versionarse
+.cf-token
+*.token
