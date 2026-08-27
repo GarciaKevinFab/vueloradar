@@ -1,7 +1,7 @@
 {% extends "web/base.html" %}
 
 {% block title %}Privacidad — {{ site_name }}{% endblock %}
-{% block description %}Qué datos guardamos y cuáles no. La web no usa cookies propias ni analítica de terceros; el bot guarda lo mínimo para funcionar.{% endblock %}
+{% block description %}Qué datos guardamos y cuáles no. No ponemos cookies propias ni usamos analítica; el bot guarda lo mínimo para funcionar.{% endblock %}
 {% block og_title %}Privacidad{% endblock %}
 {% block og_description %}Qué datos guardamos, dónde viven y cómo pedir que los borremos.{% endblock %}
 
@@ -21,13 +21,37 @@
 
 <h2>Si solo navegás</h2>
 <div class="card rise d3">
-  <p style="margin:0 0 .85rem"><strong>No guardamos nada tuyo.</strong> No hay cuentas, no hay
-     cookies propias y no tenemos instalada ninguna herramienta de analítica de terceros — ni
-     Google Analytics ni equivalentes.</p>
-  <p class="flat muted">Lo único que ocurre es lo normal de cualquier sitio: nuestro
-     proveedor de infraestructura (Cloudflare) procesa la petición para servirte la página y
-     protegerla de abuso, y conserva registros técnicos según su propia política.</p>
+  <p style="margin:0 0 .85rem"><strong>Nosotros no guardamos nada tuyo.</strong> No hay
+     cuentas, no ponemos cookies propias y no tenemos instalada ninguna herramienta de
+     analítica — ni Google Analytics ni equivalentes.</p>
+  <p class="{% if adsense_client %}muted{% else %}flat muted{% endif %}">Lo normal de
+     cualquier sitio sí ocurre: nuestro proveedor de infraestructura (Cloudflare) procesa la
+     petición para servirte la página y protegerla de abuso, y conserva registros técnicos
+     según su propia política.</p>
+  {% comment %} La declaración está atada a que los anuncios estén realmente
+     activos. Antes esta página afirmaba que no había publicidad mientras el
+     script ya cargaba: una política que se contradice con la propia página no
+     sirve de nada, y además es motivo de rechazo en la revisión de AdSense. {% endcomment %}
+  {% if adsense_client %}
+  <p class="flat muted"><strong>Sí mostramos publicidad de Google AdSense.</strong> Google y
+     sus socios pueden usar cookies o identificadores para mostrar anuncios y medirlos, y esos
+     datos los trata Google bajo su propia política, no nosotros: no recibimos ni guardamos
+     nada de eso. Podés revisar y ajustar qué usa Google en
+     <a class="link" href="https://policies.google.com/technologies/partner-sites"
+        target="_blank" rel="noopener external">cómo Google usa los datos de sitios que usan
+     sus servicios</a> y desactivar la personalización en
+     <a class="link" href="https://myadcenter.google.com/" target="_blank"
+        rel="noopener external">My Ad Center</a>.</p>
+  {% endif %}
 </div>
+
+{% if adsense_client %}
+<div class="card nota mt-1 rise d3">
+  <p class="small flat muted">La publicidad no toca el veredicto. Los precios y las
+     recomendaciones salen del histórico y del mismo cálculo que usa el bot; ningún anunciante
+     puede cambiar lo que esta página dice de un precio.</p>
+</div>
+{% endif %}
 
 <h2>Si pedís un aviso por correo</h2>
 <p>Ahí sí guardamos algo, y solo esto:</p>
@@ -99,15 +123,8 @@
    pertenezcan a una persona menor.</p>
 
 <h2>Cambios</h2>
-<p>Si alguna vez agregamos analítica, publicidad o cualquier tratamiento nuevo de datos,
-   lo diremos acá antes de activarlo y actualizaremos la fecha de esta página.</p>
-
-<div class="card mt-3 sunken">
-  <p class="small muted flat"><strong>Nota.</strong> Esta página describe con
-     exactitud lo que el sistema hace hoy, pero no fue redactada por un abogado y no incluye
-     los datos del titular ni el registro del banco de datos ante la autoridad peruana. Si el
-     proyecto crece, conviene completarlo con asesoría profesional.</p>
-</div>
+<p>Si agregamos analítica o cualquier tratamiento nuevo de datos, lo diremos acá y
+   actualizaremos la fecha de esta página.</p>
 
 <p class="tiny dim mt-4">Última actualización: {{ updated_at|date:"j \d\e F \d\e Y" }}</p>
 {% endblock %}

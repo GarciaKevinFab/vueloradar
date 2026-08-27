@@ -748,6 +748,25 @@ def test_la_verificacion_de_search_console_es_opcional(client, route, stats, set
     assert '<meta name="google-site-verification" content="abc123">' in cuerpo
 
 
+def test_la_privacidad_declara_la_publicidad_cuando_esta_activa(client, settings):
+    """La página no puede afirmar que no hay publicidad mientras el script carga.
+
+    Regresión real: se activó AdSense y esta página siguió diciendo que la web
+    no usaba cookies de terceros. Una política que contradice a la propia
+    página no sirve de nada, y es motivo de rechazo en la revisión de AdSense.
+    """
+    settings.ADSENSE_CLIENT = "ca-pub-0000000000000000"
+    cuerpo = client.get(reverse("web:privacidad")).content.decode()
+    assert "AdSense" in cuerpo
+    assert "myadcenter.google.com" in cuerpo
+
+
+def test_sin_publicidad_la_privacidad_no_la_menciona(client, settings):
+    settings.ADSENSE_CLIENT = ""
+    cuerpo = client.get(reverse("web:privacidad")).content.decode()
+    assert "AdSense" not in cuerpo
+
+
 def test_el_pie_se_separa_del_contenido(client, route, stats):
     """Regresión: `.wrap` es una clase y `footer` un elemento, así que el
     `margin:0 auto;padding:0 1.5rem` de `.wrap` ganaba y dejaba el pie pegado a
