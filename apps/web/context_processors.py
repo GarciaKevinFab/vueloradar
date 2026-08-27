@@ -14,6 +14,9 @@ def site(request):
         "bot_url": f"https://t.me/{usuario}" if usuario else "",
         "builder_name": getattr(settings, "BUILDER_NAME", ""),
         "builder_url": getattr(settings, "BUILDER_URL", ""),
+        # Vacío = crédito en texto. Ver la nota en settings: `{% static %}` con
+        # manifiesto revienta si el archivo no está en disco.
+        "builder_logo": getattr(settings, "BUILDER_LOGO", ""),
         # Sin ID de editor no se renderiza ni el hueco ni el script: un
         # contenedor vacío reservando alto desplaza el contenido para nada.
         "adsense_client": getattr(settings, "ADSENSE_CLIENT", ""),

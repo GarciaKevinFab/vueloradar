@@ -716,6 +716,32 @@ def test_el_credito_del_pie_sale_por_configuracion(client, route, stats, setting
     assert 'class="foot-by"' not in cuerpo
 
 
+def test_el_pie_se_separa_del_contenido(client, route, stats):
+    """Regresión: `.wrap` es una clase y `footer` un elemento, así que el
+    `margin:0 auto;padding:0 1.5rem` de `.wrap` ganaba y dejaba el pie pegado a
+    la última tarjeta. El selector tiene que llevar las dos cosas."""
+    cuerpo = client.get(reverse("web:home")).content.decode()
+    assert "footer.wrap{" in cuerpo
+    # Un `footer{` a secas volvería a perder contra `.wrap`.
+    assert "\nfooter{" not in cuerpo
+
+
+def test_el_logo_del_constructor_es_opcional(client, route, stats, settings):
+    """Sin BUILDER_LOGO no se referencia un estático que puede no existir:
+    `{% static %}` con manifiesto revienta en producción si falta el archivo."""
+    settings.BUILDER_LOGO = ""
+    cuerpo = client.get(reverse("web:home")).content.decode()
+    assert 'class="foot-by"' in cuerpo
+    marca_pie = cuerpo.split('class="foot-by"')[1].split("</span>")[0]
+    assert "<img" not in marca_pie
+
+
+def test_con_logo_configurado_el_pie_lo_muestra(client, route, stats, settings):
+    settings.BUILDER_LOGO = "web/sisac-logo.png"
+    cuerpo = client.get(reverse("web:home")).content.decode()
+    assert "sisac-logo.png" in cuerpo
+
+
 def test_el_pie_mantiene_la_promesa_que_sostiene_la_marca(client, route, stats):
     cuerpo = client.get(reverse("web:home")).content.decode()
     assert "No vendemos pasajes ni cobramos comisión." in cuerpo

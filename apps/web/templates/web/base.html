@@ -247,8 +247,13 @@ tbody tr:hover{background:var(--bg-sunk)}
    Antes eran cuatro parrafos apilados y la promesa que sostiene la marca
    quedaba enterrada entre el aviso legal y el disclaimer. En columnas cada
    cosa ocupa el peso que le toca.                                         */
-footer{margin:5rem 0 0;padding:2.5rem 0 3rem;border-top:1px solid var(--line);
-  color:var(--ink-2);font-size:.875rem}
+/* `.wrap` es una CLASE y `footer` un ELEMENTO: la clase gana en especificidad,
+   asi que su `margin:0 auto;padding:0 1.5rem` anulaba el margen y el padding
+   superior del pie y lo dejaba pegado a la ultima tarjeta. Venia asi desde
+   antes. El selector lleva las dos, y el `auto` horizontal se repite: sin el,
+   el pie se descentra.                                                     */
+footer.wrap{margin:6rem auto 0;padding:2.5rem 1.5rem 3rem;
+  border-top:1px solid var(--line);color:var(--ink-2);font-size:.875rem}
 .foot-grid{display:grid;gap:2rem;grid-template-columns:1.7fr 1fr 1fr;align-items:start}
 @media (max-width:44rem){
   .foot-grid{grid-template-columns:1fr 1fr;gap:1.75rem}
@@ -266,16 +271,23 @@ footer{margin:5rem 0 0;padding:2.5rem 0 3rem;border-top:1px solid var(--line);
 .foot-list li+li{margin-top:.45rem}
 .foot-list a{color:var(--ink-2)}
 .foot-list a:hover{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
-.foot-bar{display:flex;flex-wrap:wrap;gap:.5rem 1.25rem;align-items:center;
-  margin-top:2.5rem;padding-top:1.25rem;border-top:1px solid var(--line);
+/* Las columnas de enlaces se alinean opticamente con la marca, que es mas
+   alta: sin este empujon los titulillos flotan por encima del logotipo. */
+.foot-grid nav{padding-top:.4rem}
+.foot-bar{display:flex;flex-wrap:wrap;gap:.75rem 1.25rem;align-items:center;
+  margin-top:2.75rem;padding-top:1.25rem;border-top:1px solid var(--line);
   color:var(--ink-3);font-size:.8125rem}
-.foot-by{margin-left:auto}
+.foot-by{margin-left:auto;display:inline-flex;align-items:center;gap:.5rem}
+.foot-by img{width:1.5rem;height:1.5rem;display:block;border-radius:.25rem;
+  /* El logotipo viene sobre blanco: en el tema oscuro un fondo claro propio
+     evita el recorte sucio que deja un PNG sin transparencia real. */
+  background:#fff;padding:1px}
 .foot-by a{color:var(--ink-2);font-weight:600}
 .foot-by a:hover{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
 @media (max-width:44rem){
   .foot-by{margin-left:0}
   /* El boton flotante tapa la ultima linea del pie si no le hacemos sitio. */
-  footer{padding-bottom:6rem}
+  footer.wrap{padding-bottom:6rem}
 }
 
 /* --- Boton flotante al bot ---------------------------------------------
@@ -422,6 +434,8 @@ footer{margin:5rem 0 0;padding:2.5rem 0 3rem;border-top:1px solid var(--line);
       <p>Por eso podemos decirte que esperes — un comparador que gana con tu clic nunca
          lo hará.{% if adsense_client %} Los anuncios que ves no dependen de que compres,
          así que tampoco mueven el veredicto.{% endif %}</p>
+      <p class="tiny dim">Los precios cambian a cada momento. Verificá siempre en la
+         aerolínea antes de comprar.</p>
     </div>
 
     <nav aria-label="Secciones del sitio">
@@ -445,10 +459,15 @@ footer{margin:5rem 0 0;padding:2.5rem 0 3rem;border-top:1px solid var(--line);
 
   <div class="foot-bar">
     <span>© {% now "Y" %} {{ site_name }}</span>
-    <span>Los precios cambian a cada momento. Verificá siempre en la aerolínea antes de comprar.</span>
     {% if builder_name %}
-    <span class="foot-by">Hecho por
-      <a href="{{ builder_url }}" target="_blank" rel="noopener external">{{ builder_name }}</a></span>
+    <span class="foot-by">
+      {% comment %} El logotipo es opcional: sin BUILDER_LOGO queda el crédito en
+         texto. Referenciar un estático inexistente reventaría el manifiesto de
+         WhiteNoise en producción, así que no se asume que el archivo esté. {% endcomment %}
+      {% if builder_logo %}<img src="{% static builder_logo %}" alt="" width="24" height="24">{% endif %}
+      <span>Hecho por
+        <a href="{{ builder_url }}" target="_blank" rel="noopener external">{{ builder_name }}</a></span>
+    </span>
     {% endif %}
   </div>
 </footer>
