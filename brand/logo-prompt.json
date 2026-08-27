@@ -1,0 +1,101 @@
+{
+  "brand": {
+    "name": "VueloRadar",
+    "domain": "vueloradar.com",
+    "market": "Perú — vuelos domésticos",
+    "language": "es-PE",
+    "positioning": "El único que te dice si el precio de hoy es bueno, con el histórico real de la ruta. No vende pasajes ni cobra comisión: por eso puede decirte que esperes.",
+    "personality": [
+      "honesto",
+      "técnico",
+      "sobrio",
+      "confiable",
+      "sin hype comercial"
+    ],
+    "must_not_feel_like": "agencia de viajes, promoción de ofertas, turismo tropical"
+  },
+  "concept": {
+    "core_idea": "Un barrido de radar cuyo arco es también una curva de precio. Une las dos mitades del producto: rastreo continuo (radar) e histórico de precios (curva).",
+    "rationale": "El nombre ya dice 'radar'. La curva evita que el logo sea un radar genérico y comunica el activo real: la serie histórica que ningún competidor puede reconstruir hacia atrás.",
+    "avoid_literal": "No es un logo de aerolínea. El avión, si aparece, es un punto o un trazo mínimo, nunca el protagonista."
+  },
+  "deliverables": [
+    {
+      "id": "primary_mark",
+      "use": "Marca principal, cuadrada, para app icon y redes",
+      "canvas": "512x512",
+      "format": "SVG vectorial plano, exportable a PNG",
+      "prompt": "Marca vectorial plana, cuadrada con esquinas redondeadas (radio 22%), sobre fondo azul sólido #0054D4. Dentro, en blanco puro: dos arcos concéntricos finos y muy tenues sugiriendo anillos de radar, y sobre ellos un único trazo continuo y grueso que sale del centro y asciende hacia la esquina superior derecha, terminando en un punto sólido. El trazo debe leerse simultáneamente como haz de radar y como curva de precio. Geometría limpia, grosores consistentes, extremos redondeados. Sin texto, sin degradados, sin sombras, sin brillos, sin perspectiva 3D."
+    },
+    {
+      "id": "favicon",
+      "use": "Pestaña del navegador y marcadores",
+      "canvas": "32x32 y 16x16",
+      "format": "SVG + ICO",
+      "prompt": "Reducción extrema de la marca principal a su gesto mínimo: el trazo diagonal ascendente desde el centro hasta un punto sólido, sobre el cuadrado azul #0054D4 con esquinas redondeadas. Eliminar los anillos concéntricos si no sobreviven a 16 píxeles. Máximo dos elementos.",
+      "hard_constraint": "Legible a 16x16. Si un elemento no se distingue a ese tamaño, se elimina, no se adelgaza."
+    },
+    {
+      "id": "horizontal_lockup",
+      "use": "Cabecera del sitio, junto al nombre",
+      "canvas": "proporción aproximada 4:1",
+      "format": "SVG",
+      "prompt": "La marca cuadrada a la izquierda, y a la derecha el wordmark 'VueloRadar' en una sans-serif geométrica de peso semibold, en el color de texto del sitio (no en azul). 'Vuelo' y 'Radar' sin espacio, diferenciados solo por la mayúscula intermedia. Espaciado óptico entre símbolo y texto igual a la mitad del alto del símbolo. Sin eslogan.",
+      "note": "El wordmark debe funcionar en modo claro (#14171A) y oscuro (#E8EAED); entregar ambas variantes."
+    },
+    {
+      "id": "monochrome",
+      "use": "Fondos de un solo color, sellos, favicon de respaldo",
+      "format": "SVG",
+      "prompt": "Versión de un solo color: el símbolo calado en blanco sobre negro sólido, y su inversa. Sin ningún azul. Debe conservar la silueta reconocible."
+    }
+  ],
+  "palette": {
+    "primary": "#0054D4",
+    "primary_dark_mode": "#8AB4F8",
+    "ink_light": "#14171A",
+    "ink_dark": "#E8EAED",
+    "surface_light": "#FFFFFF",
+    "surface_dark": "#0F1115",
+    "note": "Azul muestreado del logo definitivo (brand/logo-source.png) y usado como acento del sitio. La marca debe verse correcta sobre #FFFFFF y sobre #0F1115."
+  },
+  "style_constraints": {
+    "style": "flat vector, geometric, minimal, grid-based",
+    "stroke": "grosor uniforme, terminaciones redondeadas",
+    "max_elements": 3,
+    "text_in_mark": false,
+    "must_work_in": [
+      "16x16",
+      "monocromo",
+      "fondo claro",
+      "fondo oscuro"
+    ],
+    "file_targets": [
+      "SVG optimizado sin metadatos de editor",
+      "PNG 512/192/32",
+      "ICO 32+16"
+    ]
+  },
+  "negative_prompt": "degradados, mesh gradients, sombras, glow, neón, bisel, efecto 3D, fotorrealismo, mockups, avión comercial detallado, estela de vapor, globo terráqueo, pin de mapa, maleta, pasaporte, palmeras, montañas, iconografía inca o turística, banderas, texto dentro del ícono, mascotas, ilustración orgánica, trazo a mano alzada, más de dos colores",
+  "acceptance_criteria": [
+    "Se distingue a 16x16 en una pestaña con otras diez pestañas abiertas.",
+    "Funciona en monocromo sin perder identidad.",
+    "No parece el logo de una aerolínea ni de una agencia de viajes.",
+    "El trazo se lee como radar y como curva de precio, no solo como una flecha.",
+    "El SVG final pesa menos de 3 KB y no depende de fuentes externas."
+  ],
+  "integration": {
+    "source": "brand/logo-source.png",
+    "generator": "scripts/build_brand_assets.py",
+    "outputs": [
+      "apps/web/static/web/favicon.ico",
+      "apps/web/static/web/favicon-32.png",
+      "apps/web/static/web/apple-touch-icon.png",
+      "apps/web/static/web/icon-192.png",
+      "apps/web/static/web/icon-512.png",
+      "apps/web/static/web/og.png"
+    ],
+    "referenced_from": "apps/web/templates/web/base.html",
+    "note": "Reemplazar brand/logo-source.png y correr `python scripts/build_brand_assets.py` seguido de `manage.py collectstatic`. No hay que tocar plantillas: el radio de las esquinas se detecta del propio logo."
+  }
+}

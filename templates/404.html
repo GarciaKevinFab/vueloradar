@@ -1,0 +1,11 @@
+{% extends "web/base.html" %}
+
+{% block title %}Página no encontrada — {{ site_name }}{% endblock %}
+{% block description %}La página que buscás no existe.{% endblock %}
+
+{% block content %}
+<h1>Esta página no existe</h1>
+<p class="sub">Puede que la ruta no esté entre las que monitoreamos, o que todavía no
+   tengamos histórico suficiente para publicarla.</p>
+<p><a href="{% url 'web:home' %}">Ver todas las rutas con precios</a></p>
+{% endblock %}

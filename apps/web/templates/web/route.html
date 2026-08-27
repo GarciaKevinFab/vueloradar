@@ -1,0 +1,152 @@
+{% extends "web/base.html" %}
+
+{% block title %}Vuelos {{ route.origin.city }} a {{ route.destination.city }}: ¿es buen precio hoy? — {{ site_name }}{% endblock %}
+{% block description %}Vuelos {{ route.origin.city }} a {{ route.destination.city }}{% if desde %} desde S/ {{ desde|floatformat:0 }}{% endif %}: qué fechas están a buen precio y cuáles no, según el histórico real de los últimos 30 días.{% endblock %}
+
+{% block og_title %}{{ route.origin.city }} → {{ route.destination.city }}{% if desde %} desde S/ {{ desde|floatformat:0 }}{% endif %}{% endblock %}
+{% block og_description %}{% if baratas %}{{ baratas|length }} de {{ fechas|length }} fechas están a buen precio hoy.{% else %}Ninguna fecha está barata hoy en esta ruta.{% endif %} Según el histórico real de los últimos 30 días.{% endblock %}
+
+{% block head_extra %}
+<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+{# Dataset: describimos con honestidad lo que la página realmente publica. #}
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Dataset",
+ "name":"Histórico de precios de vuelos {{ route.origin_id }}-{{ route.destination_id }}",
+ "description":"Precios mínimos observados dos veces al día para la ruta {{ route.origin.city }} a {{ route.destination.city }}, en soles y con impuestos incluidos.",
+ "temporalCoverage":"P{{ history_days }}D",
+ "isAccessibleForFree":true,
+ "creator":{"@type":"Organization","name":"{{ site_name }}"}}
+</script>
+{% endblock %}
+
+{% block content %}
+<h1>{{ route.origin.city }} → {{ route.destination.city }}</h1>
+<p class="sub">{{ route.origin.name }} ({{ route.origin_id }}) a {{ route.destination.name }} ({{ route.destination_id }}){% if not route.has_direct_flights %} · sin vuelo directo, se arma vía Lima{% endif %}</p>
+
+<div class="card">
+  {% if desde %}
+    <div class="verdict">
+      <span class="price">desde S/ {{ desde|floatformat:0 }}</span>
+      {% if trend.is_actionable %}
+        <span class="badge" style="background:{{ trend.color }}">La ruta hoy: {{ trend.label|lower }}</span>
+      {% endif %}
+    </div>
+    <p style="margin:12px 0 0">
+      {% if trend.is_actionable %}
+        <strong>{{ trend.action }}.</strong>
+        {% if trend.vs_median_pct < 0 %}
+          Lo más barato de esta ruta está hoy un <strong>{{ trend.vs_median_pct|cut:"-" }}% por debajo</strong>
+          de lo que suele estar.
+        {% elif trend.vs_median_pct > 0 %}
+          Lo más barato de esta ruta está hoy un <strong>{{ trend.vs_median_pct }}% por encima</strong>
+          de lo habitual.
+        {% else %}
+          Está en línea con lo habitual.
+        {% endif %}
+      {% else %}
+        Todavía no podemos juzgar si la ruta está barata hoy:
+        {% if trend.missing_days %}nos faltan <strong>{{ trend.missing_days }} día{{ trend.missing_days|pluralize }}</strong>
+        de histórico{% else %}nos falta histórico{% endif %}, y sumamos uno por día.
+        {% if baratas %}Aun así, ya podemos decirte qué fechas concretas están a buen precio.{% endif %}
+      {% endif %}
+    </p>
+    {% if baratas %}
+      <p class="small" style="margin:10px 0 0"><strong>{{ baratas|length }} de {{ fechas|length }} fechas</strong>
+         están hoy a buen precio{% if caras %}, y {{ caras|length }} están caras{% endif %}.</p>
+    {% endif %}
+  {% else %}
+    <p class="muted" style="margin:0">Sin precios vigentes para esta ruta en las últimas 36 horas.</p>
+  {% endif %}
+</div>
+
+{% if stats and stats.median_30d %}
+<div class="grid">
+  <div class="stat"><span class="muted small">Mediana 30 días</span><b>S/ {{ stats.median_30d|floatformat:0 }}</b></div>
+  <div class="stat"><span class="muted small">Buen precio bajo</span><b>S/ {{ stats.p25_30d|floatformat:0 }}</b></div>
+  <div class="stat"><span class="muted small">Promedio 30 días</span><b>S/ {{ stats.avg_30d|floatformat:0 }}</b></div>
+  {% if all_time_low %}
+  <div class="stat"><span class="muted small">Mínimo histórico</span><b>S/ {{ all_time_low.min_price_pen|floatformat:0 }}</b></div>
+  {% endif %}
+</div>
+{% endif %}
+
+<h2>Cómo se movió el precio</h2>
+{% if chart.is_empty %}
+  <p class="muted">Todavía no hay suficientes días de histórico para dibujar la curva.</p>
+{% else %}
+  <div class="scroll">
+    <svg viewBox="0 0 {{ chart.width }} {{ chart.height }}" width="100%" height="220"
+         role="img" aria-label="Precio mínimo diario de los últimos {{ history_days }} días">
+      <path class="area" d="{{ chart.area }}"/>
+      <polyline class="line" points="{{ chart.line }}"/>
+    </svg>
+  </div>
+  <p class="muted small">Precio más barato observado cada día · últimos {{ history_days }} días ·
+     rango S/ {{ chart.min_price|floatformat:0 }} – S/ {{ chart.max_price|floatformat:0 }}</p>
+{% endif %}
+
+{% if bot_url %}
+<div class="cta">
+  <h3>Te avisamos cuando baje</h3>
+  <p>Seguimos {{ route.origin.city }} → {{ route.destination.city }} dos veces al día.
+     Si aparece un precio realmente bajo, te llega el aviso sin que tengas que volver.</p>
+  <a class="btn" href="{{ bot_url }}?start={{ route.origin_id }}-{{ route.destination_id }}"
+     rel="noopener">Activar alerta en Telegram</a>
+</div>
+{% endif %}
+
+{% if cheapest %}
+<h2>Las fechas más baratas ahora mismo</h2>
+<table>
+  <thead><tr><th>Fecha de vuelo</th><th>Veredicto</th><th class="num">Precio</th></tr></thead>
+  <tbody>
+    {% for d in cheapest %}
+    <tr><td>{{ d.day|date:"l j \d\e F" }}</td>
+        <td><span class="badge" style="background:{{ d.verdict.color }}">{{ d.verdict.label }}</span></td>
+        <td class="num">S/ {{ d.price|floatformat:0 }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if fechas %}
+<h2>Calendario de precios</h2>
+<div class="scroll">
+<table>
+  <thead><tr><th>Fecha</th><th>Veredicto</th><th class="num">Precio mínimo</th></tr></thead>
+  <tbody>
+    {% for d in fechas %}
+    <tr><td>{{ d.day|date:"D j M Y" }}</td>
+        <td><span class="badge" style="background:{{ d.verdict.color }}">{{ d.verdict.label }}</span></td>
+        <td class="num">S/ {{ d.price|floatformat:0 }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+
+{% if not related.is_empty %}
+<h2>Otras rutas</h2>
+{% if related.inverse %}
+  <p>¿Volvés? Mirá <a href="{% url 'web:route' related.inverse.origin_id related.inverse.destination_id %}">{{ related.inverse.origin.city }} → {{ related.inverse.destination.city }}</a>.</p>
+{% endif %}
+{% if related.from_origin %}
+  <p class="muted small" style="margin-bottom:0">Desde {{ route.origin.city }}</p>
+  <ul class="chips">
+    {% for r in related.from_origin %}
+    <li><a href="{% url 'web:route' r.origin_id r.destination_id %}">{{ r.destination.city }}</a></li>
+    {% endfor %}
+  </ul>
+{% endif %}
+{% if related.to_destination %}
+  <p class="muted small" style="margin:16px 0 0">Hacia {{ route.destination.city }}</p>
+  <ul class="chips">
+    {% for r in related.to_destination %}
+    <li><a href="{% url 'web:route' r.origin_id r.destination_id %}">desde {{ r.origin.city }}</a></li>
+    {% endfor %}
+  </ul>
+{% endif %}
+{% endif %}
+
+<p class="muted small" style="margin-top:24px">Actualizado {{ updated_at|date:"j \d\e F, H:i" }} (hora de Perú).</p>
+{% endblock %}

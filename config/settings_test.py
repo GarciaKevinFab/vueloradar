@@ -31,3 +31,10 @@ CELERY_TASK_EAGER_PROPAGATES = False
 # Sin credenciales de Telegram: send_admin_alert corta antes de tocar la red.
 TELEGRAM_TOKEN = ""
 TELEGRAM_ADMIN_CHAT_ID = ""
+
+# Los tests no corren `collectstatic`, asi que el storage con manifiesto no
+# encontraria las entradas. En tests basta el storage plano.
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}

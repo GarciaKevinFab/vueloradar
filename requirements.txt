@@ -24,6 +24,8 @@ rich==13.9.4
 
 # --- Producción (Fase 5) ---
 gunicorn==26.1.0
+# Sirve los estaticos del admin sin nginx: detras de Cloudflare no hace falta mas.
+whitenoise==6.11.0
 # Scrapers directos de respaldo: Sky y JetSmart.
 playwright==1.62.0
 python-json-logger==4.2.0

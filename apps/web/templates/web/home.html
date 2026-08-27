@@ -1,0 +1,53 @@
+{% extends "web/base.html" %}
+
+{% block title %}Precios de vuelos en Perú: histórico real y cuándo comprar — {{ site_name }}{% endblock %}
+{% block description %}Histórico real de precios de {{ total_rutas }} rutas domésticas en Perú. Te decimos qué fechas están baratas y cuáles no, con datos observados dos veces al día.{% endblock %}
+
+{% block og_title %}¿El precio de hoy es bueno? — {{ site_name }}{% endblock %}
+{% block og_description %}Histórico real de {{ total_rutas }} rutas domésticas peruanas. Te decimos qué fechas están baratas y cuáles conviene dejar pasar.{% endblock %}
+
+{% block content %}
+<h1>¿Qué fechas están realmente baratas?</h1>
+<p class="sub">Seguimos {{ total_rutas }} rutas domésticas peruanas dos veces al día y guardamos cada
+   precio. Con ese histórico te decimos qué fechas valen la pena y cuáles conviene dejar pasar.</p>
+
+<h2>Rutas monitoreadas</h2>
+<ul class="routes">
+  {% for r in rutas %}
+  <li>
+    <span>
+      <span class="r"><a href="{% url 'web:route' r.route.origin_id r.route.destination_id %}">{{ r.route.origin.city }} → {{ r.route.destination.city }}</a></span>
+      <span class="muted small">&nbsp;{{ r.route.code }}</span>
+      {% if r.baratas %}
+        <div class="muted small">{{ r.baratas }} de {{ r.fechas }} fechas a buen precio</div>
+      {% elif r.fechas %}
+        <div class="muted small">ninguna de {{ r.fechas }} fechas está barata hoy</div>
+      {% endif %}
+    </span>
+    <span style="text-align:right">
+      {% if r.desde %}<b>desde S/ {{ r.desde|floatformat:0 }}</b>{% else %}<span class="muted small">sin dato</span>{% endif %}
+      {% if r.trend.is_actionable %}
+        <div><span class="badge" style="background:{{ r.trend.color }}">{{ r.trend.label }}</span></div>
+      {% endif %}
+    </span>
+  </li>
+  {% empty %}
+  <li class="muted">Todavía no hay rutas con histórico publicado.</li>
+  {% endfor %}
+</ul>
+
+{% if bot_url %}
+<div class="cta">
+  <h3>No vuelvas a mirar: te avisamos</h3>
+  <p>Poné la ruta que te interesa en el bot y te escribimos cuando el precio caiga
+     de verdad, no cuando una aerolínea lo llame oferta.</p>
+  <a class="btn" href="{{ bot_url }}" rel="noopener">Abrir el bot en Telegram</a>
+</div>
+{% endif %}
+
+<h2>Cómo leemos los precios</h2>
+<p class="muted small">Cada fecha se compara contra la distribución de precios de su propia ruta en los
+   últimos 30 días. Una fecha es «buen precio» si cae en el cuarto más barato, y «chollo» si además
+   está un 10% por debajo de ese umbral. Cuando no tenemos observaciones suficientes lo decimos, en
+   vez de inventar un veredicto.</p>
+{% endblock %}

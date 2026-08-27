@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Error del servidor</title>
+<!-- Autocontenida a proposito: Django renderiza 500.html con un contexto
+     vacio y sin context processors, asi que no puede heredar de base.html
+     ni usar variables o etiquetas de plantilla. Ojo: el motor procesa las
+     etiquetas incluso dentro de comentarios HTML como este. -->
+<style>
+  :root{color-scheme:light dark}
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+       font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+       background:#fff;color:#14171a;text-align:center;padding:24px}
+  @media (prefers-color-scheme:dark){body{background:#0f1115;color:#e8eaed}}
+  h1{font-size:24px;margin:0 0 10px}
+  p{color:#5f6368;margin:0 0 18px}
+  a{color:#0054d4}
+  @media (prefers-color-scheme:dark){a{color:#8ab4f8}}
+</style>
+</head>
+<body>
+<div>
+  <h1>Algo se rompió de nuestro lado</h1>
+  <p>Ya estamos avisados. Probá de nuevo en un momento.</p>
+  <p><a href="/">Volver al inicio</a></p>
+</div>
+</body>
+</html>

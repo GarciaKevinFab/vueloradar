@@ -397,6 +397,9 @@ de perderse.
 - [ ] `DJANGO_DEBUG=False`, `ALLOWED_HOSTS` correcto, `SECRET_KEY` nueva
 - [ ] `DJANGO_ADMIN_PATH` cambiado y contraseña de superusuario fuerte
 - [ ] `manage.py check --deploy` sin issues
+- [ ] `python scripts/check_production.py` en verde — renderiza las páginas
+      con los ajustes reales y resuelve el manifiesto de estáticos, que
+      `check --deploy` no toca (ver `DEPLOY-WEB.md`)
 - [ ] `/healthz` devuelve `database: ok`
 - [ ] **Un backup restaurado con éxito al menos una vez** (paso 7)
 - [ ] Barrido completo corriendo 48h sin intervención

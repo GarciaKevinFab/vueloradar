@@ -46,16 +46,21 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sitemaps",
+    "django.contrib.humanize",
     # apps del proyecto
     "apps.flights",
     "apps.scraping",
     "apps.users",
     "apps.alerts",
     "apps.ai_analyst",
+    "apps.web",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Justo despues de SecurityMiddleware, como pide la doc de WhiteNoise.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -71,13 +76,15 @@ ASGI_APPLICATION = "config.asgi.application"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        # 404.html y 500.html viven fuera de las apps: son del proyecto.
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "apps.web.context_processors.site",
             ],
         },
     },
@@ -115,12 +122,29 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # ------------------------------------------------------------ i18n / zona horaria
+# Marca del sitio publico. Se cambia por entorno sin tocar plantillas.
+SITE_NAME = os.getenv("SITE_NAME", "VueloRadar")
+# Usuario del bot, para los enlaces profundos desde la web (web -> Telegram).
+TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "Vuelosradar_bot")
+
+# Cloudflare: token con permiso "Zone > Cache Purge" sobre la zona del sitio.
+# Vacío en desarrollo: sin esto la purga simplemente no ocurre.
+CLOUDFLARE_API_TOKEN = os.getenv("CLOUDFLARE_API_TOKEN", "")
+CLOUDFLARE_ZONE_ID = os.getenv("CLOUDFLARE_ZONE_ID", "")
+
 LANGUAGE_CODE = "es"
 TIME_ZONE = "America/Lima"
 USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+# `collectstatic` deja aca los estaticos del admin; WhiteNoise los sirve
+# comprimidos y con hash, y Cloudflare los cachea en el borde.
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
 
 # ------------------------------------------------------------------ Redis / cache
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
@@ -298,6 +322,12 @@ PREMIUM_MAX_ALERTS = int(os.getenv("PREMIUM_MAX_ALERTS", "20"))
 # el precio no bajó al menos un 5% respecto del último aviso.
 ALERT_COOLDOWN_HOURS = 12
 ALERT_MIN_DROP_PCT = Decimal("5")
+
+# Impuestos de vuelos domésticos PE, para normalizar proveedores que publican
+# tarifa base (ver apps/scraping/taxes.py). Verificados el 2026-08-23; la TUUA
+# la fija el operador del aeropuerto y cambia, así que vive en settings.
+IGV_RATE = Decimal("0.18")
+TUUA_NACIONAL_PEN = Decimal("30.47")
 
 # deal_detected: precio en el 10% más barato observado (p25 x 0.90), y solo
 # con histórico suficiente para que el percentil signifique algo.

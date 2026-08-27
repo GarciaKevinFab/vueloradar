@@ -19,3 +19,6 @@ celerybeat-schedule*
 backups/
 scraper_fails/
 *.stackdump
+
+# Estaticos generados por collectstatic
+staticfiles/

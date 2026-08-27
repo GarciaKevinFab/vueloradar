@@ -122,7 +122,8 @@ def test_ruta_sin_snapshots_no_genera_stats(peru_airports):
     route = Route.objects.create(origin_id="LIM", destination_id="PEM")
     result = compute_route_stats.apply(args=[route.pk]).get()
 
-    assert result == {"updated": 0, "skipped": 1}
+    # `cache_purged` es False: sin rutas actualizadas no hay borde que purgar.
+    assert result == {"updated": 0, "skipped": 1, "cache_purged": False}
     assert not RouteStats.objects.filter(route=route).exists()
 
 

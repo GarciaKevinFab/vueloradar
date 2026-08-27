@@ -20,6 +20,7 @@ from django.utils import timezone
 
 from apps.flights.models import FlightOffer, PriceSnapshot, Route, RouteStats
 from apps.flights.stats import compute_stats
+from apps.web.cloudflare import purge_everything
 
 from . import ratelimit
 from .notify import send_admin_alert
@@ -195,7 +196,11 @@ def compute_route_stats(self, route_id: int | None = None) -> dict:
         updated += 1
 
     logger.info("compute_route_stats: %d rutas actualizadas, %d sin histórico", updated, skipped)
-    return {"updated": updated, "skipped": skipped}
+
+    # Los datos cambiaron: el borde tiene que dejar de servir la versión vieja.
+    purged = purge_everything() if updated else False
+
+    return {"updated": updated, "skipped": skipped, "cache_purged": purged}
 
 
 @shared_task(**TASK_KWARGS)
