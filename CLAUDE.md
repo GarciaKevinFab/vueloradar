@@ -220,6 +220,7 @@ correr el checklist pre-lanzamiento de `DEPLOY.md` en un VPS real.
 | Bot | [@Vuelosradar_bot](https://t.me/Vuelosradar_bot) (id 8695027914), modo polling |
 | Tests | 358, en verde, sin tocar red ni Supabase |
 | Web pública | **En línea en https://vueloradar.com**: 40 rutas, 18 páginas por ciudad, términos y privacidad, veredicto por fecha, CTA al bot, OG, sitemap y robots |
+| VPS | **Desplegado y sano.** Hostinger `srv1933835` (2.24.115.75), repo en `/opt/vueloradar`, los 6 contenedores en `healthy`, `cloudflared` activo. Se despliega con `git pull` + `docker compose -f docker-compose.prod.yml build web && up -d` |
 
 Datos acumulados al 2026-08-23: 20 aeropuertos, 44 rutas monitoreadas, 8.289
 snapshots, 47.395 ofertas crudas, 40 rutas con estadísticas de 30 días.
@@ -236,9 +237,14 @@ celery -A config beat                                # scheduler
 
 ### Lo que NO está verificado
 
-- **El stack de Docker nunca corrió.** `docker compose config` valida y
-  `check --deploy` pasa limpio, pero nadie levantó los seis servicios en un
-  VPS. El primer `build` tarda 10-15 min por Chromium.
+- **Los correos de aviso nunca salieron.** El DNS de Resend está puesto y
+  propagado en Cloudflare (DKIM en `resend._domainkey.vueloradar.com`, SPF y MX
+  de rebotes en `send.vueloradar.com`, o sea el dominio verificado es la raíz
+  `vueloradar.com` y `send.` es solo el return-path), pero el `.env` del VPS no
+  tiene ninguna variable `EMAIL_*`: Django cae al backend de consola y el
+  mensaje de confirmación se imprime en el log del contenedor. Cero envíos en
+  el log, así que nadie perdió un aviso todavía, pero el formulario está
+  publicado. Falta solo `EMAIL_HOST_PASSWORD` con la API key de Resend.
 - **Backup restaurado y verificado el 2026-08-27**: las cinco tablas coincidieron
   fila por fila con producción. **Requiere PostgreSQL 17+**: el formato del dump
   es 1.16 y con PG 16 falla con `unsupported version`. Procedimiento en
@@ -368,6 +374,35 @@ ignora (el kernel protege al PID 1 de su propio namespace). La prueba válida es
 - **La web no publica tarifas de Google en crudo**, solo estadísticas propias
   derivadas del histórico. Es lo que nos hace defendibles y además lo que baja
   el riesgo de exponer públicamente la dependencia de `fast-flights`.
+
+### Notas del pie, la publicidad y el botón al bot (2026-08-27)
+
+- **El pie eran cuatro párrafos apilados** y la promesa que sostiene la marca
+  ("no vendemos pasajes ni cobramos comisión") quedaba enterrada entre el aviso
+  legal y el disclaimer. Ahora son tres columnas y el crédito de
+  **Star Insights IT by SISAC** va en la barra de abajo, por `BUILDER_NAME` /
+  `BUILDER_URL`: sin `BUILDER_NAME` no se dibuja crédito vacío.
+- **El botón flotante es un enlace, no un widget de chat.** Sin JS, sin iframe
+  y sin script de terceros leyendo la sesión. El chat de verdad ya existe y
+  vive en Telegram; un widget propio sería construir el bot dos veces. En las
+  fichas lleva el enlace profundo (`?start=LIM-CUZ`) vía el bloque `bot_start`,
+  porque abrir el bot en blanco desperdicia la única conversión del embudo.
+- **La publicidad está maquetada pero apagada.** Sin `ADSENSE_CLIENT` no se
+  renderiza ni el hueco ni el script: AdSense exige aprobación previa y un
+  script que carga sin cuenta aprobada paga la latencia sin mostrar un anuncio.
+  Sin `slot` tampoco se dibuja el contenedor — un hueco vacío desplaza el
+  contenido para nada. Un slot por ubicación (`ADSENSE_SLOT_HOME`,
+  `ADSENSE_SLOT_ROUTE`): Google reporta por slot y un ID único para todo el
+  sitio hace imposible saber qué espacio rinde.
+- **El anuncio va rotulado y después del dato**, no entre la pregunta y la
+  respuesta. Las políticas de AdSense exigen distinguirlo del contenido, y acá
+  confundirlo con el veredicto costaría más de lo que paga.
+- **No hay CSP.** El comentario de `base.html` decía que "la CSP no permite JS",
+  pero el borde no emite la cabecera: verificado el 2026-08-27 contra
+  `https://vueloradar.com`. La ausencia de JS es una decisión de diseño, no una
+  restricción impuesta — conviene no confundirlas al tocar el `<head>`.
+- **`foot-by` a secas matchea la regla CSS además del marcado.** Un test que
+  afirme "el crédito no aparece" tiene que buscar `class="foot-by"`.
 
 ### Notas del rediseño (2026-08-27)
 
