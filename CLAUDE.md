@@ -237,7 +237,23 @@ celery -A config beat                                # scheduler
 
 ### Lo que NO está verificado
 
-- **Los correos de aviso nunca salieron.** El DNS de Resend está puesto y
+- **Los correos ya salen (2026-08-27).** Resend por SMTP (`smtp.resend.com:587`,
+  usuario literal `resend`, la API key como contraseña). Verificado con un envío
+  real por el camino de producción (`mailer._enviar`). Django habla SMTP de
+  fábrica: no hace falta el SDK de Resend.
+  **Trampa que costó una API key:** cargar las variables con
+  `Get-Content | ssh '... printf "a\nb" ...'` desde PowerShell **no funciona**.
+  PowerShell no preserva las barras invertidas del argumento, así que los `\n`
+  llegan como la letra `n` y las cinco variables se escriben pegadas en una sola
+  línea. Peor: al volcar el `.env` para diagnosticarlo, la key salió por
+  pantalla y hubo que rotarla. Para secretos, `nano` directo en el servidor, y
+  **nunca volcar el `.env`** — verificar con booleanos (`bool(...)`, `len(...)`,
+  `startswith(...)`), jamás con el valor.
+- **AdSense configurado (2026-08-27):** `ADSENSE_CLIENT=ca-pub-4805616769009135`
+  en el `.env` del VPS. El script carga en el `<head>` y `/ads.txt` responde. No
+  hay slots todavía, así que no se dibuja ningún hueco. La cuenta está en «Su
+  sitio necesita revisión».
+- ~~Los correos de aviso nunca salieron.~~ (Resuelto arriba.) El DNS de Resend está puesto y
   propagado en Cloudflare (DKIM en `resend._domainkey.vueloradar.com`, SPF y MX
   de rebotes en `send.vueloradar.com`, o sea el dominio verificado es la raíz
   `vueloradar.com` y `send.` es solo el return-path), pero el `.env` del VPS no
