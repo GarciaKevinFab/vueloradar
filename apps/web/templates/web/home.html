@@ -21,6 +21,11 @@
      cada precio. Con ese histórico te decimos qué fechas valen la pena — y cuáles dejar pasar.</p>
 </div>
 
+<div class="rise d3" style="margin-bottom:2.5rem">
+  <a class="btn" href="{% url 'web:buscar' %}"
+     style="background:var(--accent);color:var(--accent-ink)">Buscar mi vuelo →</a>
+</div>
+
 {% if ciudades %}
 <div class="rise d3">
   <p class="tiny dim" style="margin:0 0 .5rem;letter-spacing:.06em;text-transform:uppercase">Salir desde</p>
@@ -73,7 +78,7 @@
      en los últimos 30 días. No contra un promedio nacional ni contra lo que cuesta otra ruta.</p>
   <table style="font-size:.9375rem">
     <tbody>
-      <tr><td style="width:9.5rem"><span class="v v-chollo">Chollo</span></td>
+      <tr><td style="width:9.5rem"><span class="v v-excelente">Excelente precio</span></td>
           <td class="muted">En el cuarto más barato, y además un 10% por debajo de ese umbral.</td></tr>
       <tr><td><span class="v v-bueno">Buen precio</span></td>
           <td class="muted">Cae en el cuarto más barato de lo observado.</td></tr>

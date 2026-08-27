@@ -1,0 +1,129 @@
+{% extends "web/base.html" %}
+
+{% block title %}Buscar vuelos en Perú — {{ site_name }}{% endblock %}
+{% block description %}Escribí a dónde querés ir y te decimos si el precio de esa fecha es bueno, según el histórico real de la ruta.{% endblock %}
+{% block og_title %}Buscar vuelos en Perú{% endblock %}
+{% block og_description %}Escribilo como lo dirías: «de Lima a Cusco el 15 de setiembre».{% endblock %}
+
+{% block head_extra %}
+<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{% url 'web:buscar' %}">
+{% if texto %}<meta name="robots" content="noindex,follow">{% endif %}
+{% endblock %}
+
+{% block content %}
+<ol class="crumbs">
+  <li><a href="{% url 'web:home' %}">Inicio</a></li>
+  <li aria-current="page">Buscar</li>
+</ol>
+
+<h1 class="rise d1">¿A dónde<br>querés ir?</h1>
+<p class="lede rise d2">Escribilo como lo dirías en voz alta. Te decimos si el precio de esa
+   fecha es bueno para esa ruta — y te dejamos el link para comprar.</p>
+
+<form class="card card-hero rise d3" method="get" action="{% url 'web:buscar' %}">
+  <label for="q" class="tiny dim" style="display:block;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.5rem">
+    Tu viaje
+  </label>
+  <input id="q" name="q" type="text" value="{{ texto }}" autocomplete="off"
+         placeholder="de Lima a Cusco el 15 de setiembre"
+         style="width:100%;font-size:1.0625rem;font-family:inherit;color:var(--ink);
+                background:var(--bg-sunk);border:1px solid var(--line);border-radius:.75rem;
+                padding:.85rem 1rem;margin-bottom:1rem">
+
+  <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end">
+    <div>
+      <label for="adultos" class="tiny dim" style="display:block;margin-bottom:.35rem">Adultos</label>
+      <select id="adultos" name="adultos"
+              style="font-family:inherit;font-size:1rem;color:var(--ink);background:var(--bg-sunk);
+                     border:1px solid var(--line);border-radius:.65rem;padding:.6rem .8rem">
+        {% for n in rango_adultos %}
+        <option value="{{ n }}" {% if n == adultos %}selected{% endif %}>{{ n }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="ninos" class="tiny dim" style="display:block;margin-bottom:.35rem">Niños</label>
+      <select id="ninos" name="ninos"
+              style="font-family:inherit;font-size:1rem;color:var(--ink);background:var(--bg-sunk);
+                     border:1px solid var(--line);border-radius:.65rem;padding:.6rem .8rem">
+        {% for n in rango_ninos %}
+        <option value="{{ n }}" {% if n == ninos %}selected{% endif %}>{{ n }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn" style="background:var(--accent);color:var(--accent-ink);border:0;cursor:pointer">
+      Buscar
+    </button>
+  </div>
+</form>
+
+{% if not texto %}
+<p class="tiny dim" style="margin:0 0 .5rem;letter-spacing:.06em;text-transform:uppercase">Probá con</p>
+<ul class="chips">
+  {% for e in ejemplos %}
+  <li><a href="{% url 'web:buscar' %}?q={{ e|urlencode }}">{{ e }}</a></li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if falta %}
+<div class="card" style="margin-top:1.5rem;border-color:color-mix(in srgb,var(--warn) 35%,transparent)">
+  <h3>No entendimos del todo</h3>
+  <p class="muted" style="margin:0">{{ falta }}</p>
+</div>
+{% endif %}
+
+{% if consulta.es_completa %}
+<h2>{% if route %}{{ route.origin.city }} → {{ route.destination.city }}{% else %}{{ consulta.origen }} → {{ consulta.destino }}{% endif %}</h2>
+<p class="muted" style="margin:-.5rem 0 1.25rem">{{ consulta.fecha|date:"l j \d\e F \d\e Y" }} ·
+   {{ adultos }} adulto{{ adultos|pluralize }}{% if ninos %} y {{ ninos }} niño{{ ninos|pluralize }}{% endif %}</p>
+
+<div class="card card-hero">
+  {% if precio %}
+    <div style="display:flex;align-items:flex-end;gap:1.25rem;flex-wrap:wrap">
+      <div class="price"><small>Observado</small>S/&nbsp;{{ precio|floatformat:0 }}</div>
+      {% if veredicto.is_actionable %}
+        <span class="v v-{{ veredicto.level }}" style="margin-bottom:.6rem">{{ veredicto.label }}</span>
+      {% endif %}
+    </div>
+    <p style="margin:1.15rem 0 0">
+      {% if veredicto.is_actionable %}<strong>{{ veredicto.action }}.</strong>{% endif %}
+      Es el precio más barato que observamos para esa fecha en nuestro último barrido,
+      <strong>por adulto</strong>.
+    </p>
+  {% elif route %}
+    <p class="muted" style="margin:0">No tenemos precio observado para esa fecha. Seguimos los
+       próximos 60 días, así que puede estar fuera de esa ventana o todavía no haberse barrido.</p>
+  {% else %}
+    <p class="muted" style="margin:0">No monitoreamos esa ruta todavía, así que no tenemos
+       histórico para opinar. El link de compra funciona igual.</p>
+  {% endif %}
+
+  {% if ninos %}
+  <p class="small muted" style="margin:1rem 0 0;padding-top:1rem;border-top:1px solid var(--line)">
+    <strong>Sobre los niños:</strong> no multiplicamos nuestro precio por la cantidad de
+    pasajeros. Las tarifas de menores y sus impuestos son distintos, así que un total calculado
+    así sería inventado. El link ya lleva {{ adultos }} adulto{{ adultos|pluralize }} y
+    {{ ninos }} niño{{ ninos|pluralize }}: el total real lo da la aerolínea.
+  </p>
+  {% endif %}
+</div>
+
+{% if enlace_compra %}
+<div class="cta">
+  <h3>Ver y comprar</h3>
+  <p>Abre Google Flights con la ruta, la fecha y los pasajeros ya cargados. Nosotros no
+     vendemos pasajes ni cobramos comisión por este enlace.</p>
+  <a class="btn" href="{{ enlace_compra }}" target="_blank" rel="noopener nofollow">Ver precios reales →</a>
+</div>
+{% endif %}
+
+{% if publicada %}
+<p style="margin-top:1.5rem">
+  <a style="color:var(--accent)" href="{% url 'web:route' route.origin_id route.destination_id %}">
+    Ver el histórico completo de {{ route.origin.city }} → {{ route.destination.city }} →
+  </a>
+</p>
+{% endif %}
+{% endif %}
+{% endblock %}

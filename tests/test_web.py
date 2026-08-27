@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from apps.flights.models import PriceSnapshot, Route, RouteStats
 from apps.web import chart, queries
-from apps.web.verdict import (ALTO, BUENO, CARO, CHOLLO, MIN_TREND_DAYS, NORMAL,
+from apps.web.verdict import (ALTO, BUENO, CARO, EXCELENTE, MIN_TREND_DAYS, NORMAL,
                               SIN_DATOS, evaluate, evaluate_trend)
 
 
@@ -38,7 +38,7 @@ def _snapshot(route, price, flight_offset=10):
 # --- veredicto (lógica pura) ------------------------------------------------
 
 @pytest.mark.parametrize("precio,esperado", [
-    ("179", CHOLLO),   # <= p25 * 0.90 = 180
+    ("179", EXCELENTE),   # <= p25 * 0.90 = 180
     ("195", BUENO),    # <= p25
     ("250", NORMAL),   # <= mediana
     ("300", ALTO),     # <= mediana * 1.20 = 312
@@ -65,10 +65,10 @@ def test_diferencia_contra_mediana_se_reporta(stats):
 
 
 def test_umbral_coincide_con_el_motor_de_alertas(stats, settings):
-    """La web no puede decir 'chollo' donde el bot no dispararía alerta."""
+    """La web no puede decir 'excelente' donde el bot no dispararía alerta."""
     limite = Decimal(stats.p25_30d) * settings.DEAL_P25_FACTOR
-    assert evaluate(limite, stats).level == CHOLLO
-    assert evaluate(limite + Decimal("1"), stats).level != CHOLLO
+    assert evaluate(limite, stats).level == EXCELENTE
+    assert evaluate(limite + Decimal("1"), stats).level != EXCELENTE
 
 
 # --- consultas --------------------------------------------------------------
@@ -125,7 +125,7 @@ def test_ficha_de_ruta_muestra_precio_y_veredicto(client, route, stats):
     assert resp.status_code == 200
     cuerpo = resp.content.decode()
     assert "179" in cuerpo
-    assert "Chollo" in cuerpo      # veredicto de esa fecha concreta
+    assert "Excelente precio" in cuerpo   # veredicto de esa fecha concreta
     assert "Cusco" in cuerpo
 
 
@@ -144,13 +144,13 @@ def test_tendencia_calla_sin_dos_semanas_de_serie():
 def test_tendencia_detecta_caida_real():
     """Con la serie plana en 200, un mínimo de 120 hoy sí es una caída."""
     v = evaluate_trend(Decimal("120"), _serie(["200"] * MIN_TREND_DAYS))
-    assert v.level == CHOLLO
+    assert v.level == EXCELENTE
     assert v.vs_median_pct == -40
 
 
-def test_tendencia_no_grita_chollo_en_dia_normal():
+def test_tendencia_no_grita_excelente_en_dia_normal():
     """Regresión: comparar el mínimo entre fechas contra la distribución de
-    todas las fechas daba 'chollo' siempre. Con la serie correcta, no."""
+    todas las fechas daba 'excelente' siempre. Con la serie correcta, no."""
     v = evaluate_trend(Decimal("200"), _serie(["200"] * MIN_TREND_DAYS))
     assert v.level == NORMAL
     assert v.should_buy is False

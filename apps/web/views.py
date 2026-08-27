@@ -21,7 +21,7 @@ from django.views.decorators.cache import cache_control
 
 from apps.flights.models import Route
 
-from . import chart, queries
+from . import chart, queries, search
 from .verdict import evaluate, evaluate_trend
 
 #: El barrido corre 06:00 y 18:00; media hora de caché en el borde es seguro
@@ -150,6 +150,90 @@ def city_hub(request, ciudad: str):
         "otras_ciudades": [c for c in queries.cities_with_routes() if c.pk != airport.pk],
         "updated_at": timezone.now(),
     })
+
+
+#: Tope de pasajeros. Mas alla de esto Google Flights cotiza distinto y la
+#: referencia por adulto que mostramos deja de tener sentido.
+MAX_ADULTOS = 9
+MAX_NINOS = 8
+
+
+def _entero(valor, minimo: int, maximo: int, defecto: int) -> int:
+    """Entero acotado desde la query string. Cualquier basura cae al defecto."""
+    try:
+        return max(minimo, min(maximo, int(valor)))
+    except (TypeError, ValueError):
+        return defecto
+
+
+def buscar(request):
+    """Buscador por texto libre sobre el histórico.
+
+    No pasa por ningún modelo de IA ni scrapea en vivo: ver el docstring de
+    `apps/web/search.py` para el porqué. Responde con lo que ya observamos y
+    con el link de compra armado para los pasajeros pedidos.
+    """
+    from apps.flights.models import Airport, Route
+
+    texto = (request.GET.get("q") or "").strip()[:120]
+    adultos = _entero(request.GET.get("adultos"), 1, MAX_ADULTOS, 1)
+    ninos = _entero(request.GET.get("ninos"), 0, MAX_NINOS, 0)
+
+    contexto = {
+        "texto": texto,
+        "adultos": adultos,
+        "ninos": ninos,
+        "rango_adultos": range(1, MAX_ADULTOS + 1),
+        "rango_ninos": range(0, MAX_NINOS + 1),
+        "ejemplos": [
+            "de Lima a Cusco el 15 de setiembre",
+            "Arequipa a Lima mañana",
+            "Huancayo a Lima 2026-10-14",
+        ],
+    }
+    if not texto:
+        return render(request, "web/buscar.html", contexto)
+
+    consulta = search.parse_consulta(texto, Airport.objects.all())
+    contexto["consulta"] = consulta
+
+    if not consulta.es_completa:
+        contexto["falta"] = _que_falta(consulta)
+        return render(request, "web/buscar.html", contexto)
+
+    contexto["enlace_compra"] = search.booking_url(
+        consulta.origen, consulta.destino, consulta.fecha, adultos, ninos
+    )
+
+    route = (
+        Route.objects.select_related("origin", "destination")
+        .filter(origin_id=consulta.origen, destination_id=consulta.destino)
+        .first()
+    )
+    contexto["route"] = route
+    if route is None:
+        return render(request, "web/buscar.html", contexto)
+
+    contexto["publicada"] = queries.published_routes().filter(pk=route.pk).exists()
+    dia = next(
+        (d for d in queries.upcoming_prices(route) if d.day == consulta.fecha), None
+    )
+    if dia is not None:
+        contexto["precio"] = dia.price
+        contexto["veredicto"] = evaluate(dia.price, queries.stats_for(route))
+
+    return render(request, "web/buscar.html", contexto)
+
+
+def _que_falta(consulta) -> str:
+    """Qué no se entendió, dicho de una forma que se pueda corregir."""
+    if not consulta.origen and not consulta.destino:
+        return "No reconocimos ninguna ciudad."
+    if not consulta.destino:
+        return "Falta el destino: escribí las dos ciudades."
+    if not consulta.fecha:
+        return "Falta la fecha. Podés escribirla como «15 de setiembre», «15/09» o «mañana»."
+    return "No pudimos entender la consulta."
 
 
 @cache_control(public=True, max_age=3600, s_maxage=86400)

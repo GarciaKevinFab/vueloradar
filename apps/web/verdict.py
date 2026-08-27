@@ -24,7 +24,7 @@ EXPENSIVE_MEDIAN_FACTOR = Decimal("1.20")
 #: Días mínimos de serie para opinar sobre la tendencia de la ruta.
 MIN_TREND_DAYS = 14
 
-CHOLLO = "chollo"
+EXCELENTE = "excelente"
 BUENO = "bueno"
 NORMAL = "normal"
 ALTO = "alto"
@@ -33,7 +33,7 @@ SIN_DATOS = "sin_datos"
 
 #: Etiqueta, acción recomendada y color por veredicto.
 LABELS = {
-    CHOLLO: ("Chollo", "Comprá ahora", "#0f9d58"),
+    EXCELENTE: ("Excelente precio", "Comprá ahora", "#0f9d58"),
     BUENO: ("Buen precio", "Buen momento para comprar", "#2e7d32"),
     NORMAL: ("Precio normal", "Podés comprar sin apuro", "#8a6d1f"),
     ALTO: ("Precio alto", "Conviene esperar", "#d97706"),
@@ -64,7 +64,7 @@ class Verdict:
 
     @property
     def should_buy(self) -> bool:
-        return self.level in (CHOLLO, BUENO)
+        return self.level in (EXCELENTE, BUENO)
 
 
 @dataclass(frozen=True)
@@ -109,7 +109,7 @@ def evaluate(price: Decimal | None, stats) -> Verdict:
     vs_median = int(((price - median) / median * 100).to_integral_value()) if median else None
 
     if price <= p25 * settings.DEAL_P25_FACTOR:
-        level = CHOLLO
+        level = EXCELENTE
     elif price <= p25 and price < median:
         # `price < median` evita el caso degenerado de una serie plana, donde
         # p25 == mediana y el precio de siempre se leería como oferta.
