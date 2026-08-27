@@ -284,10 +284,10 @@ footer.wrap{margin:6rem auto 0;padding:2.5rem 1.5rem 3rem;
   margin-top:2.75rem;padding-top:1.25rem;border-top:1px solid var(--line);
   color:var(--ink-3);font-size:.8125rem}
 .foot-by{margin-left:auto;display:inline-flex;align-items:center;gap:.5rem}
-.foot-by img{width:1.5rem;height:1.5rem;display:block;border-radius:.25rem;
-  /* El logotipo viene sobre blanco: en el tema oscuro un fondo claro propio
-     evita el recorte sucio que deja un PNG sin transparencia real. */
-  background:#fff;padding:1px}
+/* El logotipo no es cuadrado (1,76:1): se fija el alto y el ancho se deduce,
+   porque forzarlo a cuadrado lo aplastaria. Tiene transparencia real y sus
+   rojos y azules se leen en los dos temas, asi que no lleva fondo propio. */
+.foot-by img{height:1.5rem;width:auto;display:block}
 .foot-by a{color:var(--ink-2);font-weight:600}
 .foot-by a:hover{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
 @media (max-width:44rem){
@@ -470,7 +470,7 @@ footer.wrap{margin:6rem auto 0;padding:2.5rem 1.5rem 3rem;
       {% comment %} El logotipo es opcional: sin BUILDER_LOGO queda el crédito en
          texto. Referenciar un estático inexistente reventaría el manifiesto de
          WhiteNoise en producción, así que no se asume que el archivo esté. {% endcomment %}
-      {% if builder_logo %}<img src="{% static builder_logo %}" alt="" width="24" height="24">{% endif %}
+      {% if builder_logo %}<img src="{% static builder_logo %}" alt="" width="42" height="24">{% endif %}
       <span>Hecho por
         <a href="{{ builder_url }}" target="_blank" rel="noopener external">{{ builder_name }}</a></span>
     </span>

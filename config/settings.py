@@ -165,10 +165,10 @@ CLOUDFLARE_ZONE_ID = os.getenv("CLOUDFLARE_ZONE_ID", "")
 # haya que tocarlo si cambia el nombre o el dominio.
 BUILDER_NAME = os.getenv("BUILDER_NAME", "Star Insights IT by SISAC")
 BUILDER_URL = os.getenv("BUILDER_URL", "https://sisac.pe/")
-# Ruta del logotipo DENTRO de los estaticos, p. ej. "web/sisac-logo.png".
-# Vacio por defecto a proposito: `{% static %}` con manifiesto revienta si el
-# archivo no existe, asi que el sitio no puede asumir que alguien lo guardo.
-BUILDER_LOGO = os.getenv("BUILDER_LOGO", "")
+# Ruta del logotipo DENTRO de los estaticos. El archivo esta versionado en el
+# repo, asi que viene activado. Si se apunta a otro, tiene que existir en disco:
+# `{% static %}` con manifiesto revienta en produccion si falta.
+BUILDER_LOGO = os.getenv("BUILDER_LOGO", "web/sisac-logo.png")
 
 # --------------------------------------------------------------------- ads
 # Los huecos publicitarios estan maquetados siempre, pero el script de Google

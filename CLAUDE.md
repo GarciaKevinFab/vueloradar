@@ -427,10 +427,17 @@ ignora (el kernel protege al PID 1 de su propio namespace). La prueba válida es
   repite el `auto` horizontal — sin él el pie se descentra. **Cualquier regla
   para `main`, `header` o `footer` tiene el mismo problema**: los tres llevan
   `.wrap`.
-- **El logotipo del constructor (`BUILDER_LOGO`) es opcional y vacío por
-  defecto.** `{% static %}` con `CompressedManifestStaticFilesStorage` revienta
-  en producción si el archivo no está en disco, así que el sitio no puede
-  asumir que alguien lo guardó.
+- **El logotipo del constructor (`BUILDER_LOGO`) sigue siendo condicional en la
+  plantilla**, aunque hoy venga con valor por defecto: `{% static %}` con
+  `CompressedManifestStaticFilesStorage` revienta en producción si el archivo no
+  está en disco. Si se cambia la ruta, el archivo tiene que existir **y hay que
+  correr `collectstatic`** — `scripts/check_production.py` lo detecta
+  (`Missing staticfiles manifest entry`), `check --deploy` no.
+- **El original del logo de SISAC vive en `brand/sisac-logo-source.png`.** Venía
+  a 1134×1134 y 238 KB con un margen transparente enorme: a 24 px la marca
+  habría quedado en unos 8 px. El publicado se recortó al `getbbox()` y se
+  escaló a 96 px de alto (22 KB). Queda en **1,76:1**, así que el CSS fija el
+  alto y deja el ancho en `auto`; forzarlo a cuadrado lo aplasta.
 - **`/ads.txt` se deriva de `ADSENSE_CLIENT`** (quitándole el prefijo `ca-`).
   AdSense no paga sin ese archivo: el inventario queda como no autorizado y los
   anunciantes no pujan. Sin ID devuelve 404, no un archivo con `pub-` vacío,
