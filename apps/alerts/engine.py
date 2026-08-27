@@ -56,6 +56,10 @@ def evaluate_snapshot(snapshot) -> EvaluationResult:
     cooldown = pequenas = 0
 
     for alerta in alertas:
+        # Una alerta por correo sin confirmar existe pero no avisa: mandarle
+        # correo a alguien que no lo pidio es spam, aunque la intencion sea buena.
+        if not alerta.puede_notificar:
+            continue
         if not alerta.matches_date(snapshot.flight_date):
             continue
         if not _rule_matches(alerta, snapshot, stats):

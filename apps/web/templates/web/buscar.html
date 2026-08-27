@@ -115,6 +115,12 @@
   <p>Abre Google Flights con la ruta, la fecha y los pasajeros ya cargados. Nosotros no
      vendemos pasajes ni cobramos comisión por este enlace.</p>
   <a class="btn" href="{{ enlace_compra }}" target="_blank" rel="noopener nofollow">Ver precios reales →</a>
+  {% if publicada %}
+  <p class="tiny" style="margin:1rem 0 0;opacity:.85;position:relative">
+    ¿Todavía no comprás? <a href="{% url 'web:nuevo_aviso' %}?ruta={{ route.origin_id }}-{{ route.destination_id }}&fecha={{ consulta.fecha|date:'Y-m-d' }}"
+    style="color:inherit;text-decoration:underline">Avisame si baja esta fecha</a>.
+  </p>
+  {% endif %}
 </div>
 {% endif %}
 

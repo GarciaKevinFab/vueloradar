@@ -353,7 +353,7 @@ def test_la_ficha_ofrece_alerta_con_la_ruta_en_el_enlace(client, route, stats, s
     _snapshot(route, "179")
     cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
     assert "https://t.me/Vuelosradar_bot?start=LIM-CUZ" in cuerpo
-    assert "Notificame por Telegram" in cuerpo
+    assert "Avisarme por correo" in cuerpo
 
 
 def test_sin_bot_configurado_no_se_muestra_el_cta(client, route, stats, settings):
@@ -627,13 +627,14 @@ def test_una_pagina_legal_inventada_da_404(client):
 
 # --- el boton "Notificame" crea la alerta ------------------------------------
 
-def test_el_boton_promete_que_la_alerta_se_crea_sola(client, route, stats, settings):
+def test_la_ficha_ofrece_los_dos_canales(client, route, stats, settings):
+    """Telegram tiene ~6% de penetracion en Peru: el correo no puede faltar."""
     settings.TELEGRAM_BOT_USERNAME = "Vuelosradar_bot"
     _snapshot(route, "179")
     cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
-    assert "Notificame" in cuerpo
-    assert "se crea sola" in cuerpo
+    assert "/aviso/nuevo/?ruta=LIM-CUZ" in cuerpo
     assert "https://t.me/Vuelosradar_bot?start=LIM-CUZ" in cuerpo
+    assert "se crea sola" in cuerpo
 
 
 def test_el_mensaje_confirma_la_alerta_creada(route):

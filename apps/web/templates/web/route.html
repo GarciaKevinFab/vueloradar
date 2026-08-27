@@ -114,10 +114,12 @@
   <h3>Notificame cuando baje</h3>
   <p>Un toque y queda. Seguimos {{ route.origin.city }} → {{ route.destination.city }} dos veces al día;
      cuando aparezca un precio realmente bajo te llega el aviso por Telegram, sin que tengas que volver.</p>
-  <a class="btn" href="{{ bot_url }}?start={{ route.origin_id }}-{{ route.destination_id }}"
-     rel="noopener">Notificame por Telegram →</a>
-  <p class="tiny" style="margin:.85rem 0 0;opacity:.8;position:relative">La alerta se crea sola al abrir el bot.
-     Se cancela cuando quieras con /misalertas.</p>
+  <a class="btn" href="{% url 'web:nuevo_aviso' %}?ruta={{ route.origin_id }}-{{ route.destination_id }}">Avisarme por correo →</a>
+  <p class="tiny" style="margin:.85rem 0 0;opacity:.85;position:relative">
+    ¿Usás Telegram? <a href="{{ bot_url }}?start={{ route.origin_id }}-{{ route.destination_id }}"
+    rel="noopener" style="color:inherit;text-decoration:underline">Avisame por ahí</a> —
+    la alerta se crea sola al abrir el bot.
+  </p>
 </div>
 {% endif %}
 

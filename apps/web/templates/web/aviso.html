@@ -1,0 +1,69 @@
+{% extends "web/base.html" %}
+
+{% block title %}Avisame si baja: {{ route.origin.city }} → {{ route.destination.city }} — {{ site_name }}{% endblock %}
+{% block description %}Dejá tu correo y te avisamos cuando el precio de esta ruta caiga de verdad.{% endblock %}
+
+{% block head_extra %}<meta name="robots" content="noindex,follow">{% endblock %}
+
+{% block content %}
+<ol class="crumbs">
+  <li><a href="{% url 'web:home' %}">Inicio</a></li>
+  <li><a href="{% url 'web:route' route.origin_id route.destination_id %}">{{ route.origin.city }} → {{ route.destination.city }}</a></li>
+  <li aria-current="page">Avisarme</li>
+</ol>
+
+{% if enviado %}
+  <h1 class="rise d1">Revisá tu<br>correo</h1>
+  {% if ya_confirmado %}
+    <p class="lede rise d2">Ese aviso ya estaba confirmado y sigue activo. No te mandamos nada nuevo:
+       cuando el precio de <strong>{{ route.origin.city }} → {{ route.destination.city }}</strong>
+       baje de verdad, te escribimos.</p>
+  {% else %}
+    <p class="lede rise d2">Te mandamos un correo a <strong>{{ email }}</strong> con un enlace para
+       confirmar. <strong>Hasta que no lo toques no te vamos a escribir</strong> — cualquiera podría
+       haber puesto tu dirección acá, y no nos parece bien mandarte nada sin que lo pidas vos.</p>
+  {% endif %}
+  <p><a style="color:var(--accent)" href="{% url 'web:route' route.origin_id route.destination_id %}">
+     ← Volver al histórico de la ruta</a></p>
+
+{% else %}
+  <h1 class="rise d1">Avisame<br>si baja</h1>
+  <p class="lede rise d2">Seguimos <strong>{{ route.origin.city }} → {{ route.destination.city }}</strong>
+     {% if fecha %}para el <strong>{{ fecha|date:"j \d\e F \d\e Y" }}</strong>{% endif %}
+     dos veces al día. Cuando aparezca un precio realmente bajo —no cuando una aerolínea lo llame
+     oferta— te lo mandamos.</p>
+
+  {% if error %}
+  <div class="card rise d3" style="margin-bottom:1.25rem;border-color:color-mix(in srgb,var(--bad) 40%,transparent)">
+    <p style="margin:0;color:var(--bad)">{{ error }}</p>
+  </div>
+  {% endif %}
+
+  <form class="card card-hero rise d3" method="post" action="{% url 'web:nuevo_aviso' %}">
+    {% csrf_token %}
+    <input type="hidden" name="ruta" value="{{ route.origin_id }}-{{ route.destination_id }}">
+    {% if fecha %}<input type="hidden" name="fecha" value="{{ fecha|date:'Y-m-d' }}">{% endif %}
+
+    <label for="email" class="tiny dim" style="display:block;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.5rem">
+      Tu correo
+    </label>
+    <input id="email" name="email" type="email" required value="{{ email|default:'' }}"
+           autocomplete="email" placeholder="tu@correo.com"
+           style="width:100%;font-size:1.0625rem;font-family:inherit;color:var(--ink);
+                  background:var(--bg-sunk);border:1px solid var(--line);border-radius:.75rem;
+                  padding:.85rem 1rem;margin-bottom:1rem">
+    <button type="submit" class="btn"
+            style="background:var(--accent);color:var(--accent-ink);border:0;cursor:pointer">
+      Avisarme por correo →
+    </button>
+    <p class="tiny dim" style="margin:1rem 0 0">Un solo correo cuando el precio baje. Nada de
+       newsletters. Te das de baja en un clic desde cualquier aviso.</p>
+  </form>
+
+  {% if bot_url %}
+  <p class="muted" style="margin-top:1.5rem">¿Preferís Telegram?
+     <a style="color:var(--accent)" href="{{ bot_url }}?start={{ bot_deeplink }}" rel="noopener">
+     Avisarme por Telegram →</a></p>
+  {% endif %}
+{% endif %}
+{% endblock %}

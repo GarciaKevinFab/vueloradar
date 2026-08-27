@@ -14,10 +14,20 @@ class Alert(models.Model):
         (TYPE_DEAL_DETECTED, "Oferta detectada"),
     ]
 
+    #: Una alerta pertenece a un usuario de Telegram **o** a un correo, nunca a
+    #: los dos. Telegram tiene ~6% de penetración en Perú: pedirle a alguien que
+    #: instale una app para recibir un aviso perdía casi todo el embudo.
     user = models.ForeignKey(
         "users.TelegramUser", on_delete=models.CASCADE, related_name="alerts",
-        verbose_name="usuario",
+        verbose_name="usuario", null=True, blank=True,
     )
+    email = models.EmailField("correo", blank=True, db_index=True)
+    #: Doble opt-in: cualquiera puede escribir el correo de otro. Hasta que no
+    #: se confirma, la alerta existe pero no notifica.
+    email_confirmed_at = models.DateTimeField("correo confirmado en", null=True, blank=True)
+    #: Sirve para confirmar y para dar de baja sin pedir contraseña.
+    token = models.CharField("token", max_length=64, blank=True, db_index=True)
+
     route = models.ForeignKey(
         "flights.Route", on_delete=models.CASCADE, related_name="alerts", verbose_name="ruta"
     )
@@ -40,6 +50,18 @@ class Alert(models.Model):
         indexes = [
             models.Index(fields=["route", "is_active"], name="idx_alert_route_active"),
             models.Index(fields=["user", "is_active"], name="idx_alert_user_active"),
+            models.Index(fields=["email", "is_active"], name="idx_alert_email_active"),
+        ]
+        constraints = [
+            # Una alerta tiene destinatario, y uno solo. Sin esto, una fila con
+            # los dos vacios se evaluaria en cada barrido y no avisaria a nadie.
+            models.CheckConstraint(
+                condition=(
+                    models.Q(user__isnull=False, email="")
+                    | models.Q(user__isnull=True) & ~models.Q(email="")
+                ),
+                name="alert_tiene_un_solo_destinatario",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -58,6 +80,21 @@ class Alert(models.Model):
     def matches_date(self, flight_date) -> bool:
         """Una alerta sin fecha vale para cualquier fecha de vuelo."""
         return self.flight_date is None or self.flight_date == flight_date
+
+    @property
+    def es_por_correo(self) -> bool:
+        return bool(self.email)
+
+    @property
+    def puede_notificar(self) -> bool:
+        """Una alerta por correo sin confirmar existe pero no avisa.
+
+        Cualquiera puede escribir el correo de otra persona; mandarle avisos
+        sin que lo haya confirmado es spam, aunque la intencion sea buena.
+        """
+        if self.es_por_correo:
+            return self.email_confirmed_at is not None
+        return self.user is not None
 
 
 class AlertTrigger(models.Model):

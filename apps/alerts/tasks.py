@@ -1,4 +1,10 @@
-"""Envío de notificaciones de alerta por Telegram."""
+"""Envío de notificaciones de alerta, por Telegram o por correo.
+
+El canal lo decide la alerta: Telegram tiene ~6% de penetración en Perú,
+así que el correo existe para no perder a quien no lo usa. El resto del
+motor —anti-spam, historial de disparos, verificación de precio— es el
+mismo para los dos.
+"""
 
 from __future__ import annotations
 
@@ -33,11 +39,18 @@ def send_alert_notification(self, trigger_id: int) -> dict:
     _verify_price(trigger)
 
     texto = build_alert_message(trigger)
-    enviado = _send_telegram(trigger.alert.user.telegram_id, texto)
+    alerta = trigger.alert
+
+    if alerta.es_por_correo:
+        enviado = _send_email(alerta, texto)
+        destino = alerta.email
+    else:
+        enviado = _send_telegram(alerta.user.telegram_id, texto)
+        destino = alerta.user.telegram_id
 
     if enviado:
         AlertTrigger.objects.filter(pk=trigger.pk).update(message_sent=True)
-        logger.info("alerts: aviso enviado a %s", trigger.alert.user.telegram_id)
+        logger.info("alerts: aviso enviado a %s", destino)
         return {"status": "sent", "trigger_id": trigger_id}
 
     logger.warning("alerts: no se pudo enviar el aviso %s", trigger_id)
@@ -131,3 +144,14 @@ def send_weekly_digest(self) -> dict:
 
     logger.info("alerts: resumen semanal enviado a %d usuarios (%d omitidos)", enviados, omitidos)
     return {"sent": enviados, "skipped": omitidos}
+
+
+def _send_email(alerta, texto_html: str) -> bool:
+    """Manda el aviso por correo. Nunca lanza: un fallo se reintenta.
+
+    El cuerpo se arma a partir del mismo mensaje que va a Telegram, para que
+    los dos canales digan exactamente lo mismo del mismo precio.
+    """
+    from .mailer import send_alert_email
+
+    return send_alert_email(alerta, texto_html)

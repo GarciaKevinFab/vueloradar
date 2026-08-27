@@ -137,6 +137,25 @@ SITE_NAME = os.getenv("SITE_NAME", "VueloRadar")
 # Usuario del bot, para los enlaces profundos desde la web (web -> Telegram).
 TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "Vuelosradar_bot")
 
+# URL publica, para armar los enlaces de confirmacion y baja en los correos.
+SITE_BASE_URL = os.getenv("SITE_BASE_URL", "https://vueloradar.com")
+
+# Correo. Sin EMAIL_HOST configurado se imprime en consola: en desarrollo se
+# ve el mensaje completo sin mandar nada a nadie.
+EMAIL_HOST = os.getenv("EMAIL_HOST", "")
+if EMAIL_HOST:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_PORT = env_int("EMAIL_PORT", 587)
+    EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+    EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+    EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "VueloRadar <avisos@vueloradar.com>")
+
+# Un formulario publico que manda correo es un vector de spam: se limita por IP.
+EMAIL_ALERTS_PER_IP_PER_HOUR = env_int("EMAIL_ALERTS_PER_IP_PER_HOUR", 5)
+
 # Cloudflare: token con permiso "Zone > Cache Purge" sobre la zona del sitio.
 # Vacío en desarrollo: sin esto la purga simplemente no ocurre.
 CLOUDFLARE_API_TOKEN = os.getenv("CLOUDFLARE_API_TOKEN", "")

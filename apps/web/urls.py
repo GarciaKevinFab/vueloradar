@@ -11,6 +11,9 @@ app_name = "web"
 urlpatterns = [
     path("", views.home, name="home"),
     path("buscar/", views.buscar, name="buscar"),
+    path("aviso/nuevo/", views.nuevo_aviso, name="nuevo_aviso"),
+    path("aviso/confirmar/<str:token>/", views.confirmar_aviso, name="confirmar_aviso"),
+    path("aviso/baja/<str:token>/", views.baja_aviso, name="baja_aviso"),
     path("terminos/", views.legal, {"pagina": "terminos"}, name="terminos"),
     path("privacidad/", views.legal, {"pagina": "privacidad"}, name="privacidad"),
     # El hub va primero y la ficha exige tres letras por lado: sin esa

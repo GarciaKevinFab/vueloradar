@@ -14,10 +14,14 @@ Dos veredictos distintos, porque comparan cosas distintas:
 
 from __future__ import annotations
 
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.http import Http404, HttpResponse
 from django.shortcuts import render
 from django.utils import timezone
-from django.views.decorators.cache import cache_control
+from django.utils.dateparse import parse_date
+from django.views.decorators.cache import cache_control, never_cache
 
 from apps.flights.models import Route
 
@@ -236,6 +240,123 @@ def _que_falta(consulta) -> str:
     if not consulta.fecha:
         return "Falta la fecha. Podés escribirla como «15 de setiembre», «15/09» o «mañana»."
     return "No pudimos entender la consulta."
+
+
+# --- Avisos por correo ------------------------------------------------------
+# El formulario NO puede vivir en la ficha de ruta: esa pagina se cachea en el
+# borde, y un token CSRF cacheado seria el mismo para todos los visitantes, asi
+# que todos los envios fallarian. Por eso la ficha enlaza y el formulario vive
+# en su propia pagina sin caché.
+
+
+def _ip(request) -> str:
+    """IP real detrás de Cloudflare."""
+    return request.META.get("HTTP_CF_CONNECTING_IP") or request.META.get("REMOTE_ADDR", "")
+
+
+def _supera_el_limite(request) -> bool:
+    """Un formulario público que manda correo es un vector de spam."""
+    from django.core.cache import cache
+
+    clave = f"aviso:ip:{_ip(request)}"
+    try:
+        cache.add(clave, 0, 3600)
+        return cache.incr(clave) > settings.EMAIL_ALERTS_PER_IP_PER_HOUR
+    except Exception:  # noqa: BLE001 - sin cache no se bloquea a nadie
+        return False
+
+
+@never_cache
+def nuevo_aviso(request):
+    """Alta de un aviso por correo, con doble opt-in."""
+    from apps.alerts.mailer import nuevo_token, send_confirmation_email
+    from apps.alerts.models import Alert
+    from apps.flights.models import Route
+
+    codigo = (request.GET.get("ruta") or request.POST.get("ruta") or "").upper()
+    origen, _, destino = codigo.partition("-")
+    route = (
+        Route.objects.select_related("origin", "destination")
+        .filter(origin_id=origen, destination_id=destino)
+        .first()
+    )
+    if route is None:
+        raise Http404("Ruta desconocida")
+
+    fecha_texto = request.GET.get("fecha") or request.POST.get("fecha") or ""
+    fecha = parse_date(fecha_texto) if fecha_texto else None
+
+    contexto = {"route": route, "fecha": fecha, "bot_deeplink": f"{route.origin_id}-{route.destination_id}"}
+
+    if request.method != "POST":
+        return render(request, "web/aviso.html", contexto)
+
+    correo = (request.POST.get("email") or "").strip()[:254]
+    try:
+        validate_email(correo)
+    except ValidationError:
+        contexto["error"] = "Ese correo no parece válido. Revisalo y probá de nuevo."
+        contexto["email"] = correo
+        return render(request, "web/aviso.html", contexto)
+
+    if _supera_el_limite(request):
+        contexto["error"] = "Demasiados avisos desde esta conexión. Probá de nuevo en un rato."
+        return render(request, "web/aviso.html", contexto)
+
+    alerta, creada = Alert.objects.get_or_create(
+        email=correo, route=route, flight_date=fecha,
+        alert_type=Alert.TYPE_DEAL_DETECTED,
+        defaults={"token": nuevo_token()},
+    )
+    if not alerta.token:
+        alerta.token = nuevo_token()
+        alerta.save(update_fields=["token"])
+    if not alerta.is_active:
+        Alert.objects.filter(pk=alerta.pk).update(is_active=True)
+
+    ya_confirmado = alerta.email_confirmed_at is not None
+    if not ya_confirmado:
+        send_confirmation_email(alerta, settings.SITE_BASE_URL)
+
+    contexto["enviado"] = True
+    contexto["ya_confirmado"] = ya_confirmado
+    contexto["email"] = correo
+    return render(request, "web/aviso.html", contexto)
+
+
+@never_cache
+def confirmar_aviso(request, token: str):
+    """El enlace del correo. Recién acá la alerta empieza a notificar."""
+    from apps.alerts.models import Alert
+
+    alerta = Alert.objects.select_related("route__origin", "route__destination").filter(
+        token=token
+    ).first()
+    if alerta is None:
+        raise Http404("Enlace vencido o inexistente")
+
+    if alerta.email_confirmed_at is None:
+        Alert.objects.filter(pk=alerta.pk).update(
+            email_confirmed_at=timezone.now(), is_active=True
+        )
+        alerta.refresh_from_db()
+
+    return render(request, "web/aviso_confirmado.html", {"alerta": alerta})
+
+
+@never_cache
+def baja_aviso(request, token: str):
+    """Baja en un clic, sin pedir nada. Todo correo lleva este enlace."""
+    from apps.alerts.models import Alert
+
+    alerta = Alert.objects.select_related("route__origin", "route__destination").filter(
+        token=token
+    ).first()
+    if alerta is None:
+        raise Http404("Enlace vencido o inexistente")
+
+    Alert.objects.filter(pk=alerta.pk).update(is_active=False)
+    return render(request, "web/aviso_baja.html", {"alerta": alerta})
 
 
 @cache_control(public=True, max_age=3600, s_maxage=86400)

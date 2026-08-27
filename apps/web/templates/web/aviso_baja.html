@@ -1,0 +1,14 @@
+{% extends "web/base.html" %}
+
+{% block title %}Aviso dado de baja — {{ site_name }}{% endblock %}
+{% block head_extra %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+
+{% block content %}
+<h1 class="rise d1">Listo,<br>no te escribimos más</h1>
+<p class="lede rise d2">Dimos de baja el aviso de
+   <strong>{{ alerta.route.origin.city }} → {{ alerta.route.destination.city }}</strong>.
+   No hace falta que hagas nada más. Si algún día lo querés de vuelta, está a un clic
+   desde la ficha de la ruta.</p>
+<p><a style="color:var(--accent)" href="{% url 'web:route' alerta.route.origin_id alerta.route.destination_id %}">
+   Ver el histórico de {{ alerta.route.origin.city }} → {{ alerta.route.destination.city }} →</a></p>
+{% endblock %}

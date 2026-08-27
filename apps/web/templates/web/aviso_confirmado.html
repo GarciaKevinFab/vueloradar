@@ -1,0 +1,15 @@
+{% extends "web/base.html" %}
+
+{% block title %}Aviso confirmado — {{ site_name }}{% endblock %}
+{% block head_extra %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+
+{% block content %}
+<h1 class="rise d1">Listo,<br>quedó activo</h1>
+<p class="lede rise d2">Te vamos a escribir cuando
+   <strong>{{ alerta.route.origin.city }} → {{ alerta.route.destination.city }}</strong>
+   {% if alerta.flight_date %}del {{ alerta.flight_date|date:"j \d\e F" }}{% endif %}
+   tenga un precio realmente bajo: en el 10% más barato del último mes para esa ruta.
+   Un solo correo, y con enlace de baja en cada uno.</p>
+<p><a style="color:var(--accent)" href="{% url 'web:route' alerta.route.origin_id alerta.route.destination_id %}">
+   Ver el histórico de {{ alerta.route.origin.city }} → {{ alerta.route.destination.city }} →</a></p>
+{% endblock %}
