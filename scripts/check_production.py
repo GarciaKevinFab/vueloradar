@@ -26,11 +26,19 @@ sys.path.insert(0, str(BASE))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 os.environ.setdefault("DJANGO_DEBUG", "False")
+# Sin ALLOWED_HOSTS definido (correr esto fuera del servidor) hace falta uno.
+# Con el .env cargado gana el del entorno, que es justamente lo que se verifica.
 os.environ.setdefault("DJANGO_ALLOWED_HOSTS", "testserver,localhost")
 
 import django  # noqa: E402
 
 django.setup()
+
+# Django loguea cada 400/404 como error. Acá se provocan a propósito y ese
+# ruido tapa por completo el resultado del chequeo.
+import logging  # noqa: E402
+
+logging.disable(logging.WARNING)
 
 from django.conf import settings  # noqa: E402
 from django.templatetags.static import static  # noqa: E402
@@ -45,6 +53,10 @@ ASSETS = [
 ]
 
 fallos: list[str] = []
+
+#: El host sale de ALLOWED_HOSTS y no está fijo: en el servidor la variable
+#: viene del .env, y un "testserver" hardcodeado devuelve 400 en todo.
+HOST = next((h for h in settings.ALLOWED_HOSTS if h != "*"), "testserver")
 
 
 def check(descripcion: str, condicion: bool, detalle: str = "") -> None:
@@ -65,7 +77,7 @@ def _resultado() -> int:
 
 
 def main() -> int:
-    print("Ajustes")
+    print(f"Ajustes (host: {HOST})")
     check("DEBUG está apagado", settings.DEBUG is False, f"DEBUG={settings.DEBUG}")
     backend = settings.STORAGES["staticfiles"]["BACKEND"]
     check("storage de estáticos con manifiesto", "Manifest" in backend, backend)
@@ -95,7 +107,7 @@ def main() -> int:
     }
     respuestas = {}
     for nombre, url in paginas.items():
-        r = client.get(url, HTTP_HOST="testserver", secure=True)
+        r = client.get(url, HTTP_HOST=HOST, secure=True)
         respuestas[nombre] = r
         check(f"{nombre} responde 200", r.status_code == 200, f"status={r.status_code}")
 
@@ -113,7 +125,7 @@ def main() -> int:
     )
 
     print("Errores")
-    r404 = client.get("/vuelos/ZZZ-ZZZ/", HTTP_HOST="testserver", secure=True)
+    r404 = client.get("/vuelos/ZZZ-ZZZ/", HTTP_HOST=HOST, secure=True)
     check("ruta desconocida da 404", r404.status_code == 404, f"status={r404.status_code}")
     check("el 404 usa la plantilla propia", "no existe" in r404.content.decode())
 
