@@ -1,6 +1,16 @@
 .env
 .venv/
 venv/
+
+# Credenciales pasadas a mano. El sitio para dejarlas es FUERA del repo, pero
+# un olvido no puede terminar en un commit publico: una key filtrada en el
+# historial de git sigue ahi aunque se borre el archivo despues.
+*.key
+*.pem
+*secret*
+*-key.txt
+.env.*
+!.env.example
 __pycache__/
 *.py[cod]
 *.sqlite3
