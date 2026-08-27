@@ -141,60 +141,83 @@ docker compose -f docker-compose.prod.yml logs -f worker-scraping
 
 De ahí en más, beat lo dispara solo a las 06:00 y 18:00 (hora Perú).
 
-## 6. Nginx y HTTPS
+## 6. Exponer el sitio: Cloudflare Tunnel
 
-Solo hace falta si querés entrar al admin desde afuera o pasar el bot a
-webhook. **En modo polling el bot no necesita nada de esto.**
+**No hace falta nginx ni certbot.** El compose publica el puerto solo en
+`127.0.0.1:8000`, y `cloudflared` abre una conexión **saliente** hacia
+Cloudflare: el VPS no recibe conexiones entrantes y no hay puerto 80/443
+abierto en el firewall. Tampoco hay certificados que renovar — el TLS termina
+en Cloudflare.
 
-```bash
-sudo apt install -y nginx certbot python3-certbot-nginx
-```
-
-`/etc/nginx/sites-available/vueloradar`:
-
-```nginx
-server {
-    listen 80;
-    server_name tu-dominio.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
+El paso a paso completo (DNS, reglas de caché, WAF, token de purga) está en
+**[DEPLOY-WEB.md](DEPLOY-WEB.md)**. Lo mínimo:
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/vueloradar /etc/nginx/sites-enabled/ && sudo nginx -t && sudo systemctl reload nginx
+cloudflared tunnel login
+cloudflared tunnel create vueloradar
+cloudflared tunnel route dns vueloradar vueloradar.com
+```
+
+`/etc/cloudflared/config.yml`:
+
+```yaml
+tunnel: vueloradar
+credentials-file: /etc/cloudflared/vueloradar.json
+ingress:
+  - hostname: vueloradar.com
+    service: http://localhost:8000
+  - service: http_status:404
 ```
 
 ```bash
-sudo certbot --nginx -d tu-dominio.com
+cloudflared service install
+systemctl enable --now cloudflared
 ```
 
-El `X-Forwarded-Proto` es obligatorio: sin él Django entra en un bucle de
-redirección infinito, porque `SECURE_SSL_REDIRECT` no se entera de que la
-petición ya vino por HTTPS.
+**Un solo túnel sirve varios proyectos**: se agregan más `hostname` al
+`ingress`, cada uno apuntando al puerto local de su compose.
 
-**Para pasar el bot a webhook**, en el `.env`:
+### Bot por webhook
 
+En modo polling el bot no necesita nada de esto. Si lo pasás a webhook,
+agregá su hostname al mismo `ingress`:
+
+```yaml
+  - hostname: bot.vueloradar.com
+    service: http://localhost:8080
 ```
+
+y publicá el puerto 8080 del servicio `bot` en el compose, con:
+
+```bash
 BOT_MODE=webhook
-BOT_WEBHOOK_URL=https://tu-dominio.com/telegram/webhook
+BOT_WEBHOOK_URL=https://bot.vueloradar.com/telegram/webhook
 BOT_WEBHOOK_SECRET=<cadena aleatoria>
 ```
-
-Agregá al nginx un `location /telegram/ { proxy_pass http://127.0.0.1:8080; }`
-y publicá el puerto 8080 del servicio `bot` en el compose.
 
 ## 7. Backups
 
 Un `pg_dump` corre solo todos los días a las 04:00 hacia el volumen `backups`,
 con retención de 14 días. **Es la única copia propia del dato**: el free tier de
 Supabase no incluye backups restaurables a demanda.
+
+### Copia fuera del servidor (R2)
+
+Un backup que vive en el mismo disco que la aplicación no protege del caso más
+probable: perder el servidor. Si configurás estas variables, cada dump se sube
+a R2 de Cloudflare apenas se genera:
+
+```bash
+R2_ACCOUNT_ID=<id de cuenta de Cloudflare>
+R2_ACCESS_KEY_ID=<token de R2>
+R2_SECRET_ACCESS_KEY=<secreto de R2>
+R2_BUCKET=vueloradar-backups
+R2_PREFIX=backups/
+```
+
+Sin ellas la subida no ocurre y el backup local sigue funcionando igual. **Con
+ellas configuradas, un fallo de subida te llega por Telegram**: en un
+filesystem efímero eso significaría que no quedó ninguna copia.
 
 Ver qué hay:
 
