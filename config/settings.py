@@ -22,6 +22,16 @@ def env_bool(name: str, default: bool = False) -> bool:
     return os.getenv(name, str(default)).strip().lower() in {"1", "true", "yes", "on"}
 
 
+def env_int(name: str, default: int) -> int:
+    """Entero desde el entorno. Un valor no numerico cae al default en vez de
+    tumbar el arranque por una variable mal escrita."""
+    crudo = os.getenv(name, "").strip()
+    try:
+        return int(crudo) if crudo else default
+    except ValueError:
+        return default
+
+
 def env_decimal(name: str, default: str) -> str:
     return os.getenv(name, default).strip() or default
 
@@ -159,8 +169,14 @@ CACHES = {
 }
 
 # ------------------------------------------------------------------- Scraping / FX
-FX_FALLBACK_USD_PEN = env_decimal("FX_FALLBACK_USD_PEN", "3.80")
-FX_CACHE_TTL_SECONDS = 60 * 60 * 24  # 24h
+# Una hora, no un dia: para un producto que mide precios, una tasa de ayer es
+# un dato inventado. No se pide por conversion porque un barrido son ~1.300
+# consultas y eso agotaria la cuota de una API gratuita.
+FX_CACHE_TTL_SECONDS = env_int("FX_CACHE_TTL_SECONDS", 60 * 60)
+# Cuanto puede envejecer la ultima tasa buena antes de dejar de usarse. Pasado
+# ese punto la conversion falla y la oferta se descarta: es preferible perder
+# un precio a guardar uno calculado con una tasa vieja.
+FX_LAST_GOOD_MAX_AGE_HOURS = env_int("FX_LAST_GOOD_MAX_AGE_HOURS", 24)
 
 SCRAPE_DELAY_MIN = float(os.getenv("SCRAPE_DELAY_MIN", "3"))
 SCRAPE_DELAY_MAX = float(os.getenv("SCRAPE_DELAY_MAX", "8"))

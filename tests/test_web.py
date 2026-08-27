@@ -175,8 +175,10 @@ def test_portada_lista_rutas_publicadas(client, route, stats):
     resp = client.get(reverse("web:home"))
     assert resp.status_code == 200
     cuerpo = resp.content.decode()
-    assert "LIM-CUZ" in cuerpo
-    assert "desde S/ 179" in cuerpo
+    # Se afirma el enlace y el precio, no la redaccion: el copy cambia con el
+    # diseno y un test atado a la frase exacta solo genera ruido.
+    assert "/vuelos/LIM-CUZ/" in cuerpo
+    assert "179" in cuerpo
 
 
 def test_portada_dice_cuando_ninguna_fecha_esta_barata(client, route, stats):
@@ -496,3 +498,128 @@ def test_la_ficha_muestra_el_plazo(client, route, stats):
     _snapshot(route, "179")
     cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
     assert "nos faltan" in cuerpo and "de histórico" in cuerpo
+
+
+# --- paginas por ciudad y migas ---------------------------------------------
+
+def test_el_hub_lista_los_destinos_de_la_ciudad(client, peru_airports):
+    for destino in ("CUZ", "AQP"):
+        _ruta_publicada("LIM", destino)
+    resp = client.get(reverse("web:hub", args=["lima"]))
+    assert resp.status_code == 200
+    cuerpo = resp.content.decode()
+    assert "Vuelos desde" in cuerpo and "Lima" in cuerpo
+    assert "/vuelos/LIM-CUZ/" in cuerpo and "/vuelos/LIM-AQP/" in cuerpo
+
+
+def test_el_hub_no_incluye_rutas_de_otra_ciudad(client, peru_airports):
+    _ruta_publicada("LIM", "CUZ")
+    _ruta_publicada("AQP", "CUZ")
+    cuerpo = client.get(reverse("web:hub", args=["lima"])).content.decode()
+    assert "/vuelos/AQP-CUZ/" not in cuerpo
+
+
+def test_ciudad_sin_rutas_publicadas_da_404(client, peru_airports):
+    assert client.get("/vuelos/desde-arequipa/").status_code == 404
+
+
+def test_la_url_del_hub_no_se_confunde_con_una_ruta(client, peru_airports):
+    """Regresión: sin restringir la ficha a tres letras por lado,
+    /vuelos/desde-lima/ entraría como origen 'desde' y destino 'lima'."""
+    _ruta_publicada("LIM", "CUZ")
+    assert client.get("/vuelos/desde-lima/").status_code == 200
+    # Y una ficha con códigos que no son IATA ni siquiera enruta.
+    assert client.get("/vuelos/abcd-efgh/").status_code == 404
+
+
+def test_la_ficha_trae_migas_hacia_el_hub(client, route, stats):
+    _snapshot(route, "179")
+    cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
+    assert "/vuelos/desde-lima/" in cuerpo
+    assert "BreadcrumbList" in cuerpo
+
+
+def test_el_sitemap_incluye_las_ciudades(client, peru_airports):
+    _ruta_publicada("LIM", "CUZ")
+    cuerpo = client.get("/sitemap.xml").content.decode()
+    assert "/vuelos/desde-lima/" in cuerpo
+    assert "/vuelos/LIM-CUZ/" in cuerpo
+
+
+def test_la_portada_enlaza_las_ciudades(client, peru_airports):
+    _ruta_publicada("LIM", "CUZ")
+    assert "/vuelos/desde-lima/" in client.get(reverse("web:home")).content.decode()
+
+
+def test_el_grafico_expone_el_largo_para_animarse():
+    """Sin el largo exacto, `stroke-dasharray` necesitaria medirse con JS."""
+    serie = [
+        queries.DayPrice(day=date(2026, 8, d), price=Decimal(p))
+        for d, p in [(1, "200"), (2, "400"), (3, "300")]
+    ]
+    c = chart.build(serie)
+    assert c.length > 0
+    assert chart.build(serie[:1]).length == 0
+
+
+def test_el_svg_usa_punto_decimal_no_coma(client, route, stats):
+    """Regresión: con LANGUAGE_CODE='es' Django escribía cx="712,0".
+
+    Una coma es inválida como coordenada SVG y como valor CSS: el punto saltaba
+    al origen y `stroke-dasharray` quedaba sin aplicar.
+    """
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    for i in range(4):
+        s = _snapshot(route, str(200 + i * 30), flight_offset=5 + i)
+        PriceSnapshot.objects.filter(pk=s.pk).update(
+            snapshot_at=timezone.now() - timedelta(days=3 - i * 0.5)
+        )
+    cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
+    import re
+
+    for atributo in re.findall(r'c[xy]="([^"]+)"', cuerpo):
+        assert "," not in atributo, f'coordenada localizada: {atributo}'
+    for largo in re.findall(r'--len:([^"]+)"', cuerpo):
+        assert "," not in largo, f'--len localizado: {largo}'
+
+
+# --- paginas legales --------------------------------------------------------
+
+@pytest.mark.parametrize("url,titulo", [
+    ("/terminos/", "Términos"),
+    ("/privacidad/", "Privacidad"),
+])
+def test_las_paginas_legales_responden(client, url, titulo):
+    resp = client.get(url)
+    assert resp.status_code == 200
+    assert titulo in resp.content.decode()
+
+
+def test_la_privacidad_declara_el_envio_a_proveedores_de_ia(client):
+    """Es la divulgación que no se puede omitir: el texto del usuario sale."""
+    cuerpo = client.get("/privacidad/").content.decode()
+    assert "Anthropic" in cuerpo
+    assert "/vuelo LIM CUZ" in cuerpo  # la alternativa que no pasa por un modelo
+
+
+def test_el_pie_enlaza_lo_legal_desde_cualquier_pagina(client, route, stats):
+    _snapshot(route, "179")
+    for url in ("/", reverse("web:route", args=["LIM", "CUZ"])):
+        cuerpo = client.get(url).content.decode()
+        assert "/terminos/" in cuerpo and "/privacidad/" in cuerpo
+
+
+def test_las_legales_estan_en_el_sitemap(client, db):
+    # El sitemap tambien recorre rutas y ciudades, asi que necesita la base.
+    cuerpo = client.get("/sitemap.xml").content.decode()
+    assert "/terminos/" in cuerpo and "/privacidad/" in cuerpo
+
+
+def test_una_pagina_legal_inventada_da_404(client):
+    from django.urls import Resolver404, resolve
+
+    with pytest.raises(Resolver404):
+        resolve("/legal-inventado/")

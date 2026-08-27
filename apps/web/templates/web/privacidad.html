@@ -1,0 +1,92 @@
+{% extends "web/base.html" %}
+
+{% block title %}Privacidad — {{ site_name }}{% endblock %}
+{% block description %}Qué datos guardamos y cuáles no. La web no usa cookies propias ni analítica de terceros; el bot guarda lo mínimo para funcionar.{% endblock %}
+{% block og_title %}Privacidad{% endblock %}
+{% block og_description %}Qué datos guardamos, dónde viven y cómo pedir que los borremos.{% endblock %}
+
+{% block head_extra %}
+<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+{% endblock %}
+
+{% block content %}
+<ol class="crumbs">
+  <li><a href="{% url 'web:home' %}">Inicio</a></li>
+  <li aria-current="page">Privacidad</li>
+</ol>
+
+<h1 class="rise d1">Privacidad</h1>
+<p class="lede rise d2">Lo importante primero: navegar el sitio no requiere cuenta, no deja
+   cookies nuestras y no te rastreamos.</p>
+
+<h2>Si solo usás la web</h2>
+<div class="card rise d3">
+  <p style="margin:0 0 .85rem"><strong>No guardamos nada tuyo.</strong> No hay cuentas, no hay
+     formularios, no hay cookies propias y no tenemos instalada ninguna herramienta de analítica
+     de terceros — ni Google Analytics ni equivalentes.</p>
+  <p style="margin:0" class="muted">Lo único que ocurre es lo normal de cualquier sitio: nuestro
+     proveedor de infraestructura (Cloudflare) procesa la petición para servirte la página y
+     protegerla de abuso, y conserva registros técnicos según su propia política.</p>
+</div>
+
+<h2>Si usás el bot de Telegram</h2>
+<p>Ahí sí guardamos lo mínimo para que el servicio funcione:</p>
+<div class="scroll" style="margin:1rem 0">
+<table>
+  <thead><tr><th>Qué</th><th>Para qué</th></tr></thead>
+  <tbody>
+    <tr><td>Tu ID de Telegram</td><td class="muted">Identificarte entre mensajes y enviarte las alertas</td></tr>
+    <tr><td>Tu nombre y usuario de Telegram</td><td class="muted">Saludarte por tu nombre</td></tr>
+    <tr><td>Las alertas que creaste</td><td class="muted">Saber qué ruta vigilar y avisarte</td></tr>
+    <tr><td>Cuántas búsquedas hiciste hoy</td><td class="muted">Aplicar el límite diario del plan gratuito</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="muted">No pedimos ni guardamos correo, teléfono, documento, datos de pago ni ubicación.
+   No vendemos ni cedemos estos datos a nadie con fines comerciales.</p>
+
+<h2>Cuando le escribís al bot en lenguaje natural</h2>
+<div class="card" style="border-color:color-mix(in srgb,var(--warn) 35%,transparent)">
+  <p style="margin:0 0 .85rem">Para entender frases como <em>«de Lima a Cusco el 15»</em>, el
+     texto de tu mensaje se envía a un proveedor de inteligencia artificial que lo convierte en
+     origen, destino y fecha.</p>
+  <p style="margin:0" class="muted">Se manda únicamente el texto del mensaje: no viaja tu nombre,
+     tu ID ni tu historial. Los proveedores que pueden intervenir son Anthropic, Groq o DeepSeek,
+     según cuál esté disponible. Si preferís que tu texto no salga de acá, usá los comandos
+     directos (<code>/vuelo LIM CUZ 2026-09-15</code>): esos no pasan por ningún modelo.</p>
+</div>
+
+<h2>Dónde viven los datos</h2>
+<ul class="muted">
+  <li><strong>Base de datos:</strong> Supabase (PostgreSQL gestionado), en servidores de Estados Unidos.</li>
+  <li><strong>Servidor de la aplicación:</strong> un VPS propio.</li>
+  <li><strong>Red y protección:</strong> Cloudflare.</li>
+  <li><strong>Copias de seguridad:</strong> bajo nuestro control y con retención limitada.</li>
+</ul>
+
+<h2>Tus derechos</h2>
+<p>De acuerdo con la Ley 29733 de Protección de Datos Personales del Perú, podés pedirnos
+   acceder a tus datos, corregirlos o eliminarlos. En la práctica:</p>
+<ul class="muted">
+  <li><strong>Ver y borrar tus alertas:</strong> mandale <code>/misalertas</code> al bot.</li>
+  <li><strong>Borrar todo:</strong> pedilo por el bot y eliminamos tu registro completo.</li>
+  <li><strong>Dejar de usarlo:</strong> bloquear el bot en Telegram corta cualquier mensaje nuestro.</li>
+</ul>
+
+<h2>Menores</h2>
+<p>El servicio no está dirigido a menores de edad y no recolectamos datos a sabiendas de que
+   pertenezcan a una persona menor.</p>
+
+<h2>Cambios</h2>
+<p>Si alguna vez agregamos analítica, publicidad o cualquier tratamiento nuevo de datos,
+   lo diremos acá antes de activarlo y actualizaremos la fecha de esta página.</p>
+
+<div class="card" style="margin-top:2.5rem;background:var(--bg-sunk)">
+  <p class="small muted" style="margin:0"><strong>Nota.</strong> Esta página describe con
+     exactitud lo que el sistema hace hoy, pero no fue redactada por un abogado y no incluye
+     los datos del titular ni el registro del banco de datos ante la autoridad peruana. Si el
+     proyecto crece, conviene completarlo con asesoría profesional.</p>
+</div>
+
+<p class="tiny dim" style="margin-top:2rem">Última actualización: {{ updated_at|date:"j \d\e F \d\e Y" }}</p>
+{% endblock %}

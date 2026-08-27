@@ -7,6 +7,7 @@ tráfico es móvil con datos limitados.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from decimal import Decimal
 
@@ -27,6 +28,9 @@ class Chart:
     min_price: Decimal
     max_price: Decimal
     points: list[tuple[float, float, object]]
+    #: Largo del trazo en px. La animacion de dibujado necesita el valor exacto
+    #: para `stroke-dasharray`; calcularlo aca evita tener que medirlo con JS.
+    length: float = 0.0
 
     @property
     def is_empty(self) -> bool:
@@ -41,7 +45,7 @@ def build(series) -> Chart:
     """
     if len(series) < 2:
         return Chart(line="", area="", width=WIDTH, height=HEIGHT,
-                     min_price=Decimal("0"), max_price=Decimal("0"), points=[])
+                     min_price=Decimal("0"), max_price=Decimal("0"), points=[], length=0.0)
 
     values = [float(p.price) for p in series]
     lo, hi = min(values), max(values)
@@ -65,7 +69,12 @@ def build(series) -> Chart:
         + f" L {points[-1][0]},{HEIGHT - PAD_Y} Z"
     )
 
+    largo = sum(
+        math.dist(points[i][:2], points[i + 1][:2]) for i in range(len(points) - 1)
+    )
+
     return Chart(
         line=line, area=area, width=WIDTH, height=HEIGHT,
         min_price=Decimal(str(lo)), max_price=Decimal(str(hi)), points=points,
+        length=round(largo, 1),
     )

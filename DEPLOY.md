@@ -233,8 +233,34 @@ docker compose -f docker-compose.prod.yml exec worker-default python manage.py s
 
 ### Restaurar
 
-**Probá esto al menos una vez antes de considerar el sistema en producción.**
-Un backup que nunca se restauró no es un backup.
+**Verificado el 2026-08-27.** Se restauró un dump completo en un PostgreSQL
+limpio y las cinco tablas coincidieron fila por fila con producción
+(14.435 snapshots, 84.573 ofertas, 44 rutas, 20 aeropuertos, 40 estadísticas).
+
+> **El dump necesita PostgreSQL 17 o superior para restaurarse.** Supabase corre
+> 17.6 y el `pg_dump` de la imagen es 17.11, así que el formato del archivo es
+> la versión 1.16. Intentar restaurarlo con PostgreSQL 16 falla con
+> `unsupported version (1.16) in file header`. Esto solo aparece al probar una
+> restauración de verdad: el backup se genera sin quejarse igual.
+
+Procedimiento verificado, sin tocar producción:
+
+```bash
+DUMP=$(docker compose -f docker-compose.prod.yml exec -T worker-default ls /backups | tr -d '' | tail -1)
+docker compose -f docker-compose.prod.yml cp worker-default:/backups/$DUMP /tmp/$DUMP
+
+docker run -d --name pg-restore-test -e POSTGRES_PASSWORD=prueba   -e POSTGRES_DB=verificacion postgres:17-alpine
+docker cp /tmp/$DUMP pg-restore-test:/tmp/dump
+docker exec pg-restore-test pg_restore --no-owner --no-privileges   -U postgres -d verificacion /tmp/dump
+
+docker exec pg-restore-test psql -U postgres -d verificacion -c   "SELECT count(*) FROM flights_pricesnapshot;"
+
+docker rm -f pg-restore-test && rm -f /tmp/$DUMP
+```
+
+`pg_restore` reporta **3 errores ignorados** sobre `vault.secrets`: es un esquema
+interno de Supabase (bóveda de secretos cifrados) que no nos pertenece y no se
+puede restaurar. No afecta a ninguna tabla del proyecto.
 
 ```bash
 docker compose -f docker-compose.prod.yml cp worker-default:/backups/vueloradar-20260823-040000.dump ./restore.dump

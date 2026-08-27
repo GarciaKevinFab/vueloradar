@@ -190,3 +190,27 @@ def related_routes(route, limit: int = 4) -> Related:
             if r.destination_id == route.destination_id and r is not inversa
         ][:limit],
     )
+
+
+def cities_with_routes() -> list:
+    """Aeropuertos que son origen de al menos una ruta publicada.
+
+    Es la lista que alimenta las páginas por ciudad y los enlaces de la
+    portada: sin rutas publicadas, la página quedaría vacía.
+    """
+    vistos, ciudades = set(), []
+    for r in published_routes():
+        if r.origin_id not in vistos:
+            vistos.add(r.origin_id)
+            ciudades.append(r.origin)
+    return sorted(ciudades, key=lambda a: a.city)
+
+
+def airport_by_slug(slug: str):
+    """Aeropuerto cuyo slug de ciudad coincide. None si no hay ninguno."""
+    return next((a for a in cities_with_routes() if a.slug == slug), None)
+
+
+def routes_from(airport) -> list:
+    """Rutas publicadas que salen de ese aeropuerto."""
+    return [r for r in published_routes() if r.origin_id == airport.iata_code]

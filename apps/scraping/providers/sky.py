@@ -148,7 +148,10 @@ def _read_price(texto: str) -> tuple[Decimal | None, str]:
         if crudo is not None:
             from ..fx import convert_to_pen
 
-            return convert_to_pen(crudo, "USD"), "USD"
+            convertido = convert_to_pen(crudo, "USD")
+            if convertido is None:
+                return None, ""
+            return convertido, "USD"
 
     return None, ""
 

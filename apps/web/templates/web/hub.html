@@ -1,0 +1,70 @@
+{% extends "web/base.html" %}
+
+{% block title %}Vuelos baratos desde {{ airport.city }}: precios reales y cuándo comprar — {{ site_name }}{% endblock %}
+{% block description %}Precios de vuelos desde {{ airport.city }} ({{ airport.iata_code }}){% if mas_barato %} desde S/ {{ mas_barato|floatformat:0 }}{% endif %}. Histórico real de {{ destinos|length }} destino{{ destinos|length|pluralize }}, con veredicto por fecha.{% endblock %}
+{% block og_title %}Vuelos desde {{ airport.city }}{% if mas_barato %} desde S/ {{ mas_barato|floatformat:0 }}{% endif %}{% endblock %}
+{% block og_description %}{{ destinos|length }} destino{{ destinos|length|pluralize }} con histórico real de precios. Te decimos qué fechas valen la pena y cuáles dejar pasar.{% endblock %}
+
+{% block head_extra %}
+<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
+ {"@type":"ListItem","position":1,"name":"Inicio","item":"{{ request.scheme }}://{{ request.get_host }}/"},
+ {"@type":"ListItem","position":2,"name":"Desde {{ airport.city }}"}]}
+</script>
+{% endblock %}
+
+{% block content %}
+<ol class="crumbs">
+  <li><a href="{% url 'web:home' %}">Inicio</a></li>
+  <li aria-current="page">Desde {{ airport.city }}</li>
+</ol>
+
+<h1 class="rise d1">Vuelos desde<br>{{ airport.city }}</h1>
+<p class="lede rise d2">{{ airport.name }} ({{ airport.iata_code }}). Seguimos
+  {{ destinos|length }} destino{{ destinos|length|pluralize }} dos veces al día
+  {% if mas_barato %}— el más barato hoy arranca en <strong>S/ {{ mas_barato|floatformat:0 }}</strong>{% endif %}.</p>
+
+<ul class="routes">
+  {% for d in destinos %}
+  <li class="reveal">
+    <a href="{% url 'web:route' d.route.origin_id d.route.destination_id %}">
+      <span>
+        <span class="r">{{ d.route.destination.city }}</span>
+        <span class="meta">
+          {% if d.baratas %}{{ d.baratas }} de {{ d.fechas }} fechas a buen precio
+          {% elif d.fechas %}ninguna de {{ d.fechas }} fechas está barata hoy
+          {% else %}sin precios vigentes{% endif %}
+          {% if not d.route.has_direct_flights %} · vía Lima{% endif %}
+        </span>
+      </span>
+      <span class="right">
+        {% if d.desde %}<span class="amount">S/ {{ d.desde|floatformat:0 }}</span>{% endif %}
+      </span>
+    </a>
+  </li>
+  {% empty %}
+  <li style="padding:1.5rem .25rem" class="muted">Todavía no hay destinos con histórico desde acá.</li>
+  {% endfor %}
+</ul>
+
+{% if bot_url %}
+<div class="cta reveal">
+  <h3>Te avisamos cuando baje</h3>
+  <p>Seguimos todas estas rutas dos veces al día. Decile al bot cuál te interesa y te
+     escribimos cuando el precio caiga de verdad.</p>
+  <a class="btn" href="{{ bot_url }}" rel="noopener">Abrir el bot en Telegram →</a>
+</div>
+{% endif %}
+
+{% if otras_ciudades %}
+<h2>Salir desde otra ciudad</h2>
+<ul class="chips reveal">
+  {% for c in otras_ciudades %}
+  <li><a href="{% url 'web:hub' c.slug %}">{{ c.city }}</a></li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<p class="tiny dim" style="margin-top:2.5rem">Actualizado {{ updated_at|date:"j \d\e F, H:i" }} (hora de Perú).</p>
+{% endblock %}

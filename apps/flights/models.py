@@ -20,6 +20,17 @@ class Airport(models.Model):
     def __str__(self) -> str:
         return f"{self.iata_code} — {self.city}"
 
+    @property
+    def slug(self) -> str:
+        """Ciudad en forma de URL, para las páginas por origen.
+
+        Se deriva en vez de guardarse: son 20 aeropuertos y una columna seria
+        el mismo dato en dos lugares, con el riesgo de que se desincronicen.
+        """
+        from django.utils.text import slugify
+
+        return slugify(self.city)
+
 
 class Route(models.Model):
     """Ruta dirigida origen→destino. LIM→CUZ y CUZ→LIM son rutas distintas."""

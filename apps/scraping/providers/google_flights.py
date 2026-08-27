@@ -212,6 +212,10 @@ class GoogleFlightsProvider(FlightProvider):
             return None, None, ""
 
         price_pen = convert_to_pen(amount, currency)
+        if price_pen is None:
+            # Sin tipo de cambio confiable preferimos perder la oferta antes
+            # que guardar un precio calculado con una tasa inventada.
+            return None, None, ""
         if currency == "PEN":
             return price_pen, None, ""
         return price_pen, amount, currency

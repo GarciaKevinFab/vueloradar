@@ -239,8 +239,10 @@ celery -A config beat                                # scheduler
 - **El stack de Docker nunca corrió.** `docker compose config` valida y
   `check --deploy` pasa limpio, pero nadie levantó los seis servicios en un
   VPS. El primer `build` tarda 10-15 min por Chromium.
-- **Ningún backup fue restaurado.** El `pg_dump` diario está programado, pero
-  un backup que nunca se restauró no es un backup (ver `DEPLOY.md` §7).
+- **Backup restaurado y verificado el 2026-08-27**: las cinco tablas coincidieron
+  fila por fila con producción. **Requiere PostgreSQL 17+**: el formato del dump
+  es 1.16 y con PG 16 falla con `unsupported version`. Procedimiento en
+  `DEPLOY.md` §7.
 - **JetSmart: verificado en vivo el 2026-08-27.** No apareció challenge alguno;
   el deep link sirvió la página completa. El bloqueo del 23-08 no se reprodujo,
   así que trátese como intermitente. Si vuelve, el provider devuelve `[]` y deja

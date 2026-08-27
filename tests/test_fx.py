@@ -1,5 +1,7 @@
 """Tipo de cambio USD→PEN: cache, fallback y sanidad del valor. Sin red."""
 
+import json
+from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -52,26 +54,61 @@ def test_cae_a_la_segunda_fuente_si_la_primera_falla():
         assert fx.usd_to_pen() == Decimal("3.9000")
 
 
-def test_fallback_del_env_si_todas_las_fuentes_fallan(settings):
-    settings.FX_FALLBACK_USD_PEN = "3.80"
+def test_sin_fuentes_ni_tasa_previa_no_se_inventa_una():
+    """Antes había una tasa fija en el .env que se usaba en silencio.
 
+    Guardar un precio calculado con un número inventado contamina el histórico
+    y nadie se entera. Ahora la conversión falla y el caller descarta la oferta.
+    """
+    with patch.object(fx, "_get_json", side_effect=OSError("sin red")), patch.object(
+        fx, "_avisar_al_admin"
+    ) as aviso:
+        with pytest.raises(fx.RateUnavailable):
+            fx.usd_to_pen()
+    aviso.assert_called_once()
+
+
+def test_sin_fuentes_se_usa_la_ultima_tasa_buena():
+    """El respaldo es la última tasa real observada, no una constante."""
+    with patch.object(fx, "_get_json", return_value={"rates": {"PEN": 3.71}}):
+        assert fx.usd_to_pen(force_refresh=True) == Decimal("3.7100")
+
+    # Se vacía el cache normal pero no el de última buena.
+    fx.cache.delete(fx.CACHE_KEY)
     with patch.object(fx, "_get_json", side_effect=OSError("sin red")):
-        assert fx.usd_to_pen() == Decimal("3.8000")
+        assert fx.usd_to_pen() == Decimal("3.7100")
 
 
-def test_descarta_tasas_fuera_de_rango(settings):
+def test_la_ultima_tasa_buena_caduca(settings):
+    """Pasado el límite deja de servir: una tasa de la semana pasada es ficción."""
+    from django.utils import timezone
+
+    settings.FX_LAST_GOOD_MAX_AGE_HOURS = 24
+    viejo = (timezone.now() - timedelta(hours=30)).isoformat()
+    fx.cache.set(fx.LAST_GOOD_KEY, json.dumps({"rate": "3.7100", "at": viejo}))
+
+    with patch.object(fx, "_get_json", side_effect=OSError("sin red")), patch.object(
+        fx, "_avisar_al_admin"
+    ):
+        with pytest.raises(fx.RateUnavailable):
+            fx.usd_to_pen()
+
+
+def test_descarta_tasas_fuera_de_rango():
     """Una tasa de 0.29 significa que la fuente devolvió PEN→USD, no USD→PEN."""
-    settings.FX_FALLBACK_USD_PEN = "3.80"
+    with patch.object(fx, "_get_json", return_value={"rates": {"PEN": 0.29}}), patch.object(
+        fx, "_avisar_al_admin"
+    ):
+        with pytest.raises(fx.RateUnavailable):
+            fx.usd_to_pen()
 
-    with patch.object(fx, "_get_json", return_value={"rates": {"PEN": 0.29}}):
-        assert fx.usd_to_pen() == Decimal("3.8000")
 
-
-def test_respuesta_con_forma_inesperada_no_rompe(settings):
-    settings.FX_FALLBACK_USD_PEN = "3.80"
-
-    with patch.object(fx, "_get_json", return_value={"algo": "distinto"}):
-        assert fx.usd_to_pen() == Decimal("3.8000")
+def test_respuesta_con_forma_inesperada_no_rompe():
+    with patch.object(fx, "_get_json", return_value={"algo": "distinto"}), patch.object(
+        fx, "_avisar_al_admin"
+    ):
+        with pytest.raises(fx.RateUnavailable):
+            fx.usd_to_pen()
 
 
 def test_redis_caido_no_rompe_la_conversion():
@@ -89,6 +126,16 @@ def test_convert_to_pen():
     assert fx.convert_to_pen(Decimal("450"), "") == Decimal("450.00")
 
 
-def test_moneda_no_soportada_se_asume_pen():
-    """Mejor un precio sin convertir que reventar la búsqueda entera."""
-    assert fx.convert_to_pen(Decimal("100"), "CLP") == Decimal("100.00")
+def test_moneda_no_soportada_se_descarta():
+    """Asumir PEN para un monto en otra moneda inventa un precio.
+
+    Con CLP, 100 no son 100 soles: guardarlo así mete basura en el histórico.
+    """
+    assert fx.convert_to_pen(Decimal("100"), "CLP") is None
+
+
+def test_sin_tipo_de_cambio_la_oferta_en_dolares_se_descarta():
+    with patch.object(fx, "_get_json", side_effect=OSError("sin red")), patch.object(
+        fx, "_avisar_al_admin"
+    ):
+        assert fx.convert_to_pen(Decimal("50"), "USD") is None

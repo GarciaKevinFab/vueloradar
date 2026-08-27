@@ -33,7 +33,20 @@ class StaticSitemap(Sitemap):
     priority = 1.0
 
     def items(self):
-        return ["web:home"]
+        return ["web:home", "web:terminos", "web:privacidad"]
 
     def location(self, name):
         return reverse(name)
+
+
+class CitySitemap(Sitemap):
+    """Páginas por ciudad de origen."""
+
+    changefreq = "daily"
+    priority = 0.9
+
+    def items(self):
+        return queries.cities_with_routes()
+
+    def location(self, airport):
+        return reverse("web:hub", args=[airport.slug])

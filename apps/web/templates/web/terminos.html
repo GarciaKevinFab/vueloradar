@@ -1,0 +1,86 @@
+{% extends "web/base.html" %}
+
+{% block title %}Términos de uso — {{ site_name }}{% endblock %}
+{% block description %}Qué es y qué no es VueloRadar: no vendemos pasajes, los precios son observaciones y no ofertas vinculantes.{% endblock %}
+{% block og_title %}Términos de uso{% endblock %}
+{% block og_description %}Qué es y qué no es VueloRadar, en lenguaje claro.{% endblock %}
+
+{% block head_extra %}
+<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+{% endblock %}
+
+{% block content %}
+<ol class="crumbs">
+  <li><a href="{% url 'web:home' %}">Inicio</a></li>
+  <li aria-current="page">Términos de uso</li>
+</ol>
+
+<h1 class="rise d1">Términos<br>de uso</h1>
+<p class="lede rise d2">Escritos para que se entiendan. Si algo acá no te cierra, no uses el servicio —
+   es gratuito y no te pedimos nada a cambio.</p>
+
+<div class="card rise d3" style="margin-bottom:2rem">
+  <h3>En una línea</h3>
+  <p style="margin:0" class="muted">Te mostramos precios que observamos, no precios que vendemos.
+     Lo que ves acá es una medición; la única fuente válida es la aerolínea.</p>
+</div>
+
+<h2>1. Qué es este servicio</h2>
+<p>{{ site_name }} observa precios públicos de vuelos domésticos en Perú, los guarda y los compara
+   contra su propio histórico para darte una referencia de si el precio de hoy es alto o bajo
+   para esa ruta.</p>
+<p><strong>No somos una agencia de viajes ni un intermediario.</strong> No vendemos pasajes,
+   no procesamos pagos, no gestionamos reservas y no cobramos comisión a ninguna aerolínea
+   ni agencia. Tampoco tenemos vínculo comercial con las aerolíneas cuyos precios observamos.</p>
+
+<h2>2. Los precios son observaciones, no ofertas</h2>
+<p>Cada precio que ves es <em>lo que costaba cuando lo miramos</em>, no lo que cuesta ahora.
+   Los precios de vuelos cambian a cada momento y por motivos que no controlamos:
+   disponibilidad, demanda, promociones que aparecen y desaparecen.</p>
+<p>En concreto, esto significa que:</p>
+<ul class="muted">
+  <li>Un precio mostrado acá <strong>puede no existir</strong> cuando entres a comprar.</li>
+  <li>Podés encontrar un precio <strong>más bajo</strong> del que mostramos.</li>
+  <li>Nuestro veredicto («buen precio», «esperá») es una <strong>opinión estadística</strong>
+      sobre el histórico de esa ruta, no una predicción ni una recomendación financiera.</li>
+  <li><strong>Verificá siempre en la aerolínea antes de comprar.</strong></li>
+</ul>
+
+<h2>3. Sin garantías</h2>
+<p>El servicio se ofrece «tal cual». Hacemos un esfuerzo razonable para que los datos sean
+   correctos y estén al día, pero no garantizamos exactitud, disponibilidad continua ni
+   ausencia de errores.</p>
+<p>No nos hacemos responsables por decisiones de compra tomadas a partir de esta información,
+   ni por diferencias de precio, vuelos cancelados, cambios de itinerario o cualquier
+   perjuicio derivado del uso del servicio.</p>
+
+<h2>4. Uso aceptable</h2>
+<p>Podés usar el sitio y el bot libremente para consultar precios y recibir alertas. Lo que
+   pedimos que no hagas:</p>
+<ul class="muted">
+  <li>Extraer el contenido de forma masiva y automatizada. El histórico es el resultado de
+      meses de trabajo; si lo necesitás para investigación o periodismo, escribinos y lo
+      conversamos.</li>
+  <li>Revender o presentar los datos como propios.</li>
+  <li>Intentar degradar el servicio o saltarte los límites de uso del bot.</li>
+</ul>
+
+<h2>5. Marcas de terceros</h2>
+<p>Los nombres de aerolíneas, aeropuertos y ciudades se usan únicamente para identificar
+   rutas y vuelos. Todas las marcas pertenecen a sus titulares y su mención no implica
+   asociación, patrocinio ni aprobación.</p>
+
+<h2>6. Cambios y contacto</h2>
+<p>Podemos modificar estos términos. Los cambios relevantes se reflejan en la fecha de esta
+   página. Seguir usando el servicio implica aceptarlos.</p>
+<p>Para cualquier consulta, escribinos por el bot de Telegram.</p>
+
+<div class="card" style="margin-top:2.5rem;background:var(--bg-sunk)">
+  <p class="small muted" style="margin:0"><strong>Nota.</strong> Este texto está escrito en
+     lenguaje claro y describe con honestidad cómo funciona el servicio, pero no fue redactado
+     por un abogado. Si el proyecto pasa a tener ingresos o usuarios registrados, conviene que
+     un profesional lo revise y lo complete con los datos del titular.</p>
+</div>
+
+<p class="tiny dim" style="margin-top:2rem">Última actualización: {{ updated_at|date:"j \d\e F \d\e Y" }}</p>
+{% endblock %}

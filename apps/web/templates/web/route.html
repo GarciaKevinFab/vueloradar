@@ -1,37 +1,49 @@
 {% extends "web/base.html" %}
+{% load l10n %}
 
 {% block title %}Vuelos {{ route.origin.city }} a {{ route.destination.city }}: ¿es buen precio hoy? — {{ site_name }}{% endblock %}
 {% block description %}Vuelos {{ route.origin.city }} a {{ route.destination.city }}{% if desde %} desde S/ {{ desde|floatformat:0 }}{% endif %}: qué fechas están a buen precio y cuáles no, según el histórico real de los últimos 30 días.{% endblock %}
-
 {% block og_title %}{{ route.origin.city }} → {{ route.destination.city }}{% if desde %} desde S/ {{ desde|floatformat:0 }}{% endif %}{% endblock %}
 {% block og_description %}{% if baratas %}{{ baratas|length }} de {{ fechas|length }} fechas están a buen precio hoy.{% else %}Ninguna fecha está barata hoy en esta ruta.{% endif %} Según el histórico real de los últimos 30 días.{% endblock %}
 
 {% block head_extra %}
 <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
-{# Dataset: describimos con honestidad lo que la página realmente publica. #}
+{# Dataset: describimos con honestidad lo que la pagina realmente publica. #}
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"Dataset",
  "name":"Histórico de precios de vuelos {{ route.origin_id }}-{{ route.destination_id }}",
  "description":"Precios mínimos observados dos veces al día para la ruta {{ route.origin.city }} a {{ route.destination.city }}, en soles y con impuestos incluidos.",
- "temporalCoverage":"P{{ history_days }}D",
- "isAccessibleForFree":true,
+ "temporalCoverage":"P{{ history_days }}D","isAccessibleForFree":true,
  "creator":{"@type":"Organization","name":"{{ site_name }}"}}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
+ {"@type":"ListItem","position":1,"name":"Inicio","item":"{{ request.scheme }}://{{ request.get_host }}/"},
+ {"@type":"ListItem","position":2,"name":"Desde {{ route.origin.city }}","item":"{{ request.scheme }}://{{ request.get_host }}{% url 'web:hub' route.origin.slug %}"},
+ {"@type":"ListItem","position":3,"name":"{{ route.origin.city }} a {{ route.destination.city }}"}]}
 </script>
 {% endblock %}
 
 {% block content %}
-<h1>{{ route.origin.city }} → {{ route.destination.city }}</h1>
-<p class="sub">{{ route.origin.name }} ({{ route.origin_id }}) a {{ route.destination.name }} ({{ route.destination_id }}){% if not route.has_direct_flights %} · sin vuelo directo, se arma vía Lima{% endif %}</p>
+<ol class="crumbs">
+  <li><a href="{% url 'web:home' %}">Inicio</a></li>
+  <li><a href="{% url 'web:hub' route.origin.slug %}">Desde {{ route.origin.city }}</a></li>
+  <li aria-current="page">{{ route.destination.city }}</li>
+</ol>
 
-<div class="card">
+<h1 class="rise d1">{{ route.origin.city }} <span class="dim">→</span> {{ route.destination.city }}</h1>
+<p class="lede rise d2">{{ route.origin.name }} ({{ route.origin_id }}) a {{ route.destination.name }} ({{ route.destination_id }}){% if not route.has_direct_flights %} · sin vuelo directo, se arma vía Lima{% endif %}</p>
+
+<div class="card card-hero rise d3">
   {% if desde %}
-    <div class="verdict">
-      <span class="price">desde S/ {{ desde|floatformat:0 }}</span>
+    <div style="display:flex;align-items:flex-end;gap:1.25rem;flex-wrap:wrap">
+      <div class="price"><small>Desde</small>S/&nbsp;{{ desde|floatformat:0 }}</div>
       {% if trend.is_actionable %}
-        <span class="badge" style="background:{{ trend.color }}">La ruta hoy: {{ trend.label|lower }}</span>
+        <span class="v v-{{ trend.level }}" style="margin-bottom:.6rem">La ruta hoy: {{ trend.label|lower }}</span>
       {% endif %}
     </div>
-    <p style="margin:12px 0 0">
+
+    <p style="margin:1.15rem 0 0">
       {% if trend.is_actionable %}
         <strong>{{ trend.action }}.</strong>
         {% if trend.vs_median_pct < 0 %}
@@ -50,8 +62,9 @@
         {% if baratas %}Aun así, ya podemos decirte qué fechas concretas están a buen precio.{% endif %}
       {% endif %}
     </p>
+
     {% if baratas %}
-      <p class="small" style="margin:10px 0 0"><strong>{{ baratas|length }} de {{ fechas|length }} fechas</strong>
+      <p class="small muted" style="margin:.85rem 0 0"><strong>{{ baratas|length }} de {{ fechas|length }} fechas</strong>
          están hoy a buen precio{% if caras %}, y {{ caras|length }} están caras{% endif %}.</p>
     {% endif %}
   {% else %}
@@ -60,12 +73,12 @@
 </div>
 
 {% if stats and stats.median_30d %}
-<div class="grid">
-  <div class="stat"><span class="muted small">Mediana 30 días</span><b>S/ {{ stats.median_30d|floatformat:0 }}</b></div>
-  <div class="stat"><span class="muted small">Buen precio bajo</span><b>S/ {{ stats.p25_30d|floatformat:0 }}</b></div>
-  <div class="stat"><span class="muted small">Promedio 30 días</span><b>S/ {{ stats.avg_30d|floatformat:0 }}</b></div>
+<div class="stats rise d4">
+  <div class="stat"><span>Mediana 30 d</span><b>S/ {{ stats.median_30d|floatformat:0 }}</b></div>
+  <div class="stat"><span>Buen precio bajo</span><b>S/ {{ stats.p25_30d|floatformat:0 }}</b></div>
+  <div class="stat"><span>Promedio 30 d</span><b>S/ {{ stats.avg_30d|floatformat:0 }}</b></div>
   {% if all_time_low %}
-  <div class="stat"><span class="muted small">Mínimo histórico</span><b>S/ {{ all_time_low.min_price_pen|floatformat:0 }}</b></div>
+  <div class="stat"><span>Mínimo histórico</span><b>S/ {{ all_time_low.min_price_pen|floatformat:0 }}</b></div>
   {% endif %}
 </div>
 {% endif %}
@@ -74,50 +87,63 @@
 {% if chart.is_empty %}
   <p class="muted">Todavía no hay suficientes días de histórico para dibujar la curva.</p>
 {% else %}
-  <div class="scroll">
-    <svg viewBox="0 0 {{ chart.width }} {{ chart.height }}" width="100%" height="220"
-         role="img" aria-label="Precio mínimo diario de los últimos {{ history_days }} días">
-      <path class="area" d="{{ chart.area }}"/>
-      <polyline class="line" points="{{ chart.line }}"/>
+  <div class="chart rise d5">
+    <svg viewBox="0 0 {{ chart.width }} {{ chart.height }}" role="img"
+         aria-label="Precio mínimo diario de los últimos {{ history_days }} días">
+      <defs>
+        <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--accent)" stop-opacity=".22"/>
+          <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      {% localize off %}
+      <path d="{{ chart.area }}" fill="url(#fade)"/>
+      <polyline class="line" points="{{ chart.line }}" style="--len:{{ chart.length }}"/>
+      {% with ultimo=chart.points|last %}
+      <circle class="dot" cx="{{ ultimo.0 }}" cy="{{ ultimo.1 }}" r="4.5"/>
+      {% endwith %}
+      {% endlocalize %}
     </svg>
   </div>
-  <p class="muted small">Precio más barato observado cada día · últimos {{ history_days }} días ·
-     rango S/ {{ chart.min_price|floatformat:0 }} – S/ {{ chart.max_price|floatformat:0 }}</p>
+  <p class="tiny dim" style="margin:.6rem 0 0">Precio más barato observado cada día ·
+     últimos {{ history_days }} días · rango S/ {{ chart.min_price|floatformat:0 }} – S/ {{ chart.max_price|floatformat:0 }}</p>
 {% endif %}
 
 {% if bot_url %}
-<div class="cta">
+<div class="cta reveal">
   <h3>Te avisamos cuando baje</h3>
-  <p>Seguimos {{ route.origin.city }} → {{ route.destination.city }} dos veces al día.
-     Si aparece un precio realmente bajo, te llega el aviso sin que tengas que volver.</p>
+  <p>Seguimos {{ route.origin.city }} → {{ route.destination.city }} dos veces al día. Si aparece un precio
+     realmente bajo, te llega el aviso sin que tengas que volver.</p>
   <a class="btn" href="{{ bot_url }}?start={{ route.origin_id }}-{{ route.destination_id }}"
-     rel="noopener">Activar alerta en Telegram</a>
+     rel="noopener">Activar alerta en Telegram →</a>
 </div>
 {% endif %}
 
 {% if cheapest %}
-<h2>Las fechas más baratas ahora mismo</h2>
+<h2>Las fechas más baratas</h2>
+<div class="scroll reveal">
 <table>
   <thead><tr><th>Fecha de vuelo</th><th>Veredicto</th><th class="num">Precio</th></tr></thead>
   <tbody>
     {% for d in cheapest %}
     <tr><td>{{ d.day|date:"l j \d\e F" }}</td>
-        <td><span class="badge" style="background:{{ d.verdict.color }}">{{ d.verdict.label }}</span></td>
+        <td><span class="v v-{{ d.verdict.level }}">{{ d.verdict.label }}</span></td>
         <td class="num">S/ {{ d.price|floatformat:0 }}</td></tr>
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% endif %}
 
 {% if fechas %}
-<h2>Calendario de precios</h2>
-<div class="scroll">
+<h2>Calendario completo</h2>
+<div class="scroll reveal">
 <table>
   <thead><tr><th>Fecha</th><th>Veredicto</th><th class="num">Precio mínimo</th></tr></thead>
   <tbody>
     {% for d in fechas %}
     <tr><td>{{ d.day|date:"D j M Y" }}</td>
-        <td><span class="badge" style="background:{{ d.verdict.color }}">{{ d.verdict.label }}</span></td>
+        <td><span class="v v-{{ d.verdict.level }}">{{ d.verdict.label }}</span></td>
         <td class="num">S/ {{ d.price|floatformat:0 }}</td></tr>
     {% endfor %}
   </tbody>
@@ -127,26 +153,28 @@
 
 {% if not related.is_empty %}
 <h2>Otras rutas</h2>
-{% if related.inverse %}
-  <p>¿Volvés? Mirá <a href="{% url 'web:route' related.inverse.origin_id related.inverse.destination_id %}">{{ related.inverse.origin.city }} → {{ related.inverse.destination.city }}</a>.</p>
-{% endif %}
-{% if related.from_origin %}
-  <p class="muted small" style="margin-bottom:0">Desde {{ route.origin.city }}</p>
-  <ul class="chips">
-    {% for r in related.from_origin %}
-    <li><a href="{% url 'web:route' r.origin_id r.destination_id %}">{{ r.destination.city }}</a></li>
-    {% endfor %}
-  </ul>
-{% endif %}
-{% if related.to_destination %}
-  <p class="muted small" style="margin:16px 0 0">Hacia {{ route.destination.city }}</p>
-  <ul class="chips">
-    {% for r in related.to_destination %}
-    <li><a href="{% url 'web:route' r.origin_id r.destination_id %}">desde {{ r.origin.city }}</a></li>
-    {% endfor %}
-  </ul>
-{% endif %}
+<div class="reveal">
+  {% if related.inverse %}
+    <p>¿Volvés? Mirá <a style="color:var(--accent)" href="{% url 'web:route' related.inverse.origin_id related.inverse.destination_id %}">{{ related.inverse.origin.city }} → {{ related.inverse.destination.city }}</a>.</p>
+  {% endif %}
+  {% if related.from_origin %}
+    <p class="tiny dim" style="margin:1.25rem 0 0;letter-spacing:.06em;text-transform:uppercase">Desde {{ route.origin.city }}</p>
+    <ul class="chips">
+      {% for r in related.from_origin %}
+      <li><a href="{% url 'web:route' r.origin_id r.destination_id %}">{{ r.destination.city }}</a></li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  {% if related.to_destination %}
+    <p class="tiny dim" style="margin:1.25rem 0 0;letter-spacing:.06em;text-transform:uppercase">Hacia {{ route.destination.city }}</p>
+    <ul class="chips">
+      {% for r in related.to_destination %}
+      <li><a href="{% url 'web:route' r.origin_id r.destination_id %}">desde {{ r.origin.city }}</a></li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</div>
 {% endif %}
 
-<p class="muted small" style="margin-top:24px">Actualizado {{ updated_at|date:"j \d\e F, H:i" }} (hora de Perú).</p>
+<p class="tiny dim" style="margin-top:2.5rem">Actualizado {{ updated_at|date:"j \d\e F, H:i" }} (hora de Perú).</p>
 {% endblock %}

@@ -8,9 +8,16 @@
 <link rel="icon" href="{% static 'web/favicon.ico' %}" sizes="32x32">
 <link rel="icon" href="{% static 'web/favicon-32.png' %}" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="{% static 'web/apple-touch-icon.png' %}">
+<meta name="theme-color" content="#0a0c10" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#faf9f7" media="(prefers-color-scheme: light)">
 
-{# Open Graph: lo que se ve al pegar el enlace en WhatsApp, que en Perú es
-   el canal real de difusión. `og:image` tiene que ser URL absoluta. #}
+{% comment %} Las fuentes van auto-alojadas: Google Fonts seria una peticion a terceros y
+   en movil peruano eso se paga en latencia. 49 KB los dos archivos juntos. {% endcomment %}
+<link rel="preload" href="{% static 'web/fonts/instrument-sans.woff2' %}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{% static 'web/fonts/instrument-serif.woff2' %}" as="font" type="font/woff2" crossorigin>
+
+{% comment %} Open Graph: lo que se ve al pegar el enlace en WhatsApp, que en Peru es el
+   canal real de difusion. `og:image` tiene que ser URL absoluta. {% endcomment %}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="{{ site_name }}">
 <meta property="og:locale" content="es_PE">
@@ -23,77 +30,222 @@
 <meta name="twitter:card" content="summary_large_image">
 {% block head_extra %}{% endblock %}
 <style>
+@font-face{font-family:'Instrument Sans';src:url('{% static "web/fonts/instrument-sans.woff2" %}') format('woff2');
+  font-weight:400 700;font-style:normal;font-display:swap}
+@font-face{font-family:'Instrument Serif';src:url('{% static "web/fonts/instrument-serif.woff2" %}') format('woff2');
+  font-weight:400;font-style:normal;font-display:swap}
+
+/* --- Tokens ------------------------------------------------------------
+   Dos temas disenados, no uno invertido. Claro = papel tecnico;
+   oscuro = pantalla de radar.                                            */
+:root{
+  --bg:#faf9f7; --bg-elev:#ffffff; --bg-sunk:#f2f0ec;
+  --ink:#14161a; --ink-2:#4a4f57; --ink-3:#8b9099;
+  --line:#e3e0da; --line-2:#d5d1c9;
+  --accent:#0054d4; --accent-ink:#ffffff;
+  --good:#0a6b45; --good-soft:#e2f2ea;
+  --warn:#8a5a08; --warn-soft:#fbf0dc;
+  --bad:#a32b23;  --bad-soft:#fbe8e6;
+  --shadow-1:0 1px 2px rgba(20,22,26,.05), 0 4px 12px rgba(20,22,26,.05);
+  --shadow-2:0 2px 4px rgba(20,22,26,.06), 0 12px 32px rgba(20,22,26,.09);
+  --glow:transparent;
+}
+@media (prefers-color-scheme:dark){
   :root{
-    --bg:#ffffff; --fg:#14171a; --muted:#5f6368; --line:#e4e7eb;
-    --card:#f7f8fa; --accent:#0054d4; --accent-fg:#ffffff;
+    --bg:#0a0c10; --bg-elev:#14171d; --bg-sunk:#070810;
+    --ink:#f0f1f3; --ink-2:#a4abb6; --ink-3:#6b727e;
+    --line:#232830; --line-2:#2f353f;
+    --accent:#5b9bff; --accent-ink:#04101f;
+    --good:#3ddc97; --good-soft:#0c2b20;
+    --warn:#e5a94a; --warn-soft:#2c2113;
+    --bad:#ff7a6e;  --bad-soft:#301715;
+    --shadow-1:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+    --shadow-2:0 2px 6px rgba(0,0,0,.5), 0 16px 40px rgba(0,0,0,.45);
+    --glow:rgba(91,155,255,.13);
   }
-  @media (prefers-color-scheme:dark){
-    :root{ --bg:#0f1115; --fg:#e8eaed; --muted:#9aa0a6; --line:#2a2f36;
-           --card:#171a1f; --accent:#8ab4f8; --accent-fg:#0f1115; }
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:'Instrument Sans',ui-sans-serif,system-ui,sans-serif;
+  font-size:17px;line-height:1.55;letter-spacing:-.005em;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+
+/* El halo de radar detras del contenido. Fijo: no cuesta nada al hacer scroll. */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(70rem 40rem at 50% -12rem, var(--glow), transparent 70%)}
+
+a{color:inherit;text-decoration:none}
+.wrap{max-width:56rem;margin:0 auto;padding:0 1.5rem;position:relative;z-index:1}
+
+/* --- Tipografia --------------------------------------------------------
+   Serif editorial para las preguntas, sans tecnica para los datos. Ese
+   contraste es la voz: humana al preguntar, precisa al medir.            */
+h1{font-family:'Instrument Serif',Georgia,serif;font-weight:400;
+  font-size:clamp(2.4rem,7vw,4.2rem);line-height:1.02;letter-spacing:-.02em;margin:0 0 .6rem}
+h2{font-family:'Instrument Serif',Georgia,serif;font-weight:400;
+  font-size:clamp(1.5rem,3.6vw,2rem);line-height:1.15;letter-spacing:-.01em;margin:3.5rem 0 1rem}
+h3{font-size:1.0625rem;font-weight:600;letter-spacing:-.01em;margin:0 0 .35rem}
+.lede{color:var(--ink-2);font-size:clamp(1rem,2.2vw,1.1875rem);margin:0 0 2.5rem;max-width:34rem}
+.muted{color:var(--ink-2)} .dim{color:var(--ink-3)}
+.small{font-size:.875rem} .tiny{font-size:.8125rem;letter-spacing:.01em}
+
+/* --- Cabecera ----------------------------------------------------------*/
+header{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 82%,transparent);
+  backdrop-filter:saturate(1.6) blur(14px);border-bottom:1px solid var(--line)}
+header .wrap{display:flex;align-items:center;gap:.65rem;height:3.75rem}
+.brand{display:flex;align-items:center;gap:.55rem;font-weight:600;letter-spacing:-.02em}
+.brand img{width:1.5rem;height:1.5rem;border-radius:.375rem;display:block}
+.brand-sub{color:var(--ink-3);font-size:.8125rem;margin-left:auto;text-align:right}
+
+/* --- Migas -------------------------------------------------------------*/
+.crumbs{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;
+  font-size:.8125rem;color:var(--ink-3);margin:2rem 0 1.25rem;padding:0;list-style:none}
+.crumbs a{color:var(--ink-2);text-underline-offset:3px}
+.crumbs a:hover{color:var(--accent);text-decoration:underline}
+.crumbs li+li::before{content:'/';margin-right:.4rem;color:var(--line-2)}
+
+/* --- Superficies -------------------------------------------------------*/
+.card{background:var(--bg-elev);border:1px solid var(--line);border-radius:1.125rem;
+  padding:1.5rem;box-shadow:var(--shadow-1)}
+.card-hero{padding:1.75rem;box-shadow:var(--shadow-2)}
+
+/* --- Veredicto ---------------------------------------------------------
+   Solo el "chollo" va relleno. Que el tratamiento —y no solo el color—
+   cargue el significado es lo que evita el semaforo de cinco pastillas.  */
+.v{display:inline-flex;align-items:center;gap:.4rem;border-radius:2rem;
+  padding:.3rem .75rem;font-size:.8125rem;font-weight:600;letter-spacing:-.005em;
+  border:1px solid transparent;white-space:nowrap}
+.v-chollo{background:var(--good);color:var(--bg-elev);
+  box-shadow:0 2px 10px color-mix(in srgb,var(--good) 35%,transparent)}
+.v-bueno {background:var(--good-soft);color:var(--good);
+  border-color:color-mix(in srgb,var(--good) 22%,transparent)}
+.v-normal{background:var(--bg-sunk);color:var(--ink-2);border-color:var(--line)}
+.v-alto  {background:var(--warn-soft);color:var(--warn);
+  border-color:color-mix(in srgb,var(--warn) 22%,transparent)}
+.v-caro  {background:var(--bad-soft);color:var(--bad);
+  border-color:color-mix(in srgb,var(--bad) 22%,transparent)}
+.v-sin_datos{background:var(--bg-sunk);color:var(--ink-3);border-color:var(--line)}
+
+.price{font-size:clamp(2.75rem,9vw,4rem);font-weight:600;letter-spacing:-.04em;line-height:1;
+  font-variant-numeric:tabular-nums}
+.price small{font-size:.3em;font-weight:500;color:var(--ink-3);
+  display:block;margin-bottom:.4rem;letter-spacing:.08em;text-transform:uppercase}
+
+/* --- Estadisticas ------------------------------------------------------*/
+.stats{display:grid;gap:.75rem;grid-template-columns:repeat(auto-fit,minmax(8.5rem,1fr));margin:1.25rem 0}
+.stat{background:var(--bg-sunk);border:1px solid var(--line);border-radius:.875rem;padding:.875rem 1rem}
+.stat span{display:block;color:var(--ink-3);font-size:.75rem;letter-spacing:.04em;text-transform:uppercase}
+.stat b{display:block;font-size:1.375rem;font-weight:600;letter-spacing:-.02em;margin-top:.15rem;
+  font-variant-numeric:tabular-nums}
+
+/* --- Indice de rutas ---------------------------------------------------*/
+.routes{list-style:none;padding:0;margin:0;border-top:1px solid var(--line)}
+.routes li{border-bottom:1px solid var(--line)}
+.routes a{display:flex;align-items:center;gap:1rem;padding:1.05rem .25rem;
+  transition:background .25s ease,padding-left .25s ease}
+.routes a:hover{background:var(--bg-elev);padding-left:.75rem}
+.routes .r{font-weight:600;letter-spacing:-.015em}
+.routes .meta{color:var(--ink-3);font-size:.8125rem;margin-top:.1rem}
+.routes .right{margin-left:auto;text-align:right;display:flex;flex-direction:column;
+  align-items:flex-end;gap:.3rem}
+.routes .amount{font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+
+/* --- Tablas ------------------------------------------------------------*/
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;
+  border:1px solid var(--line);border-radius:1rem;background:var(--bg-elev)}
+table{width:100%;border-collapse:collapse;font-size:.9375rem}
+th,td{text-align:left;padding:.8rem 1rem;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:none}
+th{color:var(--ink-3);font-weight:600;font-size:.6875rem;text-transform:uppercase;letter-spacing:.08em;
+  background:var(--bg-sunk)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr{transition:background .2s ease}
+tbody tr:hover{background:var(--bg-sunk)}
+
+/* --- Grafico -----------------------------------------------------------*/
+.chart{border:1px solid var(--line);border-radius:1.125rem;background:var(--bg-elev);
+  padding:1.25rem 1rem .75rem;box-shadow:var(--shadow-1);overflow:hidden}
+.chart svg{display:block;width:100%;height:auto}
+.chart .line{fill:none;stroke:var(--accent);stroke-width:2.25;stroke-linejoin:round;stroke-linecap:round}
+.chart .dot{fill:var(--accent)}
+
+/* --- Conversion --------------------------------------------------------*/
+.cta{position:relative;overflow:hidden;background:var(--accent);color:var(--accent-ink);
+  border-radius:1.125rem;padding:1.75rem;margin:2.5rem 0;box-shadow:var(--shadow-2)}
+.cta::after{content:'';position:absolute;right:-6rem;top:-6rem;width:18rem;height:18rem;
+  border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.16),transparent 65%)}
+.cta h3{font-size:1.25rem;margin:0 0 .35rem;letter-spacing:-.02em;position:relative}
+.cta p{margin:0 0 1.15rem;opacity:.88;font-size:.9375rem;max-width:32rem;position:relative}
+.btn{display:inline-flex;align-items:center;gap:.5rem;background:var(--accent-ink);color:var(--accent);
+  font-weight:600;font-size:.9375rem;padding:.7rem 1.25rem;border-radius:.75rem;position:relative;
+  transition:transform .2s cubic-bezier(.2,.8,.3,1),box-shadow .2s ease}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.22)}
+
+/* --- Fichas relacionadas -----------------------------------------------*/
+.chips{display:flex;flex-wrap:wrap;gap:.5rem;padding:0;margin:.75rem 0 0;list-style:none}
+.chips a{display:inline-block;border:1px solid var(--line);background:var(--bg-elev);
+  border-radius:2rem;padding:.4rem .85rem;font-size:.875rem;
+  transition:border-color .2s ease,transform .2s ease}
+.chips a:hover{border-color:var(--accent);transform:translateY(-1px)}
+
+footer{margin:5rem 0 3rem;padding-top:1.5rem;border-top:1px solid var(--line);
+  color:var(--ink-3);font-size:.875rem}
+footer p{margin:0 0 .6rem;max-width:40rem}
+
+/* --- Movimiento --------------------------------------------------------
+   Una entrada escalonada al cargar vale mas que veinte microinteracciones
+   sueltas. Todo en CSS: la CSP no permite JS y tampoco hace falta.       */
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes draw{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:0}}
+
+.rise{animation:rise .7s cubic-bezier(.16,1,.3,1) backwards}
+.d1{animation-delay:.05s} .d2{animation-delay:.13s} .d3{animation-delay:.21s}
+.d4{animation-delay:.29s} .d5{animation-delay:.37s}
+
+.chart .line{stroke-dasharray:var(--len);animation:draw 1.6s cubic-bezier(.4,0,.2,1) .3s backwards}
+
+/* Revelado por scroll sin JS. Donde no este soportado el contenido
+   simplemente se ve: nunca queda invisible. */
+@supports (animation-timeline:view()){
+  @media (prefers-reduced-motion:no-preference){
+    .reveal{animation:rise .8s cubic-bezier(.16,1,.3,1) both;
+      animation-timeline:view();animation-range:entry 0% entry 55%}
   }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--fg);
-       font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-  a{color:var(--accent);text-decoration:none}
-  a:hover{text-decoration:underline}
-  .wrap{max-width:860px;margin:0 auto;padding:0 20px}
-  header{border-bottom:1px solid var(--line);padding:18px 0;margin-bottom:28px}
-  header .wrap{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .brand{font-weight:700;font-size:20px;color:var(--fg);display:flex;align-items:center;gap:8px}
-  .brand img{width:26px;height:26px;display:block}
-  .tagline{color:var(--muted);font-size:14px}
-  h1{font-size:clamp(24px,5vw,34px);line-height:1.2;margin:0 0 6px}
-  h2{font-size:19px;margin:34px 0 12px}
-  .sub{color:var(--muted);margin:0 0 26px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
-  .verdict{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-  .badge{display:inline-block;padding:5px 12px;border-radius:999px;
-         color:#fff;font-weight:600;font-size:14px}
-  .price{font-size:clamp(30px,7vw,42px);font-weight:700;letter-spacing:-.02em}
-  .muted{color:var(--muted)}
-  .small{font-size:14px}
-  .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin:16px 0}
-  .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
-  .stat b{display:block;font-size:20px;margin-top:2px}
-  table{width:100%;border-collapse:collapse;font-size:15px}
-  th,td{text-align:left;padding:9px 6px;border-bottom:1px solid var(--line)}
-  th{color:var(--muted);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.03em}
-  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
-  .routes{list-style:none;padding:0;margin:0}
-  .routes li{display:flex;justify-content:space-between;align-items:center;gap:12px;
-             padding:13px 0;border-bottom:1px solid var(--line)}
-  .routes .r{font-weight:600}
-  svg .area{fill:var(--accent);opacity:.12}
-  svg .line{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round}
-  .scroll{overflow-x:auto}
-  .cta{background:var(--accent);color:#fff;border-radius:12px;padding:20px;margin:26px 0}
-  .cta h3{margin:0 0 6px;font-size:18px}
-  .cta p{margin:0 0 14px;opacity:.9;font-size:15px}
-  .cta a.btn{display:inline-block;background:#fff;color:var(--accent);font-weight:600;
-             padding:11px 20px;border-radius:8px;text-decoration:none}
-  .cta a.btn:hover{text-decoration:none;opacity:.92}
-  .chips{display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:12px 0 0;list-style:none}
-  .chips a{display:inline-block;border:1px solid var(--line);background:var(--card);
-           border-radius:999px;padding:6px 13px;font-size:14px}
-  footer{margin:56px 0 40px;padding-top:20px;border-top:1px solid var(--line);
-         color:var(--muted);font-size:14px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;
+    transition-duration:.01ms !important}
+}
+
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:.35rem}
+::selection{background:var(--accent);color:var(--accent-ink)}
 </style>
 </head>
 <body>
 
 <header><div class="wrap">
   <a class="brand" href="{% url 'web:home' %}">
-    <img src="{% static 'web/favicon-32.png' %}" alt="" width="26" height="26">{{ site_name }}
+    <img src="{% static 'web/favicon-32.png' %}" alt="" width="24" height="24">{{ site_name }}
   </a>
-  <span class="tagline">Precios reales de vuelos en Perú, día por día</span>
+  <span class="brand-sub">Precios reales · Perú</span>
 </div></header>
 
 <main class="wrap">{% block content %}{% endblock %}</main>
 
 <footer class="wrap">
-  <p>Precios en soles, con impuestos incluidos, observados dos veces al día.
-     No vendemos pasajes ni cobramos comisión: por eso podemos decirte que esperes.</p>
-  <p class="small">Los precios cambian a cada momento. Verificá siempre en la aerolínea antes de comprar.</p>
+  <p>Precios en soles, con impuestos incluidos, observados dos veces al día desde
+     el motor de búsqueda de cada aerolínea.</p>
+  <p><strong>No vendemos pasajes ni cobramos comisión.</strong> Por eso podemos decirte
+     que esperes — un comparador que gana con tu clic nunca lo hará.</p>
+  <p class="tiny dim">Los precios cambian a cada momento. Verificá siempre en la aerolínea antes de comprar.</p>
+  <p class="tiny" style="margin-top:1.25rem">
+    <a href="{% url 'web:terminos' %}" style="color:var(--ink-2)">Términos de uso</a>
+    <span class="dim"> · </span>
+    <a href="{% url 'web:privacidad' %}" style="color:var(--ink-2)">Privacidad</a>
+  </p>
 </footer>
 
 </body>
