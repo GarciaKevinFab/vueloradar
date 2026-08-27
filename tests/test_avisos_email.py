@@ -140,3 +140,46 @@ def test_se_puede_pedir_para_una_fecha(client, route):
     assert alerta.flight_date == date(2026, 10, 14)
     assert alerta.matches_date(date(2026, 10, 14)) is True
     assert alerta.matches_date(date(2026, 10, 15)) is False
+
+
+# --- formato del correo -------------------------------------------------------
+
+def _html(mensaje):
+    """La alternativa HTML del correo."""
+    return next(c for c, tipo in mensaje.alternatives if tipo == "text/html")
+
+
+def test_el_correo_va_en_texto_plano_y_html(client, route):
+    _alta(client, route)
+    mensaje = mail.outbox[0]
+    assert mensaje.content_subtype == "plain"
+    assert _html(mensaje).startswith("<!doctype html>")
+
+
+def test_el_html_llega_envuelto_y_con_vista_previa(client, route):
+    _alta(client, route)
+    html = _html(mail.outbox[0])
+    assert "max-width:600px" in html            # ancho de correo, no de web
+    assert "display:none;max-height:0" in html  # preheader oculto
+    assert "prefers-color-scheme: dark" in html
+    # Ningún placeholder de la plantilla se quedó sin sustituir.
+    assert "$contenido" not in html and "$marca" not in html
+
+
+def test_el_texto_plano_conserva_la_url_pese_a_las_tablas(client, route):
+    """Regresión: el texto plano se deriva del contenido ANTES de envolverlo.
+
+    Si saliera del HTML envuelto, las tablas dejarían las palabras pegadas y
+    sin la URL — lo único que ese correo tiene que lograr.
+    """
+    _alta(client, route)
+    cuerpo = mail.outbox[0].body
+    assert "/aviso/confirmar/" in cuerpo
+    assert "<table" not in cuerpo
+    assert "Confirmar el aviso: http" in cuerpo
+
+
+def test_el_texto_plano_deshace_las_entidades():
+    from apps.alerts.mailer import _a_texto
+
+    assert _a_texto("<p>baratos &amp; directos</p>") == "baratos & directos"
