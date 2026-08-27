@@ -438,7 +438,6 @@ def format_round_trip(
     return_date: date,
     outbound: list,
     inbound: list,
-    show_sale: bool = False,
 ) -> str:
     """Cotización de ida y vuelta: los dos tramos y el total del viaje."""
     if not outbound or not inbound:
@@ -482,9 +481,6 @@ def format_round_trip(
                 f"(S/ {_money(extra)} más, sin escalas)"
             )
 
-    if show_sale:
-        lineas += ["", _sale_breakdown(total)]
-
     enlace = buy_link(
         [(origin, dest, outbound_date), (dest, origin, return_date)],
         etiqueta="Comprar el ida y vuelta",
@@ -498,30 +494,6 @@ def format_round_trip(
         "sumar dos pasajes sueltos. Los S/ de arriba son tu techo.</i>",
     ]
     return "\n".join(lineas)
-
-
-def _sale_breakdown(cost) -> str:
-    """El desglose con la ganancia. Solo se le muestra al operador."""
-    from apps.flights.pricing import quote
-
-    q = quote(cost)
-    return (
-        f"🏷 <b>Para cotizar al cliente</b>\n"
-        f"  Costo:    S/ {_money(q.cost)}\n"
-        f"  Tu venta: <b>S/ {_money(q.sale)}</b>\n"
-        f"  Ganancia: S/ {_money(q.margin)} ({q.margin_pct}%)"
-    )
-
-
-def sale_line(cost) -> str:
-    """Versión de una línea, para búsquedas de un solo tramo."""
-    from apps.flights.pricing import quote
-
-    q = quote(cost)
-    return (
-        f"🏷 Cotizá <b>S/ {_money(q.sale)}</b> · "
-        f"ganás S/ {_money(q.margin)} ({q.margin_pct}%)"
-    )
 
 
 def _incomplete_round_trip(origin, dest, outbound_date, return_date, outbound, inbound) -> str:

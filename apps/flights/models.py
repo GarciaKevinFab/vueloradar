@@ -155,6 +155,14 @@ class PriceSnapshot(models.Model):
 
     snapshot_at = models.DateTimeField("tomado en", auto_now_add=True, db_index=True)
 
+    #: Días entre la observación y el vuelo. Es `flight_date - snapshot_at`, pero
+    #: guardado: la pregunta «¿cuántos días antes conviene comprar?» se responde
+    #: agrupando por esta columna, y calcular la resta en cada consulta obliga a
+    #: recorrer el histórico entero. Nulo en las filas anteriores al backfill.
+    days_ahead = models.PositiveSmallIntegerField(
+        "días de anticipación", null=True, blank=True, db_index=True
+    )
+
     class Meta:
         verbose_name = "snapshot de precio"
         verbose_name_plural = "snapshots de precio"

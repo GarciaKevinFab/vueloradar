@@ -63,6 +63,11 @@
   --shadow-1:0 1px 2px rgba(20,22,26,.05), 0 4px 12px rgba(20,22,26,.05);
   --shadow-2:0 2px 4px rgba(20,22,26,.06), 0 12px 32px rgba(20,22,26,.09);
   --glow:transparent;
+  /* La rejilla del horizonte y el grano. En claro van casi invisibles: sobre
+     papel, la textura marcada se lee como suciedad; sobre pantalla oscura,
+     como profundidad. */
+  --rejilla:rgba(20,22,26,.07);
+  --grano:.03;
 }
 @media (prefers-color-scheme:dark){
   :root{
@@ -76,6 +81,8 @@
     --shadow-1:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
     --shadow-2:0 2px 6px rgba(0,0,0,.5), 0 16px 40px rgba(0,0,0,.45);
     --glow:rgba(91,155,255,.13);
+    --rejilla:rgba(120,170,255,.14);
+    --grano:.055;
   }
 }
 
@@ -386,6 +393,103 @@ footer.wrap{margin:6rem auto 0;padding:2.5rem 1.5rem 3rem;
 .chart .ref-txt{fill:var(--ink-3);font-size:11px;letter-spacing:.02em}
 .chart .min-dot{fill:var(--good);stroke:var(--bg-elev);stroke-width:2}
 
+/* ======================================================================
+   PROFUNDIDAD
+   El 3D es por transformaciones CSS, no por WebGL. La adquisicion de este
+   sitio es 100% SEO y el trafico es movil peruano: three.js serian cientos
+   de KB contra las Core Web Vitals, que son factor de ranking. Todo lo de
+   abajo lo compone la GPU y no cuesta un solo kilobyte de JS.
+   ====================================================================== */
+
+/* --- El horizonte ------------------------------------------------------
+   Una rejilla en perspectiva que se aleja hacia el punto de fuga, como el
+   horizonte artificial de un instrumento de vuelo. Es el unico adorno del
+   sitio y esta detras del contenido, nunca encima.                       */
+.horizonte{position:absolute;left:0;right:0;top:0;height:30rem;z-index:0;
+  pointer-events:none;overflow:hidden;perspective:16rem;perspective-origin:50% 0}
+.horizonte::before{content:'';position:absolute;left:-60%;right:-60%;top:0;bottom:-60%;
+  background-image:
+    repeating-linear-gradient(90deg,transparent 0 5rem,var(--rejilla) 5rem calc(5rem + 1px)),
+    repeating-linear-gradient(0deg,transparent 0 5rem,var(--rejilla) 5rem calc(5rem + 1px));
+  transform:rotateX(74deg);transform-origin:50% 0;
+  /* Se desvanece arriba y abajo: una rejilla con borde duro se lee como una
+     tabla, no como un horizonte. */
+  -webkit-mask-image:linear-gradient(to bottom,transparent,#000 30%,transparent 85%);
+          mask-image:linear-gradient(to bottom,transparent,#000 30%,transparent 85%);
+  animation:avanzar 14s linear infinite}
+@keyframes avanzar{to{background-position:0 5rem,0 5rem}}
+
+/* --- Grano -------------------------------------------------------------
+   Textura sobre los planos grandes. Un SVG en linea de 200 bytes: una
+   imagen de ruido serian decenas de KB por lo mismo.                     */
+body::after{content:'';position:fixed;inset:0;z-index:2;pointer-events:none;
+  opacity:var(--grano);mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* --- Inclinacion al pasar el cursor ------------------------------------
+   La tarjeta se inclina hacia el cursor como un bisel de instrumento. El
+   `perspective` va en el padre: puesto en el hijo, cada uno tendria su
+   propio punto de fuga y las tarjetas de una fila no compartirian escena. */
+.tilt{perspective:1100px}
+.tilt > *{transition:transform .55s cubic-bezier(.16,1,.3,1),box-shadow .55s ease;
+  transform-style:preserve-3d}
+@media (hover:hover){
+  .tilt:hover > *{transform:rotateX(3.5deg) rotateY(-5deg) translateZ(14px);
+    box-shadow:var(--shadow-2)}
+}
+
+/* El precio, en relieve. Cuatro sombras apiladas hacen una extrusion barata
+   y convincente; un `text-shadow` unico se lee como sombra caida. */
+.price{text-shadow:
+  0 1px 0 color-mix(in srgb,var(--ink) 12%,transparent),
+  0 2px 0 color-mix(in srgb,var(--ink) 9%,transparent),
+  0 3px 0 color-mix(in srgb,var(--ink) 6%,transparent),
+  0 12px 26px color-mix(in srgb,var(--ink) 18%,transparent)}
+
+/* --- Hallazgos: lo que solo se sabe habiendo medido --------------------*/
+.hallazgos{display:grid;gap:1rem;margin:1.25rem 0;
+  grid-template-columns:repeat(auto-fit,minmax(17.5rem,1fr))}
+.hallazgo{position:relative;overflow:hidden;background:var(--bg-elev);
+  border:1px solid var(--line);border-radius:1.125rem;padding:1.35rem;
+  box-shadow:var(--shadow-1)}
+.hallazgo h3{font-size:.6875rem;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:600;margin:0 0 .85rem}
+.titular{font-family:'Instrument Serif',Georgia,serif;font-weight:400;
+  font-size:clamp(1.4rem,3.4vw,1.75rem);line-height:1.12;letter-spacing:-.01em;
+  margin:0 0 .25rem}
+.titular b{font-weight:400;color:var(--good)}
+.hallazgo .sub{font-size:.8125rem;color:var(--ink-3);margin:0 0 1.15rem}
+
+/* Las barras crecen desde abajo al entrar en pantalla. El alto sale de
+   Python (`alto_pct`) porque depende del maximo del grupo, y una plantilla
+   no puede mirar hacia adelante dentro de un bucle. */
+.barras,.barras-pie{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:.3rem}
+.barras{align-items:end;height:6.5rem}
+.barra{display:block;align-self:end;border-radius:.4rem .4rem .1rem .1rem;
+  background:var(--bg-sunk);border:1px solid var(--line);
+  transform-origin:50% 100%;animation:crecer .85s cubic-bezier(.16,1,.3,1) backwards}
+.barra.mejor{background:linear-gradient(180deg,var(--good),
+  color-mix(in srgb,var(--good) 45%,transparent));border-color:transparent;
+  box-shadow:0 6px 18px color-mix(in srgb,var(--good) 38%,transparent)}
+@keyframes crecer{from{transform:scaleY(.02);opacity:0}to{transform:scaleY(1);opacity:1}}
+.barras-pie{margin-top:.45rem;font-size:.625rem;color:var(--ink-3);text-align:center}
+.barras-pie span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.barras-pie b{display:block;color:var(--ink-2);font-variant-numeric:tabular-nums;
+  font-weight:600;font-size:.6875rem}
+.barras-pie .mejor b{color:var(--good)}
+
+/* --- Cuota por aerolinea ----------------------------------------------*/
+.cuotas{list-style:none;padding:0;margin:0}
+.cuotas li+li{margin-top:.65rem}
+.cuota-cab{display:flex;justify-content:space-between;font-size:.8125rem;
+  margin-bottom:.3rem}
+.cuota-cab b{font-variant-numeric:tabular-nums}
+.cuota-riel{height:.4rem;border-radius:.2rem;background:var(--bg-sunk);overflow:hidden}
+.cuota-riel i{display:block;height:100%;border-radius:.2rem;background:var(--accent);
+  transform-origin:0 50%;animation:extender 1s cubic-bezier(.16,1,.3,1) backwards}
+.cuotas li:first-child .cuota-riel i{background:var(--good)}
+@keyframes extender{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
 /* --- Movimiento --------------------------------------------------------
    Una entrada escalonada al cargar vale mas que veinte microinteracciones
    sueltas. Todo en CSS: la CSP no permite JS y tampoco hace falta.       */
@@ -400,10 +504,18 @@ footer.wrap{margin:6rem auto 0;padding:2.5rem 1.5rem 3rem;
 
 /* Revelado por scroll sin JS. Donde no este soportado el contenido
    simplemente se ve: nunca queda invisible. */
+/* La entrada por scroll es en 3D: el bloque llega inclinado desde el fondo y
+   se endereza. `rise` sigue existiendo para la carga inicial, donde una
+   rotacion en cadena marearia. */
+@keyframes emerger{
+  from{opacity:0;transform:perspective(1200px) rotateX(-16deg) translate3d(0,42px,-90px)}
+  to{opacity:1;transform:perspective(1200px) rotateX(0) translate3d(0,0,0)}
+}
+
 @supports (animation-timeline:view()){
   @media (prefers-reduced-motion:no-preference){
-    .reveal{animation:rise .8s cubic-bezier(.16,1,.3,1) both;
-      animation-timeline:view();animation-range:entry 0% entry 55%}
+    .reveal{animation:emerger .9s cubic-bezier(.16,1,.3,1) both;
+      animation-timeline:view();animation-range:entry 0% entry 60%}
   }
 }
 

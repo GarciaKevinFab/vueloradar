@@ -25,7 +25,7 @@ from django.views.decorators.cache import cache_control, never_cache
 
 from apps.flights.models import Route
 
-from . import calendar_grid, chart, queries, search
+from . import calendar_grid, chart, insights, queries, search
 from .verdict import evaluate, evaluate_trend
 
 #: El barrido corre 06:00 y 18:00; media hora de caché en el borde es seguro
@@ -87,6 +87,14 @@ def home(request):
         "total_fechas": sum(r["fechas"] for r in rutas),
         "mas_barata": mas_barata,
         "snapshots": queries.total_snapshots(),
+        # Lo que solo se puede decir habiendo medido. Tres consultas agregadas
+        # de costo fijo: no crecen con las rutas, que es el invariante que
+        # protege el presupuesto de la portada.
+        # Prefijo `insight_` porque `dias_semana` ya existe en la ficha de ruta
+        # con otro significado (las cabeceras del calendario).
+        "insight_dia": insights.weekday_prices(),
+        "insight_ventana": insights.booking_windows(),
+        "insight_aerolineas": insights.cheapest_airlines(),
     })
 
 
@@ -124,6 +132,11 @@ def route_detail(request, origin: str, destination: str):
         "chart": chart.build(historia, stats),
         "history_days": len(historia),
         "all_time_low": queries.all_time_low(route),
+        # Los mismos análisis, pero de esta ruta: el mejor día para volar a
+        # Cusco no tiene por qué ser el mejor para volar a Iquitos.
+        "insight_dia": insights.weekday_prices(route),
+        "insight_ventana": insights.booking_windows(route),
+        "insight_aerolineas": insights.cheapest_airlines(route),
         "updated_at": timezone.now(),
     })
 

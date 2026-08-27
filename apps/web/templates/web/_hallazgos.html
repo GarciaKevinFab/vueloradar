@@ -1,0 +1,92 @@
+{% load l10n %}{% comment %}
+Los tres hallazgos que solo se pueden afirmar habiendo medido.
+
+Cada bloque se omite entero si `insights.py` no reunió muestras suficientes: es
+la misma regla que el veredicto de compra. Decir "los miércoles son más
+baratos" con doce observaciones sería inventar, y lo único que este sitio tiene
+para ofrecer es que cuando afirma algo, lo respalda.
+
+Del contexto espera: `insight_dia`, `insight_ventana`, `insight_aerolineas` y
+`ambito` (de qué se está hablando: "en Perú" o "en esta ruta").
+
+Las medidas van dentro de {% templatetag openblock %} localize off {% templatetag closeblock %}:
+con LANGUAGE_CODE="es" un decimal sale con coma, y una coma es inválida como
+valor CSS — el mismo bug que ya rompió el gráfico del histórico.
+{% endcomment %}
+{% if insight_ventana or insight_dia or insight_aerolineas %}
+<div class="hallazgos">
+
+  {% if insight_ventana and insight_ventana.vale_la_pena %}
+  <div class="tilt reveal"><div class="hallazgo">
+    <h3>Cuándo comprar</h3>
+    <p class="titular">Comprá <b>{{ insight_ventana.mejor.etiqueta }}</b> antes de volar</p>
+    <p class="sub">Ahí el pasaje promedia S/&nbsp;{{ insight_ventana.mejor.precio|floatformat:0 }}.
+       Dejarlo para {{ insight_ventana.peor.etiqueta }} cuesta
+       S/&nbsp;{{ insight_ventana.ahorro_pen|floatformat:0 }} más
+       ({{ insight_ventana.ahorro_pct }}%).</p>
+
+    {% localize off %}
+    <div class="barras" aria-hidden="true">
+      {% for b in insight_ventana.barras %}
+      <i class="barra{% if b.es_mejor %} mejor{% endif %}"
+         style="height:{{ b.alto_pct }}%;animation-delay:{{ forloop.counter0 }}00ms"></i>
+      {% endfor %}
+    </div>
+    {% endlocalize %}
+    <div class="barras-pie">
+      {% for b in insight_ventana.barras %}
+      <span{% if b.es_mejor %} class="mejor"{% endif %}><b>{{ b.precio|floatformat:0 }}</b>{{ b.corto }}</span>
+      {% endfor %}
+    </div>
+  </div></div>
+  {% endif %}
+
+  {% if insight_dia and insight_dia.vale_la_pena %}
+  <div class="tilt reveal"><div class="hallazgo">
+    <h3>Qué día volar</h3>
+    <p class="titular">Los <b>{{ insight_dia.mejor.etiqueta }}</b> salen más baratos</p>
+    <p class="sub">Promedian S/&nbsp;{{ insight_dia.mejor.precio|floatformat:0 }} contra
+       S/&nbsp;{{ insight_dia.peor.precio|floatformat:0 }} de los {{ insight_dia.peor.etiqueta }}:
+       un {{ insight_dia.ahorro_pct }}% por correr el viaje un par de días.</p>
+
+    {% localize off %}
+    <div class="barras" aria-hidden="true">
+      {% for b in insight_dia.barras %}
+      <i class="barra{% if b.es_mejor %} mejor{% endif %}"
+         style="height:{{ b.alto_pct }}%;animation-delay:{{ forloop.counter0 }}00ms"></i>
+      {% endfor %}
+    </div>
+    {% endlocalize %}
+    <div class="barras-pie">
+      {% for b in insight_dia.barras %}
+      <span{% if b.es_mejor %} class="mejor"{% endif %}><b>{{ b.precio|floatformat:0 }}</b>{{ b.corto }}</span>
+      {% endfor %}
+    </div>
+  </div></div>
+  {% endif %}
+
+  {% if insight_aerolineas %}
+  <div class="tilt reveal"><div class="hallazgo">
+    <h3>Quién gana en precio</h3>
+    {% with primera=insight_aerolineas.0 %}
+    <p class="titular"><b>{{ primera.nombre }}</b> fue la más barata
+       {{ primera.cuota_pct }}% de las veces</p>
+    {% endwith %}
+    <p class="sub">Sobre cada búsqueda que hicimos {{ ambito }}, contando cuántas veces
+       cada aerolínea tuvo el precio más bajo. No es cuál es mejor: es cuál ganó.</p>
+
+    <ul class="cuotas">
+      {% for a in insight_aerolineas %}
+      <li>
+        <div class="cuota-cab"><span>{{ a.nombre }}</span><b>{{ a.cuota_pct }}%</b></div>
+        {% localize off %}
+        <div class="cuota-riel"><i style="width:{{ a.cuota_pct }}%;animation-delay:{{ forloop.counter0 }}00ms"></i></div>
+        {% endlocalize %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div></div>
+  {% endif %}
+
+</div>
+{% endif %}

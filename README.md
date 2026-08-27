@@ -222,26 +222,6 @@ La vista previa de enlaces va desactivada (`link_preview_is_disabled`): sin
 eso Telegram pega una tarjeta de Google debajo de cada resultado y tapa
 justamente los precios que el usuario vino a ver.
 
-### Precio de venta
-
-Si revendés los pasajes, el bot te muestra la cotización con tu margen:
-
-```
-🏷 Para cotizar al cliente
-  Costo:    S/ 973
-  Tu venta: S/ 1,075
-  Ganancia: S/ 102 (10.5%)
-```
-
-El margen es el **mayor** entre `SALE_MARKUP_PCT` y `SALE_MARKUP_MIN_PEN`: un
-10% sobre un pasaje de S/ 150 son S/ 15, que no paga el trabajo de gestionar la
-compra. El precio final se redondea hacia arriba a múltiplos de
-`SALE_ROUND_TO_PEN` — nadie cotiza S/ 1.070,30.
-
-**Este desglose solo lo ve el admin.** Mandarle a un cliente su cotización con
-tu ganancia al lado sería, como mínimo, incómodo. Se cambia con
-`SHOW_SALE_PRICE_TO_ADMIN_ONLY=False`.
-
 ### Búsqueda flexible
 
 Si el mensaje es vago ("esa semana", "alrededor del 15"), el bot barre la fecha

@@ -193,6 +193,14 @@
 </div>
 {% endif %}
 
+{% if insight_ventana or insight_dia or insight_aerolineas %}
+<h2>Lo que aprendimos de esta ruta</h2>
+<p class="muted mt-0 mb-2">Sale del histórico propio de
+   {{ route.origin.city }}&nbsp;→&nbsp;{{ route.destination.city }}, no de un promedio
+   nacional: el mejor día para volar a un destino no tiene por qué serlo para otro.</p>
+{% include "web/_hallazgos.html" with ambito="en esta ruta" %}
+{% endif %}
+
 {% comment %} El anuncio va acá y no arriba: quien llegó buscando un precio ya
    lo tiene, y el bloque no se interpone entre la pregunta y la respuesta. {% endcomment %}
 {% include "web/_ad.html" with slot=adsense_slot_route %}

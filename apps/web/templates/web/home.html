@@ -14,6 +14,10 @@
 {% endblock %}
 
 {% block content %}
+{% comment %} El horizonte va detrás del titular y es puramente decorativo:
+   una rejilla en perspectiva, sin JS y sin una sola petición extra. {% endcomment %}
+<div class="horizonte" aria-hidden="true"></div>
+
 <div class="pt-hero">
   <h1 class="rise d1">¿El precio de hoy<br>es bueno?</h1>
   <p class="lede rise d2">Seguimos {{ total_rutas }} rutas domésticas peruanas dos veces al día y
@@ -58,6 +62,11 @@
   </ul>
 </div>
 {% endif %}
+
+<h2>Lo que sabemos por haber estado midiendo</h2>
+<p class="muted mt-0 mb-2">Ninguna de estas tres cosas se puede saber mirando el precio
+   de hoy. Salen de {{ snapshots|intcomma }} observaciones acumuladas.</p>
+{% include "web/_hallazgos.html" with ambito="en todo el Perú" %}
 
 <h2>Todas las rutas</h2>
 <ul class="routes">

@@ -391,6 +391,48 @@ ignora (el kernel protege al PID 1 de su propio namespace). La prueba válida es
   derivadas del histórico. Es lo que nos hace defendibles y además lo que baja
   el riesgo de exponer públicamente la dependencia de `fast-flights`.
 
+### Hallazgos del histórico y 3D por CSS (2026-08-27)
+
+- **El precio de venta se eliminó entero.** Ya no hay `apps/flights/pricing.py`,
+  ni `SALE_*` en settings, ni desglose de margen en el bot. El producto informa;
+  no revende.
+- **`PriceSnapshot.days_ahead` es una columna, no una resta.** «¿Cuántos días
+  antes conviene comprar?» se responde agrupando por anticipación, y calcular
+  `flight_date - snapshot_at` en cada consulta obliga a recorrer el histórico
+  entero. Se llena al insertar (contra `localdate()`, porque `snapshot_at` es
+  `auto_now_add` y todavía no existe) y hay migración de backfill (`0005`)
+  para las 15.568 filas previas — corrida el 2026-08-27, cero pendientes.
+- **`apps/web/insights.py` responde tres preguntas que exigen histórico**: qué
+  día volar, cuándo comprar y qué aerolínea gana en precio. Con datos reales al
+  2026-08-27: comprar 1–2 semanas antes sale S/ 308 contra S/ 387 a última hora
+  (20%); volar miércoles S/ 313 contra domingo S/ 365 (14%); LATAM es la más
+  barata el 73% de las veces a nivel nacional — pero en LIM–CUZ gana JetSMART
+  con 80%. **El análisis por ruta no es el nacional repetido**, y ese contraste
+  es justamente el valor.
+- **Nada opina sin muestras.** Misma regla que el veredicto: mínimo 3 grupos,
+  20 muestras por grupo, 300 en total, y una diferencia bajo el 5% no es
+  titular sino ruido. Si no alcanza, el bloque no se renderiza.
+- **El alto de las barras se calcula sobre el RANGO, no sobre el precio.** Entre
+  S/ 313 y S/ 365 hay un 14%: barras al 86% y al 100% no dejan ver nada. Hay un
+  piso del 22% para que la más barata siga siendo visible.
+- **Las etiquetas cortas (`Barra.corto`) no son un capricho.** En 375 px caben
+  siete columnas de 36 px; «menos de una semana» se truncaba con puntos
+  suspensivos y borraba justo el dato que la barra viene a mostrar. Verificado
+  midiendo `scrollWidth > clientWidth` en el navegador.
+- **El 3D es por CSS, no por WebGL, y es una decisión de negocio.** La
+  adquisición es 100% SEO, el tráfico es móvil peruano y las Core Web Vitals
+  son factor de ranking: three.js serían cientos de KB contra lo único que trae
+  usuarios. `perspective`, `rotateX/Y`, `translateZ` y `animation-timeline:view()`
+  los compone la GPU y cuestan cero JS. El horizonte, el grano
+  (`feTurbulence` en línea, ~200 bytes), la inclinación de las tarjetas y el
+  relieve del precio salen todos de ahí.
+- **`perspective` va en el padre (`.tilt`), no en el hijo.** Puesto en el hijo,
+  cada tarjeta tendría su propio punto de fuga y una fila no compartiría escena.
+- **El servidor de desarrollo con `--noreload` sirve código rancio.** Perdí un
+  rato creyendo que un bug de plantilla era real: el proceso viejo seguía vivo
+  en el puerto y el nuevo no llegaba a levantar. Ante un cambio en Python que
+  «no se aplica», levantar en un puerto nuevo antes de diagnosticar.
+
 ### Notas del pie, la publicidad y el botón al bot (2026-08-27)
 
 - **El pie eran cuatro párrafos apilados** y la promesa que sostiene la marca

@@ -280,11 +280,17 @@ def _ruta_publicada(origen, destino):
 
 
 def test_portada_no_hace_una_consulta_por_ruta(client, peru_airports, django_assert_max_num_queries):
-    """Regresión: la portada costaba 121 consultas y 22 s con 40 rutas."""
+    """Regresión: la portada costaba 121 consultas y 22 s con 40 rutas.
+
+    El tope subió de 6 a 9 al sumar los tres análisis de `insights`: una
+    agregación cada uno, no una por ruta. Que el costo NO escale con las rutas
+    es el invariante que de verdad protege esta página, y lo fija el test de
+    abajo — un tope fijo se puede cumplir por accidente.
+    """
     for destino in ("CUZ", "AQP", "PEM"):
         _ruta_publicada("LIM", destino)
 
-    with django_assert_max_num_queries(6):
+    with django_assert_max_num_queries(9):
         assert client.get(reverse("web:home")).status_code == 200
 
 

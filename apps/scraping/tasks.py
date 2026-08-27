@@ -282,6 +282,11 @@ def _store_snapshot(route: Route, flight_date: Date, offers: list) -> PriceSnaps
     cheapest = min(offers, key=lambda offer: offer.price_pen)
     result = compute_stats(prices)
 
+    # La anticipación se guarda, no se deriva: `snapshot_at` es `auto_now_add`,
+    # así que todavía no existe en este punto y se calcula contra hoy. Una fecha
+    # ya pasada daría negativo y el campo es positivo: se acota a 0.
+    anticipacion = max((flight_date - timezone.localdate()).days, 0)
+
     return PriceSnapshot.objects.create(
         route=route,
         flight_date=flight_date,
@@ -289,6 +294,7 @@ def _store_snapshot(route: Route, flight_date: Date, offers: list) -> PriceSnaps
         avg_price_pen=result.avg,
         offers_count=len(offers),
         cheapest_airline=(cheapest.airline or "")[:100],
+        days_ahead=anticipacion,
     )
 
 

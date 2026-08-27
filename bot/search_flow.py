@@ -193,19 +193,6 @@ async def _run_round_trip(message, user, origin, dest, outbound_date, return_dat
             return_date=return_date,
             outbound=ida,
             inbound=vuelta,
-            show_sale=_can_see_sale_price(message.from_user.id),
         )
     )
     await db.consume_search(user)
-
-
-def _can_see_sale_price(user_id: int) -> bool:
-    """El margen solo lo ve el operador.
-
-    Mandarle a un cliente su cotización con tu ganancia desglosada al lado
-    sería, como mínimo, incómodo.
-    """
-    if not settings.SHOW_SALE_PRICE_TO_ADMIN_ONLY:
-        return True
-    admin = str(settings.TELEGRAM_ADMIN_CHAT_ID or "").strip()
-    return bool(admin) and str(user_id) == admin

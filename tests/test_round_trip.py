@@ -117,31 +117,6 @@ def test_suma_los_dos_tramos():
     assert "Todo directo: S/ 1,195" in t, "674 + 521"
 
 
-def test_sin_margen_por_defecto():
-    t = formatting.format_round_trip(
-        origin="PEM", dest="LIM",
-        outbound_date=date(2026, 10, 16), return_date=date(2026, 10, 18),
-        outbound=IDA, inbound=VUELTA,
-    )
-    assert "Ganancia" not in t and "Tu venta" not in t
-
-
-def test_con_margen_muestra_el_desglose(settings):
-    settings.SALE_MARKUP_PCT = Decimal("10")
-    settings.SALE_MARKUP_MIN_PEN = Decimal("25")
-    settings.SALE_ROUND_TO_PEN = Decimal("5")
-
-    t = formatting.format_round_trip(
-        origin="PEM", dest="LIM",
-        outbound_date=date(2026, 10, 16), return_date=date(2026, 10, 18),
-        outbound=IDA, inbound=VUELTA, show_sale=True,
-    )
-
-    assert "Costo:" in t and "S/ 973" in t
-    assert "Tu venta" in t and "S/ 1,075" in t
-    assert "Ganancia" in t and "S/ 102" in t
-
-
 def test_avisa_que_el_paquete_suele_salir_menos():
     t = formatting.format_round_trip(
         origin="PEM", dest="LIM",
