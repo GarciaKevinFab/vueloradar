@@ -181,6 +181,12 @@ ADSENSE_CLIENT = os.getenv("ADSENSE_CLIENT", "")
 ADSENSE_SLOT_HOME = os.getenv("ADSENSE_SLOT_HOME", "")
 ADSENSE_SLOT_ROUTE = os.getenv("ADSENSE_SLOT_ROUTE", "")
 
+# Codigo de verificacion de Google Search Console (el `content` de la meta que
+# da el panel). No es un secreto: identifica al dueno del sitio, no autoriza
+# nada. Sin Search Console no hay forma de pedir indexacion ni de ver que
+# consultas traen visitas.
+GOOGLE_SITE_VERIFICATION = os.getenv("GOOGLE_SITE_VERIFICATION", "")
+
 LANGUAGE_CODE = "es"
 TIME_ZONE = "America/Lima"
 USE_I18N = True

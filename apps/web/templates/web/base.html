@@ -30,6 +30,12 @@
 <meta name="twitter:card" content="summary_large_image">
 {% block head_extra %}{% endblock %}
 
+{% comment %} Verificación de Search Console. Sin esto no hay forma de pedir
+   indexación ni de ver qué consultas traen visitas. {% endcomment %}
+{% if google_site_verification %}
+<meta name="google-site-verification" content="{{ google_site_verification }}">
+{% endif %}
+
 {% comment %} AdSense solo si hay ID de editor. Sin cuenta aprobada el script
    carga, no muestra nada y igual se paga en latencia; con la variable vacía el
    sitio no hace ni una petición a terceros. {% endcomment %}

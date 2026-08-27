@@ -716,6 +716,32 @@ def test_el_credito_del_pie_sale_por_configuracion(client, route, stats, setting
     assert 'class="foot-by"' not in cuerpo
 
 
+def test_sin_publicidad_no_hay_ads_txt(client, settings):
+    """Un ads.txt con el `pub-` vacío sería una declaración falsa sobre quién
+    puede vender esta publicidad."""
+    settings.ADSENSE_CLIENT = ""
+    assert client.get("/ads.txt").status_code == 404
+
+
+def test_ads_txt_declara_al_editor_sin_el_prefijo_ca(client, settings):
+    settings.ADSENSE_CLIENT = "ca-pub-0000000000000000"
+    resp = client.get("/ads.txt")
+    assert resp.status_code == 200
+    assert resp.content.decode() == (
+        "google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0\n"
+    )
+
+
+def test_la_verificacion_de_search_console_es_opcional(client, route, stats, settings):
+    settings.GOOGLE_SITE_VERIFICATION = ""
+    cuerpo = client.get(reverse("web:home")).content.decode()
+    assert "google-site-verification" not in cuerpo
+
+    settings.GOOGLE_SITE_VERIFICATION = "abc123"
+    cuerpo = client.get(reverse("web:home")).content.decode()
+    assert '<meta name="google-site-verification" content="abc123">' in cuerpo
+
+
 def test_el_pie_se_separa_del_contenido(client, route, stats):
     """Regresión: `.wrap` es una clase y `footer` un elemento, así que el
     `margin:0 auto;padding:0 1.5rem` de `.wrap` ganaba y dejaba el pie pegado a

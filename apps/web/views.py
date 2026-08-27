@@ -377,6 +377,26 @@ def legal(request, pagina: str):
     return render(request, f"web/{pagina}.html", {"updated_at": timezone.now()})
 
 
+def ads_txt(request):
+    """`/ads.txt`: declara quién puede vender el inventario de este dominio.
+
+    AdSense no paga sin este archivo: sin él el inventario queda como no
+    autorizado y los anunciantes no pujan. El ID sale de `ADSENSE_CLIENT` para
+    no mantener el mismo número en dos lugares; sin ID configurado devolvemos
+    404 en vez de un archivo con un `pub-` vacío, que sería una declaración
+    falsa sobre quién puede vender esta publicidad.
+    """
+    cliente = getattr(settings, "ADSENSE_CLIENT", "")
+    if not cliente:
+        raise Http404("Sin publicidad configurada")
+    # El archivo lleva el ID sin el prefijo `ca-`, que es solo para el script.
+    editor = cliente.removeprefix("ca-")
+    return HttpResponse(
+        f"google.com, {editor}, DIRECT, f08c47fec0942fa0\n",
+        content_type="text/plain",
+    )
+
+
 def robots_txt(request):
     """Indexable, con el sitemap declarado y el admin fuera del índice."""
     host = request.get_host()
