@@ -20,6 +20,10 @@
 </script>
 {% endblock %}
 
+{% comment %} El botón flotante abre el bot ya sabiendo de qué ruta hablamos:
+   `cmd_start_deep_link` resuelve el payload y crea la alerta sola. {% endcomment %}
+{% block bot_start %}?start={{ route.origin_id }}-{{ route.destination_id }}{% endblock %}
+
 {% block content %}
 <ol class="crumbs">
   <li><a href="{% url 'web:home' %}">Inicio</a></li>
@@ -188,6 +192,10 @@
   <span class="dim">· precios en soles, por adulto</span>
 </div>
 {% endif %}
+
+{% comment %} El anuncio va acá y no arriba: quien llegó buscando un precio ya
+   lo tiene, y el bloque no se interpone entre la pregunta y la respuesta. {% endcomment %}
+{% include "web/_ad.html" with slot=adsense_slot_route %}
 
 {% if not related.is_empty %}
 <h2>Otras rutas</h2>

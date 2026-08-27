@@ -4,9 +4,19 @@ from django.conf import settings
 
 
 def site(request):
-    """Marca y enlace al bot, configurables por entorno."""
+    """Marca, enlace al bot, crédito del constructor y publicidad.
+
+    Todo sale de settings: la plantilla no decide nada, solo pinta lo que hay.
+    """
     usuario = getattr(settings, "TELEGRAM_BOT_USERNAME", "")
     return {
         "site_name": getattr(settings, "SITE_NAME", "VueloRadar"),
         "bot_url": f"https://t.me/{usuario}" if usuario else "",
+        "builder_name": getattr(settings, "BUILDER_NAME", ""),
+        "builder_url": getattr(settings, "BUILDER_URL", ""),
+        # Sin ID de editor no se renderiza ni el hueco ni el script: un
+        # contenedor vacío reservando alto desplaza el contenido para nada.
+        "adsense_client": getattr(settings, "ADSENSE_CLIENT", ""),
+        "adsense_slot_home": getattr(settings, "ADSENSE_SLOT_HOME", ""),
+        "adsense_slot_route": getattr(settings, "ADSENSE_SLOT_ROUTE", ""),
     }

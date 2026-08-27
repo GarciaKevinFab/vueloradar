@@ -1,0 +1,25 @@
+{% comment %}
+Un espacio publicitario. Se incluye con:
+
+    {% include "web/_ad.html" with slot=adsense_slot_route %}
+
+Si no hay ID de editor o no hay slot, no se renderiza NADA: ni el rótulo, ni el
+hueco, ni el script. Un contenedor vacío reservando alto desplazaría el
+contenido sin mostrar un anuncio, que es peor que no tener el espacio.
+
+El rótulo "Publicidad" no es decorativo: las políticas de AdSense exigen que el
+anuncio sea distinguible del contenido editorial, y en un sitio cuyo activo es
+la credibilidad del veredicto, confundirlos costaría más que lo que paga.
+{% endcomment %}
+{% if adsense_client and slot %}
+<aside class="ad" aria-label="Publicidad">
+  <span class="ad-tag">Publicidad</span>
+  <ins class="adsbygoogle"
+       style="display:block"
+       data-ad-client="{{ adsense_client }}"
+       data-ad-slot="{{ slot }}"
+       data-ad-format="auto"
+       data-full-width-responsive="true"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</aside>
+{% endif %}

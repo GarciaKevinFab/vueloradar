@@ -161,6 +161,22 @@ EMAIL_ALERTS_PER_IP_PER_HOUR = env_int("EMAIL_ALERTS_PER_IP_PER_HOUR", 5)
 CLOUDFLARE_API_TOKEN = os.getenv("CLOUDFLARE_API_TOKEN", "")
 CLOUDFLARE_ZONE_ID = os.getenv("CLOUDFLARE_ZONE_ID", "")
 
+# Credito del estudio que construyo el sitio. Va por entorno para que el pie no
+# haya que tocarlo si cambia el nombre o el dominio.
+BUILDER_NAME = os.getenv("BUILDER_NAME", "Star Insights IT by SISAC")
+BUILDER_URL = os.getenv("BUILDER_URL", "https://sisac.pe/")
+
+# --------------------------------------------------------------------- ads
+# Los huecos publicitarios estan maquetados siempre, pero el script de Google
+# solo se carga si hay ID de editor. Sin ADSENSE_CLIENT el sitio no hace ni una
+# peticion a terceros y sigue en cero JS: AdSense exige aprobacion previa y un
+# script que carga sin cuenta aprobada paga la latencia sin mostrar nada.
+ADSENSE_CLIENT = os.getenv("ADSENSE_CLIENT", "")
+# Un slot por ubicacion: Google reporta por slot, y un solo ID para todo el
+# sitio hace imposible saber que espacio rinde.
+ADSENSE_SLOT_HOME = os.getenv("ADSENSE_SLOT_HOME", "")
+ADSENSE_SLOT_ROUTE = os.getenv("ADSENSE_SLOT_ROUTE", "")
+
 LANGUAGE_CODE = "es"
 TIME_ZONE = "America/Lima"
 USE_I18N = True

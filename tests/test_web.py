@@ -698,3 +698,69 @@ def test_la_ficha_muestra_la_grilla_y_no_45_filas(client, route, stats):
     assert "Calendario de precios" in cuerpo
     # La cabecera de dias aparece una sola vez, no por semana.
     assert cuerpo.count('class="cal-cab"') == 1
+
+
+# --- pie, botón flotante y publicidad ---------------------------------------
+
+def test_el_pie_acredita_a_quien_construyo_el_sitio(client, route, stats):
+    cuerpo = client.get(reverse("web:home")).content.decode()
+    assert "Star Insights IT by SISAC" in cuerpo
+    assert "https://sisac.pe/" in cuerpo
+
+
+def test_el_credito_del_pie_sale_por_configuracion(client, route, stats, settings):
+    """Sin BUILDER_NAME el pie no inventa un crédito vacío."""
+    settings.BUILDER_NAME = ""
+    cuerpo = client.get(reverse("web:home")).content.decode()
+    # `foot-by` a secas también matchea la regla CSS: hay que mirar el marcado.
+    assert 'class="foot-by"' not in cuerpo
+
+
+def test_el_pie_mantiene_la_promesa_que_sostiene_la_marca(client, route, stats):
+    cuerpo = client.get(reverse("web:home")).content.decode()
+    assert "No vendemos pasajes ni cobramos comisión." in cuerpo
+
+
+def test_el_boton_flotante_lleva_la_ruta_al_bot(client, route, stats, settings):
+    """Abrir el bot en blanco desperdicia la única conversión del embudo."""
+    settings.TELEGRAM_BOT_USERNAME = "Vuelosradar_bot"
+    _snapshot(route, "179")
+    cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
+    assert 'class="fab"' in cuerpo
+    assert "https://t.me/Vuelosradar_bot?start=LIM-CUZ" in cuerpo
+
+
+def test_sin_bot_configurado_no_hay_boton_flotante(client, route, stats, settings):
+    settings.TELEGRAM_BOT_USERNAME = ""
+    cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
+    assert 'class="fab"' not in cuerpo
+
+
+def test_sin_id_de_editor_no_se_pide_nada_a_google(client, route, stats, settings):
+    """El sitio sigue en cero peticiones a terceros mientras no haya AdSense."""
+    settings.ADSENSE_CLIENT = ""
+    settings.ADSENSE_SLOT_ROUTE = "1234567890"
+    cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
+    assert "googlesyndication" not in cuerpo
+    assert 'class="ad"' not in cuerpo
+
+
+def test_sin_slot_no_se_dibuja_un_hueco_vacio(client, route, stats, settings):
+    """Un contenedor sin anuncio desplaza el contenido para nada."""
+    settings.ADSENSE_CLIENT = "ca-pub-0000000000000000"
+    settings.ADSENSE_SLOT_ROUTE = ""
+    cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
+    assert 'class="ad"' not in cuerpo
+
+
+def test_con_editor_y_slot_el_anuncio_se_rotula(client, route, stats, settings):
+    """Las políticas de AdSense exigen distinguir el anuncio del contenido, y
+    acá confundirlo con el veredicto costaría más de lo que paga."""
+    settings.ADSENSE_CLIENT = "ca-pub-0000000000000000"
+    settings.ADSENSE_SLOT_ROUTE = "1234567890"
+    _snapshot(route, "179")
+    cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
+    assert 'class="ad"' in cuerpo
+    assert "Publicidad" in cuerpo
+    assert 'data-ad-slot="1234567890"' in cuerpo
+    assert "googlesyndication" in cuerpo
