@@ -154,25 +154,44 @@ def welcome_message(first_name: str) -> str:
     )
 
 
-def welcome_from_route(first_name: str, route) -> str:
-    """Bienvenida para quien llega desde la ficha web de una ruta.
+def welcome_from_route(first_name: str, route, alerta: dict | None = None) -> str:
+    """Bienvenida para quien llega desde el botón «Notifícame» de la web.
 
-    Perder el contexto acá desperdicia la única conversión del embudo: el
-    visitante ya nos dijo qué ruta le importa.
+    La persona ya dijo qué ruta le importa y ya pidió el aviso: el mensaje
+    confirma lo que se hizo en vez de pedirle que repita la decisión
+    escribiendo un comando. Ahí es donde se caía la conversión.
     """
     saludo = f"¡Hola {escape(first_name)}!" if first_name else "¡Hola!"
     origen = escape(route.origin.city)
     destino = escape(route.destination.city)
+    estado = (alerta or {}).get("status")
+
+    if estado == "ok":
+        verbo = "Listo, te aviso" if alerta.get("created", True) else "Ya tenías ese aviso activo"
+        cuerpo = (
+            f"✅ {verbo} cuando <b>{origen} → {destino}</b> tenga una oferta real: "
+            f"un precio en el 10% más barato del último mes para esa ruta.\n\n"
+            f"Te quedan <b>{alerta.get('remaining', 0)}</b> alertas disponibles.\n"
+            f"Con /misalertas las ves y podés desactivarlas."
+        )
+    elif estado == "limit_reached":
+        cuerpo = (
+            f"Quería avisarte de <b>{origen} → {destino}</b>, pero ya llegaste a tus "
+            f"<b>{alerta.get('limit')} alertas activas</b>.\n\n"
+            f"Desactivá alguna con /misalertas y volvé a tocar el botón."
+        )
+    else:
+        cuerpo = (
+            f"Veo que venís por <b>{origen} → {destino}</b>.\n\n"
+            f"Para que te avise cuando baje: "
+            f"<code>/alerta {route.origin_id} {route.destination_id}</code>"
+        )
+
     return (
-        f"{saludo} Veo que venís por <b>{origen} → {destino}</b> 🛫\n\n"
-        f"Ya sigo esa ruta dos veces al día. Puedo avisarte cuando el precio "
-        f"caiga de verdad, comparado con su propio histórico.\n\n"
-        f"<b>Activá el aviso:</b>\n"
-        f"<code>/alerta {route.origin_id} {route.destination_id}</code>\n\n"
-        f"<b>O buscá una fecha concreta:</b>\n"
+        f"{saludo} 🛫\n\n"
+        f"{cuerpo}\n\n"
+        f"También podés buscar una fecha concreta:\n"
         f"<code>/vuelo {route.origin_id} {route.destination_id} 2026-09-15</code>\n"
-        f"También podés escribirme normal: "
-        f"<i>«{origen} a {destino} el 15 de setiembre»</i>\n\n"
         f"<code>/ayuda</code> para ver todo lo que hago."
     )
 

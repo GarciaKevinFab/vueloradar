@@ -21,7 +21,7 @@ from django.views.decorators.cache import cache_control
 
 from apps.flights.models import Route
 
-from . import chart, queries, search
+from . import calendar_grid, chart, queries, search
 from .verdict import evaluate, evaluate_trend
 
 #: El barrido corre 06:00 y 18:00; media hora de caché en el borde es seguro
@@ -104,6 +104,8 @@ def route_detail(request, origin: str, destination: str):
         "trend": evaluate_trend(
             queries.current_min_price(route), [d.price for d in historia]
         ),
+        "semanas": calendar_grid.build(fechas),
+        "dias_semana": calendar_grid.DIAS,
         "related": queries.related_routes(route),
         "chart": chart.build(historia),
         "history_days": len(historia),

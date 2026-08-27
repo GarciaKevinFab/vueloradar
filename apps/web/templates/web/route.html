@@ -111,11 +111,13 @@
 
 {% if bot_url %}
 <div class="cta reveal">
-  <h3>Te avisamos cuando baje</h3>
-  <p>Seguimos {{ route.origin.city }} → {{ route.destination.city }} dos veces al día. Si aparece un precio
-     realmente bajo, te llega el aviso sin que tengas que volver.</p>
+  <h3>Notificame cuando baje</h3>
+  <p>Un toque y queda. Seguimos {{ route.origin.city }} → {{ route.destination.city }} dos veces al día;
+     cuando aparezca un precio realmente bajo te llega el aviso por Telegram, sin que tengas que volver.</p>
   <a class="btn" href="{{ bot_url }}?start={{ route.origin_id }}-{{ route.destination_id }}"
-     rel="noopener">Activar alerta en Telegram →</a>
+     rel="noopener">Notificame por Telegram →</a>
+  <p class="tiny" style="margin:.85rem 0 0;opacity:.8;position:relative">La alerta se crea sola al abrir el bot.
+     Se cancela cuando quieras con /misalertas.</p>
 </div>
 {% endif %}
 
@@ -135,19 +137,40 @@
 </div>
 {% endif %}
 
-{% if fechas %}
-<h2>Calendario completo</h2>
-<div class="scroll reveal">
-<table>
-  <thead><tr><th>Fecha</th><th>Veredicto</th><th class="num">Precio mínimo</th></tr></thead>
-  <tbody>
-    {% for d in fechas %}
-    <tr><td>{{ d.day|date:"D j M Y" }}</td>
-        <td><span class="v v-{{ d.verdict.level }}">{{ d.verdict.label }}</span></td>
-        <td class="num">S/ {{ d.price|floatformat:0 }}</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+{% if semanas %}
+<h2>Calendario de precios</h2>
+<p class="muted" style="margin:-.5rem 0 1rem">Cada día, el precio más barato que observamos.
+   Tocá una fecha barata y usá el botón de arriba para que te avisemos si baja más.</p>
+
+<div class="cal reveal">
+  <div class="cal-cab">
+    {% for d in dias_semana %}<span>{{ d }}</span>{% endfor %}
+  </div>
+  {% for semana in semanas %}
+    {# El mes solo cuando cambia: repetirlo en cada semana es ruido. #}
+    {% ifchanged semana.mes %}<p class="cal-mes">{{ semana.mes }}</p>{% endifchanged %}
+    <div class="cal-fila">
+      {% for celda in semana.dias %}
+        {% if celda %}
+          <div class="dia dia-{{ celda.verdict.level }}" title="{{ celda.verdict.label }}">
+            <span>{{ celda.day|date:"j" }}</span>
+            <b>{{ celda.price|floatformat:0 }}</b>
+          </div>
+        {% else %}
+          <div class="dia vacio"></div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% endfor %}
+</div>
+
+<div class="leyenda">
+  <span><i style="background:var(--good)"></i>Excelente</span>
+  <span><i style="background:var(--good-soft);border:1px solid var(--good)"></i>Buen precio</span>
+  <span><i style="background:var(--bg-sunk);border:1px solid var(--line)"></i>Normal</span>
+  <span><i style="background:var(--warn-soft);border:1px solid var(--warn)"></i>Alto</span>
+  <span><i style="background:var(--bad-soft);border:1px solid var(--bad)"></i>Caro</span>
+  <span class="dim">· precios en soles, por adulto</span>
 </div>
 {% endif %}
 

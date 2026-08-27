@@ -36,8 +36,17 @@ async def cmd_start_deep_link(message: Message, command: CommandObject) -> None:
         await message.answer(formatting.welcome_message(user.first_name))
         return
 
-    logger.info("start: llegada desde la web por %s", route.code)
-    await message.answer(formatting.welcome_from_route(user.first_name, route))
+    # El boton de la web decia "notificame": crear la alerta es lo que la
+    # persona pidio. Pedirle ademas que escriba un comando es hacerle repetir
+    # una decision que ya tomo, y es donde se pierde la conversion.
+    resultado = await db.create_alert(user, route.origin_id, route.destination_id)
+    logger.info(
+        "start: llegada desde la web por %s -> alerta %s",
+        route.code, resultado.get("status"),
+    )
+    await message.answer(
+        formatting.welcome_from_route(user.first_name, route, resultado)
+    )
 
 
 @router.message(CommandStart())

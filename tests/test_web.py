@@ -353,7 +353,7 @@ def test_la_ficha_ofrece_alerta_con_la_ruta_en_el_enlace(client, route, stats, s
     _snapshot(route, "179")
     cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
     assert "https://t.me/Vuelosradar_bot?start=LIM-CUZ" in cuerpo
-    assert "Activar alerta en Telegram" in cuerpo
+    assert "Notificame por Telegram" in cuerpo
 
 
 def test_sin_bot_configurado_no_se_muestra_el_cta(client, route, stats, settings):
@@ -623,3 +623,77 @@ def test_una_pagina_legal_inventada_da_404(client):
 
     with pytest.raises(Resolver404):
         resolve("/legal-inventado/")
+
+
+# --- el boton "Notificame" crea la alerta ------------------------------------
+
+def test_el_boton_promete_que_la_alerta_se_crea_sola(client, route, stats, settings):
+    settings.TELEGRAM_BOT_USERNAME = "Vuelosradar_bot"
+    _snapshot(route, "179")
+    cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
+    assert "Notificame" in cuerpo
+    assert "se crea sola" in cuerpo
+    assert "https://t.me/Vuelosradar_bot?start=LIM-CUZ" in cuerpo
+
+
+def test_el_mensaje_confirma_la_alerta_creada(route):
+    from bot import formatting
+
+    texto = formatting.welcome_from_route("Kevin", route, {"status": "ok", "created": True, "remaining": 1})
+    assert "te aviso" in texto
+    assert "/misalertas" in texto
+    # Ya no le pide escribir el comando: eso era repetir una decisión ya tomada.
+    assert "/alerta LIM CUZ" not in texto
+
+
+def test_el_mensaje_avisa_si_no_queda_cupo(route):
+    from bot import formatting
+
+    texto = formatting.welcome_from_route("Kevin", route, {"status": "limit_reached", "limit": 2})
+    assert "2 alertas activas" in texto
+    assert "/misalertas" in texto
+
+
+def test_sin_alerta_cae_al_comando_manual(route):
+    """Si la creación falló por algo inesperado, el usuario igual puede seguir."""
+    from bot import formatting
+
+    texto = formatting.welcome_from_route("Kevin", route, None)
+    assert "/alerta LIM CUZ" in texto
+
+
+# --- calendario en grilla ----------------------------------------------------
+
+def test_la_grilla_agrupa_por_semana_de_lunes_a_domingo():
+    from apps.web import calendar_grid
+    from apps.web.verdict import evaluate
+
+    # 2026-08-27 es jueves; 2026-08-31 es lunes de la semana siguiente.
+    fechas = [
+        {"day": date(2026, 8, d), "price": Decimal("200"), "verdict": evaluate(None, None)}
+        for d in (27, 28, 31)
+    ]
+    semanas = calendar_grid.build(fechas)
+    assert len(semanas) == 2
+    # Jueves y viernes ocupan las posiciones 3 y 4; el resto de la semana, vacío.
+    assert [i for i, c in enumerate(semanas[0].dias) if c] == [3, 4]
+    assert [i for i, c in enumerate(semanas[1].dias) if c] == [0]
+
+
+def test_la_grilla_vacia_no_revienta():
+    from apps.web import calendar_grid
+
+    assert calendar_grid.build([]) == []
+
+
+def test_la_ficha_muestra_la_grilla_y_no_45_filas(client, route, stats):
+    """Regresión: la tabla de 45 filas eran ~7.000 px de scroll en un teléfono."""
+    from datetime import timedelta as td
+
+    for i in range(20):
+        _snapshot(route, str(150 + i * 5), flight_offset=3 + i)
+    cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
+    assert 'class="cal-fila"' in cuerpo
+    assert "Calendario de precios" in cuerpo
+    # La cabecera de dias aparece una sola vez, no por semana.
+    assert cuerpo.count('class="cal-cab"') == 1

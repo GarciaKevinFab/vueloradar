@@ -171,6 +171,39 @@ tbody tr:hover{background:var(--bg-sunk)}
 .chart .line{fill:none;stroke:var(--accent);stroke-width:2.25;stroke-linejoin:round;stroke-linecap:round}
 .chart .dot{fill:var(--accent)}
 
+/* --- Calendario en grilla ----------------------------------------------
+   45 fechas en tabla eran 45 filas: siete mil pixeles de scroll en un
+   telefono y ninguna comparacion posible. En grilla entra en una pantalla.  */
+.cal{border:1px solid var(--line);border-radius:1.125rem;background:var(--bg-elev);
+  padding:1rem;box-shadow:var(--shadow-1)}
+.cal-mes:not(:first-of-type){margin-top:.85rem}
+.cal-mes{font-size:.6875rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);
+  margin:0 0 .5rem}
+.cal-cab,.cal-fila{display:grid;grid-template-columns:repeat(7,1fr);gap:.3rem}
+.cal-cab{margin-bottom:.35rem}
+.cal-cab span{text-align:center;font-size:.625rem;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-3)}
+.cal-fila + .cal-fila{margin-top:.3rem}
+.dia{border-radius:.6rem;padding:.45rem .2rem;text-align:center;border:1px solid transparent;
+  min-height:3.1rem;display:flex;flex-direction:column;justify-content:center;gap:.1rem}
+.dia.vacio{background:transparent;border-color:transparent}
+.dia b{font-size:.9375rem;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;
+  line-height:1.1}
+.dia span{font-size:.625rem;color:inherit;opacity:.72;font-variant-numeric:tabular-nums}
+.dia-excelente{background:var(--good);color:var(--bg-elev)}
+.dia-bueno{background:var(--good-soft);color:var(--good);
+  border-color:color-mix(in srgb,var(--good) 25%,transparent)}
+.dia-normal{background:var(--bg-sunk);color:var(--ink-2);border-color:var(--line)}
+.dia-alto{background:var(--warn-soft);color:var(--warn);
+  border-color:color-mix(in srgb,var(--warn) 25%,transparent)}
+.dia-caro{background:var(--bad-soft);color:var(--bad);
+  border-color:color-mix(in srgb,var(--bad) 25%,transparent)}
+.dia-sin_datos{background:var(--bg-sunk);color:var(--ink-3);border-color:var(--line)}
+.leyenda{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;margin:.85rem 0 0;
+  font-size:.75rem;color:var(--ink-3)}
+.leyenda i{display:inline-block;width:.7rem;height:.7rem;border-radius:.2rem;margin-right:.3rem;
+  vertical-align:-1px}
+
 /* --- Conversion --------------------------------------------------------*/
 .cta{position:relative;overflow:hidden;background:var(--accent);color:var(--accent-ink);
   border-radius:1.125rem;padding:1.75rem;margin:2.5rem 0;box-shadow:var(--shadow-2)}
