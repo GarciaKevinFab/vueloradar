@@ -179,6 +179,26 @@ def test_el_texto_plano_conserva_la_url_pese_a_las_tablas(client, route):
     assert "Confirmar el aviso: http" in cuerpo
 
 
+def test_el_logo_va_con_url_absoluta(client, route, settings):
+    """Un cliente de correo no tiene página base contra la cual resolver una
+    ruta relativa: `/static/...` no cargaría en ninguno."""
+    settings.SITE_BASE_URL = "https://vueloradar.com"
+    _alta(client, route)
+    html = _html(mail.outbox[0])
+    assert "https://vueloradar.com/static/web/icon-192" in html
+    # Con las imágenes bloqueadas —el default en Gmail y Outlook— la cabecera
+    # tiene que seguir diciendo algo.
+    assert 'alt="VueloRadar"' in html
+
+
+def test_el_texto_plano_no_arrastra_la_cabecera(client, route):
+    """El logotipo vive en el envoltorio, no en el contenido: la versión en
+    texto plano no puede empezar con el nombre de un archivo."""
+    _alta(client, route)
+    assert "icon-192" not in mail.outbox[0].body
+    assert mail.outbox[0].body.startswith("Alguien")
+
+
 def test_el_texto_plano_deshace_las_entidades():
     from apps.alerts.mailer import _a_texto
 

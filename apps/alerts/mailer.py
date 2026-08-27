@@ -89,11 +89,29 @@ _ENVOLTORIO = Template("""\
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600"
            class="tarjeta" style="width:100%;max-width:600px;background:$tarjeta;
            border:1px solid $linea;border-radius:14px;">
-      <tr><td style="padding:28px 32px 0;">
-        <span class="tinta" style="font-family:$serif;font-size:21px;color:$tinta;
-              letter-spacing:-0.02em;">$marca</span>
+      <!-- Filo de color arriba: presencia de marca sin sumar una imagen. Un
+           `background` sobre una celda de 4 px lo respetan todos los clientes,
+           incluido el Outlook de escritorio. -->
+      <tr><td style="height:4px;line-height:4px;font-size:0;background:$acento;">&nbsp;</td></tr>
+      <tr><td style="padding:26px 32px 0;">
+        <!-- La marca va en tabla y no en flex: los clientes de correo no
+             soportan flexbox. `valign` alinea el logotipo con el texto. -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td valign="middle" style="padding-right:10px;">
+              <!-- El `alt` no es decorativo: Gmail y Outlook bloquean las
+                   imagenes por defecto y sin el la cabecera queda vacia. -->
+              <img src="$logo" width="34" height="34" alt="$marca"
+                   style="display:block;width:34px;height:34px;border:0;border-radius:8px;">
+            </td>
+            <td valign="middle">
+              <span class="tinta" style="font-family:$serif;font-size:22px;color:$tinta;
+                    letter-spacing:-0.02em;">$marca</span>
+            </td>
+          </tr>
+        </table>
       </td></tr>
-      <tr><td class="tinta" style="padding:18px 32px 30px;font-family:$sans;
+      <tr><td class="tinta" style="padding:20px 32px 30px;font-family:$sans;
               font-size:16px;line-height:1.55;color:$tinta;">$contenido</td></tr>
     </table>
 
@@ -148,11 +166,29 @@ def _parrafo(texto: str, tenue: bool = False) -> str:
     return f'<p class="{clase}" style="margin:0 0 14px;color:{color};">{texto}</p>'
 
 
+def _logo_url() -> str:
+    """URL absoluta del logotipo.
+
+    Tiene que ser absoluta y pública: un cliente de correo no tiene una página
+    base contra la cual resolver una ruta relativa. Se resuelve por el
+    manifiesto de estáticos para que el nombre con hash siga al archivo y no
+    quede apuntando a una versión vieja.
+    """
+    from django.templatetags.static import static
+
+    ruta = static("web/icon-192.png")
+    if ruta.startswith("http"):
+        return ruta
+    base = (getattr(settings, "SITE_BASE_URL", "") or "https://vueloradar.com").rstrip("/")
+    return f"{base}{ruta}"
+
+
 def _envolver(contenido: str, preheader: str, pie: str) -> str:
     return _ENVOLTORIO.substitute(
-        papel=_PAPEL, tarjeta=_TARJETA, linea=_LINEA,
+        papel=_PAPEL, tarjeta=_TARJETA, linea=_LINEA, acento=_ACENTO,
         tinta=_TINTA, tinta_3=_TINTA_3, sans=_SANS, serif=_SERIF,
-        marca=_marca(), preheader=preheader, contenido=contenido, pie=pie,
+        marca=_marca(), logo=_logo_url(),
+        preheader=preheader, contenido=contenido, pie=pie,
     )
 
 
