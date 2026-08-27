@@ -403,6 +403,29 @@ ignora (el kernel protege al PID 1 de su propio namespace). La prueba válida es
   restricción impuesta — conviene no confundirlas al tocar el `<head>`.
 - **`foot-by` a secas matchea la regla CSS además del marcado.** Un test que
   afirme "el crédito no aparece" tiene que buscar `class="foot-by"`.
+- **`.wrap` le ganaba en especificidad a `footer`.** `<footer class="wrap">` y
+  `.wrap{margin:0 auto;padding:0 1.5rem}`: una clase (0,1,0) vence a un
+  elemento (0,0,1), así que el margen y el padding superiores del pie se
+  anulaban y quedaba pegado a la última tarjeta. Medido en vivo: `marginTop`
+  0 px. Venía así desde antes del rediseño. El selector es `footer.wrap` y
+  repite el `auto` horizontal — sin él el pie se descentra. **Cualquier regla
+  para `main`, `header` o `footer` tiene el mismo problema**: los tres llevan
+  `.wrap`.
+- **El logotipo del constructor (`BUILDER_LOGO`) es opcional y vacío por
+  defecto.** `{% static %}` con `CompressedManifestStaticFilesStorage` revienta
+  en producción si el archivo no está en disco, así que el sitio no puede
+  asumir que alguien lo guardó.
+- **`/ads.txt` se deriva de `ADSENSE_CLIENT`** (quitándole el prefijo `ca-`).
+  AdSense no paga sin ese archivo: el inventario queda como no autorizado y los
+  anunciantes no pujan. Sin ID devuelve 404, no un archivo con `pub-` vacío,
+  que sería una declaración falsa sobre quién puede vender la publicidad.
+- **El sitio no está en Google Search Console** (verificado el 2026-08-27: no
+  hay TXT de `google-site-verification` en la zona). `GOOGLE_SITE_VERIFICATION`
+  pinta la meta cuando se configure. Sin Search Console la indexación es
+  pasiva: no se puede pedir rastreo ni ver qué consultas traen visitas.
+- **`https://www.sisac.pe/` sirve un certificado autofirmado** y falla la
+  verificación TLS; la raíz `https://sisac.pe/` responde bien. Es el sitio del
+  constructor, no éste, pero conviene saberlo antes de enlazar el `www`.
 
 ### Notas del rediseño (2026-08-27)
 
