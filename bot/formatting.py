@@ -154,6 +154,29 @@ def welcome_message(first_name: str) -> str:
     )
 
 
+def welcome_from_route(first_name: str, route) -> str:
+    """Bienvenida para quien llega desde la ficha web de una ruta.
+
+    Perder el contexto acá desperdicia la única conversión del embudo: el
+    visitante ya nos dijo qué ruta le importa.
+    """
+    saludo = f"¡Hola {escape(first_name)}!" if first_name else "¡Hola!"
+    origen = escape(route.origin.city)
+    destino = escape(route.destination.city)
+    return (
+        f"{saludo} Veo que venís por <b>{origen} → {destino}</b> 🛫\n\n"
+        f"Ya sigo esa ruta dos veces al día. Puedo avisarte cuando el precio "
+        f"caiga de verdad, comparado con su propio histórico.\n\n"
+        f"<b>Activá el aviso:</b>\n"
+        f"<code>/alerta {route.origin_id} {route.destination_id}</code>\n\n"
+        f"<b>O buscá una fecha concreta:</b>\n"
+        f"<code>/vuelo {route.origin_id} {route.destination_id} 2026-09-15</code>\n"
+        f"También podés escribirme normal: "
+        f"<i>«{origen} a {destino} el 15 de setiembre»</i>\n\n"
+        f"<code>/ayuda</code> para ver todo lo que hago."
+    )
+
+
 def help_message(limit: int) -> str:
     return (
         f"<b>Cómo usarme</b>\n\n"

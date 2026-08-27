@@ -18,6 +18,28 @@ logger = logging.getLogger(__name__)
 router = Router(name="commands")
 
 
+@router.message(CommandStart(deep_link=True))
+async def cmd_start_deep_link(message: Message, command: CommandObject) -> None:
+    """`/start LIM-CUZ`, desde el botón de una ficha de ruta en la web.
+
+    Si el payload no resuelve a una ruta conocida caemos en la bienvenida
+    normal: el usuario igual entra, solo pierde el atajo.
+    """
+    user = await db.get_or_create_user(
+        message.from_user.id,
+        username=message.from_user.username or "",
+        first_name=message.from_user.first_name or "",
+    )
+    route = await db.get_route_from_deep_link(command.args or "")
+    if route is None:
+        logger.info("start: payload no reconocido %r", command.args)
+        await message.answer(formatting.welcome_message(user.first_name))
+        return
+
+    logger.info("start: llegada desde la web por %s", route.code)
+    await message.answer(formatting.welcome_from_route(user.first_name, route))
+
+
 @router.message(CommandStart())
 async def cmd_start(message: Message) -> None:
     user = await db.get_or_create_user(

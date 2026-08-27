@@ -93,6 +93,26 @@ def get_route_stats(origin: str, dest: str):
 
 
 @sync_to_async
+def get_route_from_deep_link(payload: str):
+    """Ruta referida por un enlace `?start=LIM-CUZ` desde la web.
+
+    Devuelve None si el payload no tiene la forma esperada o la ruta no
+    existe: cualquiera puede escribir lo que quiera en un enlace de Telegram.
+    """
+    from apps.flights.models import Route
+
+    partes = (payload or "").strip().upper().split("-")
+    if len(partes) != 2 or not all(len(x) == 3 and x.isalpha() for x in partes):
+        return None
+
+    return (
+        Route.objects.select_related("origin", "destination")
+        .filter(origin_id=partes[0], destination_id=partes[1])
+        .first()
+    )
+
+
+@sync_to_async
 def list_monitored_routes(limit: int = 25) -> list:
     """Rutas monitoreadas con su mínimo de 30 días, las más baratas primero."""
     from apps.flights.models import Route
