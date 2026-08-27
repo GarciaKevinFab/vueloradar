@@ -1,4 +1,5 @@
 {% extends "web/base.html" %}
+{% load l10n humanize %}
 
 {% block title %}Precios de vuelos en Perú: histórico real y cuándo comprar — {{ site_name }}{% endblock %}
 {% block description %}Histórico real de precios de {{ total_rutas }} rutas domésticas peruanas. Te decimos qué fechas están baratas y cuáles conviene dejar pasar.{% endblock %}
@@ -8,27 +9,48 @@
 {% block head_extra %}
 <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebSite",
- "name":"{{ site_name }}","url":"{{ request.scheme }}://{{ request.get_host }}/",
- "description":"Histórico real de precios de vuelos domésticos en Perú, con veredicto de compra por fecha."}
+{"@context":"https://schema.org","@type":"WebSite","name":"{{ site_name }}","url":"{{ request.scheme }}://{{ request.get_host }}/","description":"Histórico real de precios de vuelos domésticos en Perú, con veredicto de compra por fecha."}
 </script>
 {% endblock %}
 
 {% block content %}
-<div style="padding-top:3.5rem">
+<div class="pt-hero">
   <h1 class="rise d1">¿El precio de hoy<br>es bueno?</h1>
-  <p class="lede rise d2">Seguimos {{ total_rutas }} rutas domésticas peruanas dos veces al día y guardamos
-     cada precio. Con ese histórico te decimos qué fechas valen la pena — y cuáles dejar pasar.</p>
+  <p class="lede rise d2">Seguimos {{ total_rutas }} rutas domésticas peruanas dos veces al día y
+     guardamos cada precio. Con ese histórico te decimos qué fechas valen la pena — y cuáles
+     dejar pasar.</p>
 </div>
 
-<div class="rise d3" style="margin-bottom:2.5rem">
-  <a class="btn" href="{% url 'web:buscar' %}"
-     style="background:var(--accent);color:var(--accent-ink)">Buscar mi vuelo →</a>
+<div class="pulso rise d3">
+  {% if mas_barata %}
+  <div class="destacado">
+    <b>S/ {{ mas_barata.desde|floatformat:0 }}</b>
+    <span>lo más barato hoy</span>
+  </div>
+  {% endif %}
+  <div>
+    <b>{{ total_baratas }}</b>
+    <span>de {{ total_fechas }} fechas a buen precio</span>
+  </div>
+  <div>
+    <b>{{ snapshots|intcomma }}</b>
+    <span>precios observados</span>
+  </div>
+</div>
+
+<div class="row rise d4 mb-2">
+  <a class="btn btn-primary" href="{% url 'web:buscar' %}">Buscar mi vuelo →</a>
+  {% if mas_barata %}
+  <span class="small muted">
+    Hoy lo más barato es
+    <a class="link" href="{% url 'web:route' mas_barata.route.origin_id mas_barata.route.destination_id %}">{{ mas_barata.route.origin.city }} → {{ mas_barata.route.destination.city }}</a>
+  </span>
+  {% endif %}
 </div>
 
 {% if ciudades %}
-<div class="rise d3">
-  <p class="tiny dim" style="margin:0 0 .5rem;letter-spacing:.06em;text-transform:uppercase">Salir desde</p>
+<div class="rise d5">
+  <p class="eyebrow">Salir desde</p>
   <ul class="chips">
     {% for c in ciudades %}
     <li><a href="{% url 'web:hub' c.slug %}">{{ c.city }}</a></li>
@@ -50,6 +72,19 @@
           {% else %}sin precios vigentes{% endif %}
         </span>
       </span>
+
+      {% if not r.spark.is_empty %}
+      {% localize off %}
+      <svg class="spark{% if r.spark.en_minimo %} baja{% endif %}"
+           viewBox="0 0 {{ r.spark.width }} {{ r.spark.height }}" aria-hidden="true">
+        <polyline points="{{ r.spark.line }}"/>
+        {% if r.spark.ultimo %}
+        <circle cx="{{ r.spark.ultimo.0 }}" cy="{{ r.spark.ultimo.1 }}" r="2.2"/>
+        {% endif %}
+      </svg>
+      {% endlocalize %}
+      {% endif %}
+
       <span class="right">
         {% if r.desde %}<span class="amount">S/ {{ r.desde|floatformat:0 }}</span>{% endif %}
         {% if r.trend.is_actionable %}
@@ -59,26 +94,27 @@
     </a>
   </li>
   {% empty %}
-  <li style="padding:1.5rem .25rem" class="muted">Todavía no hay rutas con histórico publicado.</li>
+  <li class="muted"><span class="meta">Todavía no hay rutas con histórico publicado.</span></li>
   {% endfor %}
 </ul>
 
 {% if bot_url %}
 <div class="cta reveal">
   <h3>No vuelvas a mirar: te avisamos</h3>
-  <p>Poné la ruta que te interesa en el bot y te escribimos cuando el precio caiga de verdad,
+  <p>Elegí una ruta y dejá tu correo. Te escribimos cuando el precio caiga de verdad,
      no cuando una aerolínea lo llame oferta.</p>
-  <a class="btn" href="{{ bot_url }}" rel="noopener">Abrir el bot en Telegram →</a>
+  <a class="btn" href="{% url 'web:buscar' %}">Elegir mi ruta →</a>
 </div>
 {% endif %}
 
 <h2>Cómo leemos un precio</h2>
 <div class="card reveal">
-  <p style="margin:0 0 1rem">Cada fecha se compara contra la distribución de precios de <em>su propia ruta</em>
-     en los últimos 30 días. No contra un promedio nacional ni contra lo que cuesta otra ruta.</p>
-  <table style="font-size:.9375rem">
+  <p class="mt-0 mb-1">Cada fecha se compara contra la distribución de precios de
+     <em>su propia ruta</em> en los últimos 30 días. No contra un promedio nacional ni contra
+     lo que cuesta otra ruta.</p>
+  <table>
     <tbody>
-      <tr><td style="width:9.5rem"><span class="v v-excelente">Excelente precio</span></td>
+      <tr><td class="col-verdict"><span class="v v-excelente">Excelente precio</span></td>
           <td class="muted">En el cuarto más barato, y además un 10% por debajo de ese umbral.</td></tr>
       <tr><td><span class="v v-bueno">Buen precio</span></td>
           <td class="muted">Cae en el cuarto más barato de lo observado.</td></tr>
@@ -90,7 +126,7 @@
           <td class="muted">Más de un 20% sobre la mediana.</td></tr>
     </tbody>
   </table>
-  <p class="small muted" style="margin:1rem 0 0">Cuando no tenemos observaciones suficientes lo decimos,
+  <p class="small muted mt-1 mb-0">Cuando no tenemos observaciones suficientes lo decimos,
      en vez de inventar un veredicto.</p>
 </div>
 {% endblock %}

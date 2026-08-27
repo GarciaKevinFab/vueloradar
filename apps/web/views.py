@@ -58,11 +58,13 @@ def home(request):
         baratas = [f for f in fechas if f["verdict"].should_buy]
         desde = min((f["price"] for f in fechas), default=None)
 
+        serie = [d.price for d in historia_por_ruta.get(route.pk, [])]
         rutas.append({
             "route": route,
             "desde": desde,
             "fechas": len(fechas),
             "baratas": len(baratas),
+            "spark": chart.sparkline(serie),
             # `desde` es el mínimo vigente sobre la misma ventana que el calendario.
             "trend": evaluate_trend(
                 desde, [d.price for d in historia_por_ruta.get(route.pk, [])]
@@ -72,11 +74,19 @@ def home(request):
     # Primero donde hay más oportunidad real de comprar barato.
     rutas.sort(key=lambda r: (-r["baratas"], r["route"].priority))
 
+    # El pulso del dia: lo que hace que la portada muestre el dato y no una
+    # lista de texto. Todo sale de lo que ya se calculo arriba.
+    con_precio = [r for r in rutas if r["desde"] is not None]
+    mas_barata = min(con_precio, key=lambda r: r["desde"]) if con_precio else None
+
     return render(request, "web/home.html", {
         "ciudades": queries.cities_with_routes(),
         "rutas": rutas,
         "total_rutas": len(rutas),
-        "con_oportunidad": [r for r in rutas if r["baratas"]],
+        "total_baratas": sum(r["baratas"] for r in rutas),
+        "total_fechas": sum(r["fechas"] for r in rutas),
+        "mas_barata": mas_barata,
+        "snapshots": queries.total_snapshots(),
     })
 
 
@@ -111,7 +121,7 @@ def route_detail(request, origin: str, destination: str):
         "semanas": calendar_grid.build(fechas),
         "dias_semana": calendar_grid.DIAS,
         "related": queries.related_routes(route),
-        "chart": chart.build(historia),
+        "chart": chart.build(historia, stats),
         "history_days": len(historia),
         "all_time_low": queries.all_time_low(route),
         "updated_at": timezone.now(),

@@ -10,11 +10,7 @@
 <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
 {# Dataset: describimos con honestidad lo que la pagina realmente publica. #}
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"Dataset",
- "name":"Histórico de precios de vuelos {{ route.origin_id }}-{{ route.destination_id }}",
- "description":"Precios mínimos observados dos veces al día para la ruta {{ route.origin.city }} a {{ route.destination.city }}, en soles y con impuestos incluidos.",
- "temporalCoverage":"P{{ history_days }}D","isAccessibleForFree":true,
- "creator":{"@type":"Organization","name":"{{ site_name }}"}}
+{"@context":"https://schema.org","@type":"Dataset","name":"Histórico de precios de vuelos {{ route.origin_id }}-{{ route.destination_id }}","description":"Precios mínimos observados dos veces al día para la ruta {{ route.origin.city }} a {{ route.destination.city }}, en soles y con impuestos incluidos.","temporalCoverage":"P{{ history_days }}D","isAccessibleForFree":true,"creator":{"@type":"Organization","name":"{{ site_name }}"}}
 </script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
@@ -36,14 +32,14 @@
 
 <div class="card card-hero rise d3">
   {% if desde %}
-    <div style="display:flex;align-items:flex-end;gap:1.25rem;flex-wrap:wrap">
+    <div class="price-row">
       <div class="price"><small>Desde</small>S/&nbsp;{{ desde|floatformat:0 }}</div>
       {% if trend.is_actionable %}
         <span class="v v-{{ trend.level }}" style="margin-bottom:.6rem">La ruta hoy: {{ trend.label|lower }}</span>
       {% endif %}
     </div>
 
-    <p style="margin:1.15rem 0 0">
+    <p class="mt-1">
       {% if trend.is_actionable %}
         <strong>{{ trend.action }}.</strong>
         {% if trend.vs_median_pct < 0 %}
@@ -68,7 +64,7 @@
          están hoy a buen precio{% if caras %}, y {{ caras|length }} están caras{% endif %}.</p>
     {% endif %}
   {% else %}
-    <p class="muted" style="margin:0">Sin precios vigentes para esta ruta en las últimas 36 horas.</p>
+    <p class="muted flat">Sin precios vigentes para esta ruta en las últimas 36 horas.</p>
   {% endif %}
 </div>
 
@@ -98,7 +94,24 @@
       </defs>
       {% localize off %}
       <path d="{{ chart.area }}" fill="url(#fade)"/>
+
+      {# Las referencias primero, detras de la curva: son el fondo contra el
+         que se juzga, no el dato. #}
+      {% if chart.p25_y %}
+        <rect class="banda" x="0" y="{{ chart.p25_y }}" width="{{ chart.width }}"
+              height="{{ chart.height }}"/>
+        <line class="ref" x1="0" y1="{{ chart.p25_y }}" x2="{{ chart.width }}" y2="{{ chart.p25_y }}"/>
+        <text class="ref-txt" x="6" y="{{ chart.p25_y }}" dy="-5">buen precio bajo esta línea</text>
+      {% endif %}
+      {% if chart.median_y %}
+        <line class="ref" x1="0" y1="{{ chart.median_y }}" x2="{{ chart.width }}" y2="{{ chart.median_y }}"/>
+        <text class="ref-txt" x="6" y="{{ chart.median_y }}" dy="-5">mediana</text>
+      {% endif %}
+
       <polyline class="line" points="{{ chart.line }}" style="--len:{{ chart.length }}"/>
+      {% if chart.min_point %}
+      <circle class="min-dot" cx="{{ chart.min_point.0 }}" cy="{{ chart.min_point.1 }}" r="4"/>
+      {% endif %}
       {% with ultimo=chart.points|last %}
       <circle class="dot" cx="{{ ultimo.0 }}" cy="{{ ultimo.1 }}" r="4.5"/>
       {% endwith %}
@@ -117,7 +130,7 @@
   <a class="btn" href="{% url 'web:nuevo_aviso' %}?ruta={{ route.origin_id }}-{{ route.destination_id }}">Avisarme por correo →</a>
   <p class="tiny" style="margin:.85rem 0 0;opacity:.85;position:relative">
     ¿Usás Telegram? <a href="{{ bot_url }}?start={{ route.origin_id }}-{{ route.destination_id }}"
-    rel="noopener" style="color:inherit;text-decoration:underline">Avisame por ahí</a> —
+    rel="noopener" class="on-accent">Avisame por ahí</a> —
     la alerta se crea sola al abrir el bot.
   </p>
 </div>
@@ -180,7 +193,7 @@
 <h2>Otras rutas</h2>
 <div class="reveal">
   {% if related.inverse %}
-    <p>¿Volvés? Mirá <a style="color:var(--accent)" href="{% url 'web:route' related.inverse.origin_id related.inverse.destination_id %}">{{ related.inverse.origin.city }} → {{ related.inverse.destination.city }}</a>.</p>
+    <p>¿Volvés? Mirá <a class="link" href="{% url 'web:route' related.inverse.origin_id related.inverse.destination_id %}">{{ related.inverse.origin.city }} → {{ related.inverse.destination.city }}</a>.</p>
   {% endif %}
   {% if related.from_origin %}
     <p class="tiny dim" style="margin:1.25rem 0 0;letter-spacing:.06em;text-transform:uppercase">Desde {{ route.origin.city }}</p>
@@ -201,5 +214,5 @@
 </div>
 {% endif %}
 
-<p class="tiny dim" style="margin-top:2.5rem">Actualizado {{ updated_at|date:"j \d\e F, H:i" }} (hora de Perú).</p>
+<p class="tiny dim mt-3">Actualizado {{ updated_at|date:"j \d\e F, H:i" }} (hora de Perú).</p>
 {% endblock %}

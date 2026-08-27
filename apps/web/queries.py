@@ -214,3 +214,12 @@ def airport_by_slug(slug: str):
 def routes_from(airport) -> list:
     """Rutas publicadas que salen de ese aeropuerto."""
     return [r for r in published_routes() if r.origin_id == airport.iata_code]
+
+
+def total_snapshots() -> int:
+    """Cuántos precios llevamos guardados.
+
+    Es el activo del producto —nadie puede reconstruirlo hacia atrás— y hasta
+    ahora no aparecía en ningún lado.
+    """
+    return PriceSnapshot.objects.count()

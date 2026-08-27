@@ -112,7 +112,7 @@ header .wrap{display:flex;align-items:center;gap:.65rem;height:3.75rem}
 .card-hero{padding:1.75rem;box-shadow:var(--shadow-2)}
 
 /* --- Veredicto ---------------------------------------------------------
-   Solo "excelente precio" va relleno. Que el tratamiento —y no solo el color—
+   Solo"excelente precio" va relleno. Que el tratamiento —y no solo el color—
    cargue el significado es lo que evita el semaforo de cinco pastillas.  */
 .v{display:inline-flex;align-items:center;gap:.4rem;border-radius:2rem;
   padding:.3rem .75rem;font-size:.8125rem;font-weight:600;letter-spacing:-.005em;
@@ -146,8 +146,8 @@ header .wrap{display:flex;align-items:center;gap:.65rem;height:3.75rem}
 .routes a{display:flex;align-items:center;gap:1rem;padding:1.05rem .25rem;
   transition:background .25s ease,padding-left .25s ease}
 .routes a:hover{background:var(--bg-elev);padding-left:.75rem}
-.routes .r{font-weight:600;letter-spacing:-.015em}
-.routes .meta{color:var(--ink-3);font-size:.8125rem;margin-top:.1rem}
+.routes .r{display:block;font-weight:600;letter-spacing:-.015em}
+.routes .meta{display:block;color:var(--ink-3);font-size:.8125rem;margin-top:.15rem}
 .routes .right{margin-left:auto;text-align:right;display:flex;flex-direction:column;
   align-items:flex-end;gap:.3rem}
 .routes .amount{font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
@@ -227,6 +227,76 @@ footer{margin:5rem 0 3rem;padding-top:1.5rem;border-top:1px solid var(--line);
   color:var(--ink-3);font-size:.875rem}
 footer p{margin:0 0 .6rem;max-width:40rem}
 
+/* --- Sistema: espaciado, disposicion y formularios ----------------------
+   Antes esto vivia en 82 atributos style= repartidos por las plantillas. Un
+   token de diseno que solo existe dentro de un atributo no se puede reusar ni
+   auditar: cambiar un espaciado obligaba a buscar y reemplazar a mano.        */
+.stack > * + *{margin-top:1rem}
+.stack-sm > * + *{margin-top:.5rem}
+.row{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.row-end{align-items:flex-end}
+.push{margin-left:auto}
+.mt-0{margin-top:0} .mt-1{margin-top:.85rem} .mt-2{margin-top:1.5rem} .mt-3{margin-top:2.5rem}
+.mb-0{margin-bottom:0} .mb-1{margin-bottom:.85rem} .mb-2{margin-bottom:1.5rem}
+.pt-hero{padding-top:3.5rem}
+.divider-top{padding-top:1rem;border-top:1px solid var(--line);margin-top:1rem}
+.link{color:var(--accent)}
+.link:hover{text-decoration:underline}
+.eyebrow{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);
+  margin:0 0 .5rem}
+.on-accent{color:inherit;text-decoration:underline;opacity:.9}
+
+.field{display:block;margin-bottom:1rem}
+.field > label{display:block;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-3);margin-bottom:.45rem}
+.input,.select{font-family:inherit;font-size:1.0625rem;color:var(--ink);background:var(--bg-sunk);
+  border:1px solid var(--line);border-radius:.75rem;padding:.85rem 1rem;width:100%;
+  transition:border-color .2s ease,box-shadow .2s ease}
+.select{font-size:1rem;padding:.65rem .8rem;width:auto}
+.input:focus,.select:focus{outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+.btn-primary{background:var(--accent);color:var(--accent-ink);border:0;cursor:pointer}
+.aviso{border-color:color-mix(in srgb,var(--bad) 40%,transparent)}
+.aviso p{color:var(--bad);margin:0}
+.nota{border-color:color-mix(in srgb,var(--warn) 35%,transparent)}
+.sunken{background:var(--bg-sunk)}
+.col-verdict{width:9.5rem}
+.flat{margin:0}
+.price-row{display:flex;align-items:flex-end;gap:1.25rem;flex-wrap:wrap}
+.mt-4{margin-top:2rem}
+.field-inline > label{display:block;font-size:.75rem;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:.35rem}
+
+/* --- El pulso: lo que hace que la portada muestre el dato ----------------*/
+.pulso{display:grid;gap:.75rem;grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));
+  margin:0 0 2.5rem}
+.pulso div{background:var(--bg-elev);border:1px solid var(--line);border-radius:.875rem;
+  padding:1rem 1.15rem}
+.pulso b{display:block;font-size:1.75rem;font-weight:600;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;line-height:1.1}
+.pulso span{display:block;color:var(--ink-3);font-size:.75rem;letter-spacing:.04em;
+  text-transform:uppercase;margin-top:.2rem}
+.pulso .destacado b{color:var(--good)}
+
+/* --- Sparkline en la lista de rutas -------------------------------------*/
+.spark{width:8.25rem;height:1.875rem;flex-shrink:0;opacity:.85;
+  transition:opacity .25s ease}
+.routes a:hover .spark{opacity:1}
+.spark polyline{fill:none;stroke:var(--ink-3);stroke-width:1.5;stroke-linejoin:round;
+  stroke-linecap:round}
+.spark.baja polyline{stroke:var(--good)}
+.spark circle{fill:var(--ink-3)}
+.spark.baja circle{fill:var(--good)}
+@media (max-width:32rem){.spark{display:none}}
+
+/* --- Referencias del grafico grande -------------------------------------
+   Sin ellas el grafico es decorativo: se ve que subio o bajo, pero no
+   respecto de que — que es justo lo que el veredicto afirma.               */
+.chart .banda{fill:var(--good);opacity:.09}
+.chart .ref{stroke:var(--ink-3);stroke-width:1;stroke-dasharray:3 4;opacity:.6}
+.chart .ref-txt{fill:var(--ink-3);font-size:11px;letter-spacing:.02em}
+.chart .min-dot{fill:var(--good);stroke:var(--bg-elev);stroke-width:2}
+
 /* --- Movimiento --------------------------------------------------------
    Una entrada escalonada al cargar vale mas que veinte microinteracciones
    sueltas. Todo en CSS: la CSP no permite JS y tampoco hace falta.       */
@@ -276,9 +346,9 @@ footer p{margin:0 0 .6rem;max-width:40rem}
      que esperes — un comparador que gana con tu clic nunca lo hará.</p>
   <p class="tiny dim">Los precios cambian a cada momento. Verificá siempre en la aerolínea antes de comprar.</p>
   <p class="tiny" style="margin-top:1.25rem">
-    <a href="{% url 'web:terminos' %}" style="color:var(--ink-2)">Términos de uso</a>
+    <a href="{% url 'web:terminos' %}" class="muted">Términos de uso</a>
     <span class="dim"> · </span>
-    <a href="{% url 'web:privacidad' %}" style="color:var(--ink-2)">Privacidad</a>
+    <a href="{% url 'web:privacidad' %}" class="muted">Privacidad</a>
   </p>
 </footer>
 

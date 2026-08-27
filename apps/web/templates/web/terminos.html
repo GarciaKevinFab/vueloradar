@@ -21,7 +21,7 @@
 
 <div class="card rise d3" style="margin-bottom:2rem">
   <h3>En una línea</h3>
-  <p style="margin:0" class="muted">Te mostramos precios que observamos, no precios que vendemos.
+  <p class="flat muted">Te mostramos precios que observamos, no precios que vendemos.
      Lo que ves acá es una medición; la única fuente válida es la aerolínea.</p>
 </div>
 
@@ -75,12 +75,12 @@
    página. Seguir usando el servicio implica aceptarlos.</p>
 <p>Para cualquier consulta, escribinos por el bot de Telegram.</p>
 
-<div class="card" style="margin-top:2.5rem;background:var(--bg-sunk)">
-  <p class="small muted" style="margin:0"><strong>Nota.</strong> Este texto está escrito en
+<div class="card mt-3 sunken">
+  <p class="small muted flat"><strong>Nota.</strong> Este texto está escrito en
      lenguaje claro y describe con honestidad cómo funciona el servicio, pero no fue redactado
      por un abogado. Si el proyecto pasa a tener ingresos o usuarios registrados, conviene que
      un profesional lo revise y lo complete con los datos del titular.</p>
 </div>
 
-<p class="tiny dim" style="margin-top:2rem">Última actualización: {{ updated_at|date:"j \d\e F \d\e Y" }}</p>
+<p class="tiny dim mt-4">Última actualización: {{ updated_at|date:"j \d\e F \d\e Y" }}</p>
 {% endblock %}

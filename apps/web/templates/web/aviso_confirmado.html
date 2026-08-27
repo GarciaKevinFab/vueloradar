@@ -10,6 +10,6 @@
    {% if alerta.flight_date %}del {{ alerta.flight_date|date:"j \d\e F" }}{% endif %}
    tenga un precio realmente bajo: en el 10% más barato del último mes para esa ruta.
    Un solo correo, y con enlace de baja en cada uno.</p>
-<p><a style="color:var(--accent)" href="{% url 'web:route' alerta.route.origin_id alerta.route.destination_id %}">
+<p><a class="link" href="{% url 'web:route' alerta.route.origin_id alerta.route.destination_id %}">
    Ver el histórico de {{ alerta.route.origin.city }} → {{ alerta.route.destination.city }} →</a></p>
 {% endblock %}

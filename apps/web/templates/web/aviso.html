@@ -23,7 +23,7 @@
        confirmar. <strong>Hasta que no lo toques no te vamos a escribir</strong> — cualquiera podría
        haber puesto tu dirección acá, y no nos parece bien mandarte nada sin que lo pidas vos.</p>
   {% endif %}
-  <p><a style="color:var(--accent)" href="{% url 'web:route' route.origin_id route.destination_id %}">
+  <p><a class="link" href="{% url 'web:route' route.origin_id route.destination_id %}">
      ← Volver al histórico de la ruta</a></p>
 
 {% else %}
@@ -61,8 +61,8 @@
   </form>
 
   {% if bot_url %}
-  <p class="muted" style="margin-top:1.5rem">¿Preferís Telegram?
-     <a style="color:var(--accent)" href="{{ bot_url }}?start={{ bot_deeplink }}" rel="noopener">
+  <p class="muted mt-2">¿Preferís Telegram?
+     <a class="link" href="{{ bot_url }}?start={{ bot_deeplink }}" rel="noopener">
      Avisarme por Telegram →</a></p>
   {% endif %}
 {% endif %}

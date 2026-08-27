@@ -32,7 +32,7 @@
 
   <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end">
     <div>
-      <label for="adultos" class="tiny dim" style="display:block;margin-bottom:.35rem">Adultos</label>
+      <label for="adultos" class="tiny dim">Adultos</label>
       <select id="adultos" name="adultos"
               style="font-family:inherit;font-size:1rem;color:var(--ink);background:var(--bg-sunk);
                      border:1px solid var(--line);border-radius:.65rem;padding:.6rem .8rem">
@@ -42,7 +42,7 @@
       </select>
     </div>
     <div>
-      <label for="ninos" class="tiny dim" style="display:block;margin-bottom:.35rem">Niños</label>
+      <label for="ninos" class="tiny dim">Niños</label>
       <select id="ninos" name="ninos"
               style="font-family:inherit;font-size:1rem;color:var(--ink);background:var(--bg-sunk);
                      border:1px solid var(--line);border-radius:.65rem;padding:.6rem .8rem">
@@ -69,7 +69,7 @@
 {% if falta %}
 <div class="card" style="margin-top:1.5rem;border-color:color-mix(in srgb,var(--warn) 35%,transparent)">
   <h3>No entendimos del todo</h3>
-  <p class="muted" style="margin:0">{{ falta }}</p>
+  <p class="muted flat">{{ falta }}</p>
 </div>
 {% endif %}
 
@@ -80,22 +80,22 @@
 
 <div class="card card-hero">
   {% if precio %}
-    <div style="display:flex;align-items:flex-end;gap:1.25rem;flex-wrap:wrap">
+    <div class="price-row">
       <div class="price"><small>Observado</small>S/&nbsp;{{ precio|floatformat:0 }}</div>
       {% if veredicto.is_actionable %}
         <span class="v v-{{ veredicto.level }}" style="margin-bottom:.6rem">{{ veredicto.label }}</span>
       {% endif %}
     </div>
-    <p style="margin:1.15rem 0 0">
+    <p class="mt-1">
       {% if veredicto.is_actionable %}<strong>{{ veredicto.action }}.</strong>{% endif %}
       Es el precio más barato que observamos para esa fecha en nuestro último barrido,
       <strong>por adulto</strong>.
     </p>
   {% elif route %}
-    <p class="muted" style="margin:0">No tenemos precio observado para esa fecha. Seguimos los
+    <p class="muted flat">No tenemos precio observado para esa fecha. Seguimos los
        próximos 60 días, así que puede estar fuera de esa ventana o todavía no haberse barrido.</p>
   {% else %}
-    <p class="muted" style="margin:0">No monitoreamos esa ruta todavía, así que no tenemos
+    <p class="muted flat">No monitoreamos esa ruta todavía, así que no tenemos
        histórico para opinar. El link de compra funciona igual.</p>
   {% endif %}
 
@@ -118,15 +118,15 @@
   {% if publicada %}
   <p class="tiny" style="margin:1rem 0 0;opacity:.85;position:relative">
     ¿Todavía no comprás? <a href="{% url 'web:nuevo_aviso' %}?ruta={{ route.origin_id }}-{{ route.destination_id }}&fecha={{ consulta.fecha|date:'Y-m-d' }}"
-    style="color:inherit;text-decoration:underline">Avisame si baja esta fecha</a>.
+    class="on-accent">Avisame si baja esta fecha</a>.
   </p>
   {% endif %}
 </div>
 {% endif %}
 
 {% if publicada %}
-<p style="margin-top:1.5rem">
-  <a style="color:var(--accent)" href="{% url 'web:route' route.origin_id route.destination_id %}">
+<p class="mt-2">
+  <a class="link" href="{% url 'web:route' route.origin_id route.destination_id %}">
     Ver el histórico completo de {{ route.origin.city }} → {{ route.destination.city }} →
   </a>
 </p>
