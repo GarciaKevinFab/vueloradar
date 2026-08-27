@@ -28,7 +28,7 @@ Sistema autónomo de monitoreo y búsqueda de vuelos domésticos en Perú. Encue
 
 - **Mercado:** solo vuelos domésticos Perú. Aerolíneas relevantes: LATAM (LA), Sky Airline Perú (H2), JetSmart Perú (JZ), Star Perú (2I), ATSA.
 - **Modelo hub-and-spoke:** casi todo pasa por Lima (LIM). Las rutas directas interprovinciales son excepciones (CUZ-AQP, CUZ-PEM, CUZ-JUL y pocas más). Si el usuario pide una ruta sin vuelo directo, el sistema debe proponer conexión vía LIM sumando ambos tramos.
-- **Precios en PEN (S/).** Si la fuente devuelve USD, convertir con tipo de cambio del día (cachear 24h).
+- **Precios en PEN (S/).** Si la fuente devuelve USD, convertir con tipo de cambio **en vivo**, cacheado 1 hora (`apps/scraping/fx.py`). **No hay tasa fija de respaldo**: la vieja `FX_FALLBACK_USD_PEN=3.80` estaba 13% desviada de la tasa real (3.35 al 2026-08-27) y se usaba en silencio. El respaldo es la última tasa buena observada, con antigüedad máxima; si no hay ninguna, `convert_to_pen` devuelve `None`, la oferta se descarta y se avisa al admin. Perder una oferta es recuperable; contaminar el histórico no.
 - **Precio total real:** siempre precio final con impuestos. Nunca tarifa base.
   **Verificado el 2026-08-23**: para JetSMART LIM-CUZ del 06/09, la web de la
   aerolínea muestra S/ 144,52 (tarifa base) y Google Flights S/ 201,00. La
@@ -218,8 +218,8 @@ correr el checklist pre-lanzamiento de `DEPLOY.md` en un VPS real.
 | Base de datos | Supabase `htqyzxzqlzjqzhkzemgo` (us-west-2), migrada y poblada |
 | Barrido automático | Beat a las 06:00 y 18:00 hora Perú, ~1.300 consultas por corrida |
 | Bot | [@Vuelosradar_bot](https://t.me/Vuelosradar_bot) (id 8695027914), modo polling |
-| Tests | 336, en verde, sin tocar red ni Supabase |
-| Web pública | 40 rutas en `/vuelos/<ORI>-<DES>/`, veredicto por fecha, CTA al bot, OG, sitemap y robots |
+| Tests | 358, en verde, sin tocar red ni Supabase |
+| Web pública | **En línea en https://vueloradar.com**: 40 rutas, 18 páginas por ciudad, términos y privacidad, veredicto por fecha, CTA al bot, OG, sitemap y robots |
 
 Datos acumulados al 2026-08-23: 20 aeropuertos, 44 rutas monitoreadas, 8.289
 snapshots, 47.395 ofertas crudas, 40 rutas con estadísticas de 30 días.
@@ -368,6 +368,27 @@ ignora (el kernel protege al PID 1 de su propio namespace). La prueba válida es
 - **La web no publica tarifas de Google en crudo**, solo estadísticas propias
   derivadas del histórico. Es lo que nos hace defendibles y además lo que baja
   el riesgo de exponer públicamente la dependencia de `fast-flights`.
+
+### Notas del rediseño (2026-08-27)
+
+- **Los comentarios `{# #}` de Django son de UNA línea.** Uno multilínea se
+  renderiza como texto, y dentro de `<head>` eso cierra el head antes de tiempo
+  y manda los `<meta>` de Open Graph al `<body>`, donde los crawlers los
+  ignoran. Para varias líneas, `{% comment %}`.
+- **`LANGUAGE_CODE="es"` localiza los decimales en las plantillas**: `712.0`
+  sale como `712,0`. Una coma es inválida como coordenada SVG y como valor CSS,
+  así que el punto del gráfico saltaba al origen y `stroke-dasharray` no se
+  aplicaba. El bloque del SVG va dentro de `{% localize off %}`.
+- **La URL del hub va antes que la de ruta** y la ficha exige tres letras por
+  lado (`re_path`): sin esa restricción, `/vuelos/desde-lima/` entraba como
+  origen "desde" y destino "lima".
+- **Las fuentes están auto-alojadas** en `apps/web/static/web/fonts/` (49 KB
+  las dos). Google Fonts serían peticiones a terceros y en móvil peruano eso se
+  paga en latencia.
+- **`Airport.slug` es una propiedad, no una columna.** Son 20 aeropuertos y el
+  slug se deriva de la ciudad; una columna sería el mismo dato en dos lugares.
+- **El largo del trazo del gráfico se calcula en Python** (`chart.length`).
+  Medirlo en el navegador exigiría JS, y la CSP no lo permite.
 
 ### Notas de la Fase 5
 
