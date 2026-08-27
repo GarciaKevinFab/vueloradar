@@ -48,6 +48,13 @@ COPY --chown=vueloradar:vueloradar . .
 
 USER vueloradar
 
+# Los estaticos se recolectan en build: con el storage de manifiesto, si falta
+# una entrada la pagina entera devuelve 500. No toca la base — settings cargan
+# sin DATABASE_URL — asi que puede correr aca y no en cada arranque.
+# La clave va inline y NO como ENV: un ENV persistiria en la imagen final y la
+# app podria arrancar con una clave conocida si el entorno no la define.
+RUN DJANGO_SECRET_KEY=build-only-never-used python manage.py collectstatic --noinput
+
 EXPOSE 8000
 
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2"]

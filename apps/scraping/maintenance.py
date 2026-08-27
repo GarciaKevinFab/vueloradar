@@ -10,6 +10,8 @@ from pathlib import Path
 
 from celery import shared_task
 from django.conf import settings
+
+from . import offsite
 from django.utils import timezone
 
 from .notify import send_admin_alert
@@ -67,12 +69,24 @@ def backup_database(self) -> dict:
     tamano = archivo.stat().st_size if archivo.exists() else 0
     borrados = _purge_old_backups(destino)
 
-    logger.info("backup: %s creado (%.1f MB), %d viejos borrados", archivo.name, tamano / 1e6, borrados)
+    # En Railway el disco es efímero: si la subida falla no queda ninguna copia.
+    subido = offsite.upload_backup(archivo)
+    if offsite.is_configured() and not subido:
+        send_admin_alert(
+            f"VueloRadar: el backup {archivo.name} se generó pero NO se pudo "
+            f"subir a R2. En un filesystem efímero eso significa que no queda copia."
+        )
+
+    logger.info(
+        "backup: %s creado (%.1f MB), %d viejos borrados, offsite=%s",
+        archivo.name, tamano / 1e6, borrados, "sí" if subido else "no",
+    )
     return {
         "status": "ok",
         "file": archivo.name,
         "bytes": tamano,
         "deleted_old": borrados,
+        "offsite": subido,
     }
 
 

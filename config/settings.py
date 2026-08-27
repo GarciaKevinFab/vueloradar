@@ -323,6 +323,14 @@ PREMIUM_MAX_ALERTS = int(os.getenv("PREMIUM_MAX_ALERTS", "20"))
 ALERT_COOLDOWN_HOURS = 12
 ALERT_MIN_DROP_PCT = Decimal("5")
 
+# Backup offsite en R2 (S3-compatible). Sin esto el dump queda solo en disco,
+# que en Railway es efímero. Ver apps/scraping/offsite.py.
+R2_ACCOUNT_ID = os.getenv("R2_ACCOUNT_ID", "")
+R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID", "")
+R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY", "")
+R2_BUCKET = os.getenv("R2_BUCKET", "")
+R2_PREFIX = os.getenv("R2_PREFIX", "backups/")
+
 # Impuestos de vuelos domésticos PE, para normalizar proveedores que publican
 # tarifa base (ver apps/scraping/taxes.py). Verificados el 2026-08-23; la TUUA
 # la fija el operador del aeropuerto y cambia, así que vive en settings.

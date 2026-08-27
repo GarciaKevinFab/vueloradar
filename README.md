@@ -1,8 +1,19 @@
 # VueloRadar Perú
 
-Monitoreo autónomo de vuelos domésticos en Perú: busca el vuelo más barato de
-cualquier ruta nacional, acumula histórico de precios y (desde la Fase 4)
-alerta cuando detecta una oferta real.
+Monitoreo autónomo de vuelos domésticos en Perú. Busca el vuelo más barato de
+cualquier ruta nacional, acumula histórico de precios y avisa cuando detecta una
+oferta real.
+
+Son dos caras del mismo motor:
+
+- **Sitio público** — una ficha por ruta que responde lo que ni Google Flights
+  ni los metabuscadores responden en una página indexable: *si el precio de una
+  fecha es bueno para esa ruta*, comparado contra su propio histórico.
+- **Bot de Telegram** — búsqueda a pedido en lenguaje natural y alertas de caída
+  de precio.
+
+El diferencial es el mismo en los dos: no vendemos pasajes ni cobramos comisión,
+así que podemos decir **"esperá"**. Un metabuscador nunca lo dirá.
 
 El contexto completo del proyecto vive en [CLAUDE.md](CLAUDE.md).
 
@@ -105,13 +116,58 @@ Para destrabar a mano:
 python manage.py shell -c "from apps.scraping import ratelimit; ratelimit.resume('google_flights')"
 ```
 
+## Sitio público
+
+```bash
+python manage.py runserver
+```
+
+| Ruta | Qué es |
+|---|---|
+| `/` | Todas las rutas publicadas, ordenadas por dónde hay más oportunidad |
+| `/vuelos/LIM-CUZ/` | Ficha: precio desde, veredicto por fecha, gráfico e histórico |
+| `/sitemap.xml`, `/robots.txt` | Indexación |
+
+Solo lee de `PriceSnapshot` y `RouteStats`. **No scrapea ni escribe nada.**
+
+### Dos veredictos, y no se pueden mezclar
+
+- **Por fecha** (`evaluate`) — el precio de un día contra la distribución de la
+  ruta. Es válido porque ese precio es una muestra de esa misma distribución.
+  Funciona desde el primer mes de histórico y es lo que llena el calendario.
+- **De tendencia** (`evaluate_trend`) — el mínimo de hoy contra la serie de
+  mínimos diarios. Necesita 14 días; hasta entonces la página dice cuántos
+  faltan en vez de inventar.
+
+Usar el primero para juzgar el mínimo entre 46 fechas daba **"chollo" en el
+100% de las rutas, por construcción**: se comparaba el más barato de todas las
+fechas contra la distribución de todas las fechas. Si tocás esto, mantené la
+separación.
+
+### Caché en el borde
+
+Las páginas declaran `s-maxage=1800` y `compute_route_stats` purga la zona de
+Cloudflare al terminar cada barrido. Entre barridos sirve el borde y el origen
+no recibe tráfico; al entrar datos nuevos, aparecen al instante.
+
+### Activos de marca
+
+```bash
+python scripts/build_brand_assets.py   # brand/logo-source.png -> iconos + og.png
+python manage.py collectstatic
+```
+
+El radio de las esquinas se detecta del propio logo, así que cambiar la marca no
+requiere tocar plantillas.
+
 ## Bot de Telegram
 
 ```bash
 python manage.py runbot
 ```
 
-Levanta el bot con polling (webhook llega en Fase 5). Necesita `TELEGRAM_TOKEN`
+Levanta el bot con polling; en producción se puede usar webhook según
+`BOT_MODE`. Necesita `TELEGRAM_TOKEN`
 en el `.env` — pedíselo a [@BotFather](https://t.me/BotFather) con `/newbot`.
 
 ### Qué entiende
@@ -136,7 +192,7 @@ si agregás un aeropuerto, el parser lo entiende sin tocar el prompt.
 | `/start` | Registro y bienvenida |
 | `/vuelo LIM CUZ 2026-09-15` | Búsqueda directa, sin pasar por la IA |
 | `/rutas` | Rutas monitoreadas con su mínimo de 30 días |
-| `/alerta LIM CUZ` | Placeholder — el motor llega en Fase 4 |
+| `/alerta LIM CUZ` | Aviso cuando aparezca una oferta real (ver *Alertas*) |
 | `/ayuda` | Ayuda completa |
 
 ### Ida y vuelta
@@ -273,20 +329,36 @@ pytest
 ```
 
 Corren contra SQLite en memoria (`config/settings_test.py`) y **nunca tocan la
-red, Supabase ni Redis**: los providers y el reloj se mockean.
+red, Supabase ni Redis**: los providers y el reloj se mockean. Django fuerza
+`DEBUG=False` durante los tests, así que las plantillas de error de producción
+también quedan cubiertas.
 
 ## Producción
 
-El despliegue completo está en **[DEPLOY.md](DEPLOY.md)**: requisitos del VPS,
-pasos exactos, backups y runbook de incidentes.
+Corre en **Railway** (un proyecto, cinco servicios desde el mismo `Dockerfile`)
+con **Cloudflare** adelante y **Supabase** como base. El despliegue completo,
+los backups y el runbook de incidentes están en **[DEPLOY.md](DEPLOY.md)**; la
+capa de dominio, caché y WAF en **[DEPLOY-WEB.md](DEPLOY-WEB.md)**.
 
-```bash
-docker compose -f docker-compose.prod.yml up -d
+```
+Cloudflare  dominio · DNS · CDN · caché · WAF
+     |
+Railway     web · worker-scraping · worker-default · beat · bot · Redis
+     |
+Supabase    Postgres
 ```
 
-Seis servicios: `redis`, `web` (admin y `/healthz`), `worker-scraping`,
-`worker-default`, `beat` y `bot`. La base es Supabase, no hay contenedor de
-Postgres.
+`docker-compose.prod.yml` sigue en el repo y sirve para levantar el stack en un
+VPS si algún día hace falta, pero **no es el despliegue de referencia**.
+
+Antes de abrir tráfico:
+
+```bash
+python scripts/check_production.py
+```
+
+Renderiza las páginas con los ajustes reales y resuelve el manifiesto de
+estáticos — lo que `manage.py check --deploy` no toca.
 
 ### Scrapers directos de aerolínea
 
@@ -297,10 +369,23 @@ flag y solo corren en rutas marcadas con `use_direct_scrapers`.
 
 Estado real de cada uno:
 
-| Provider | Estado | Caveat |
+| Provider | Estado | Nota |
 |---|---|---|
-| Sky | ✅ verificado en vivo | El precio del listado es **tarifa base, sin impuestos** |
-| JetSmart | ⚠️ URL verificada, extracción no | Challenge anti-bot; aterriza en calendario, sin horarios |
+| Sky | ✅ verificado en vivo (2026-08-23) | Publica **tarifa base**; se normaliza a precio final |
+| JetSmart | ✅ verificado en vivo (2026-08-27) | Publica **tarifa base**; devuelve precio del día, sin horarios |
+
+**Los dos publican tarifa base y los dos se normalizan solos.**
+`apps/scraping/taxes.py` aplica IGV sobre la tarifa y suma la TUUA después —en
+ese orden, que es lo que hace cuadrar el número al céntimo— y
+`DirectScraperProvider.search()` lo aplica a cualquier provider marcado con
+`publishes_base_fare`. Sin eso parecían 25-30% más baratos que Google y
+corrompían las alertas.
+
+JetSMART aterriza en un **calendario de precios**, no en la lista de vuelos: da
+el precio del día sin horarios ni número de vuelo. Alcanza para verificar un
+precio, no para mostrarle vuelos a alguien. Si vuelve a aparecer el challenge
+anti-bot que se vio el 23-08, el provider devuelve `[]` y deja screenshot: **no
+hay código para evadir detección de bots.**
 
 Ante un fallo cada scraper deja un screenshot en
 `DIRECT_SCRAPER_SCREENSHOT_DIR`: abrirlo suele bastar para distinguir "cambió
@@ -309,11 +394,15 @@ el DOM" de "no hay vuelos ese día".
 ## Estructura
 
 ```
-config/          settings, celery
+config/          settings, celery, healthz
 apps/flights/    modelos, admin, comandos CLI, estadísticas
-apps/scraping/   providers, servicio de búsqueda, tasks, rate limit, FX
-apps/users/      esqueleto (Fase 3)
-apps/alerts/     esqueleto (Fase 4)
-apps/ai_analyst/ esqueleto (Fase 4)
-scripts/         semillas de aeropuertos y rutas
+apps/scraping/   providers, búsqueda, tasks, rate limit, FX, impuestos
+apps/web/        sitio público: veredicto, consultas, gráfico SVG, sitemap
+apps/users/      usuarios de Telegram y cupo diario
+apps/alerts/     motor de alertas y notificaciones
+apps/ai_analyst/ router de IA con fallback y veredicto de compra
+bot/             handlers de aiogram, formato de mensajes
+templates/       404 y 500 (del proyecto, no de una app)
+brand/           logo fuente y su especificación
+scripts/         semillas, activos de marca, chequeo de producción
 ```

@@ -1,0 +1,43 @@
+# Despliegue en Railway: un proyecto, cinco servicios desde el mismo Dockerfile.
+# Redis va como plugin gestionado de Railway, no como servicio de este archivo.
+# Ver DEPLOY.md para el paso a paso y las variables de entorno.
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+# Las migraciones corren una vez por deploy, antes de que arranque el servicio.
+# En el startCommand se ejecutarian en cada reinicio y en los cinco servicios
+# a la vez.
+preDeployCommand = "python manage.py migrate --noinput"
+
+[[services]]
+name = "web"
+startCommand = "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
+healthcheckPath = "/healthz"
+healthcheckTimeout = 30
+
+# Dos workers y no uno: el scraping es lento y bloqueante (3-8 s por consulta,
+# ~1.300 por barrido). Si compartieran cola, las tareas rapidas —alertas,
+# estadisticas, purga del cache— quedarian esperando detras del barrido entero.
+[[services]]
+name = "worker-scraping"
+# Concurrencia 1: el espaciado entre consultas es anti-bloqueo, no un limite de
+# performance. Subirlo hace que Google bloquee la IP.
+startCommand = "celery -A config worker -Q scraping -c 1 -l info"
+
+[[services]]
+name = "worker-default"
+startCommand = "celery -A config worker -Q default -c 2 -l info"
+
+[[services]]
+name = "beat"
+startCommand = "celery -A config beat -l info"
+
+[[services]]
+name = "bot"
+startCommand = "python manage.py runbot"
