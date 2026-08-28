@@ -446,6 +446,22 @@ body::after{content:'';position:fixed;inset:0;z-index:2;pointer-events:none;
   0 3px 0 color-mix(in srgb,var(--ink) 6%,transparent),
   0 12px 26px color-mix(in srgb,var(--ink) 18%,transparent)}
 
+/* --- Foto de la ciudad -------------------------------------------------
+   Una banda, no una portada. La foto acompaña; el dato sigue mandando. Por
+   eso va DESPUES del precio y no antes: quien llega buscando cuanto cuesta
+   volar a Cusco no vino a ver Machu Picchu.                               */
+.foto{position:relative;margin:1.5rem 0 0;border-radius:1.125rem;overflow:hidden;
+  border:1px solid var(--line);box-shadow:var(--shadow-1);line-height:0}
+.foto img{display:block;width:100%;height:auto;aspect-ratio:3/1;object-fit:cover}
+/* En movil la banda 3:1 queda una franja demasiado fina para ver nada. */
+@media (max-width:34rem){.foto img{aspect-ratio:2/1}}
+/* El credito, sobre un degradado para que se lea en cualquier foto. */
+.foto figcaption{position:absolute;left:0;right:0;bottom:0;padding:1.6rem .9rem .55rem;
+  font-size:.6875rem;line-height:1.4;color:rgba(255,255,255,.82);letter-spacing:.01em;
+  background:linear-gradient(to top,rgba(0,0,0,.55),transparent);text-align:right}
+.foto figcaption a{color:rgba(255,255,255,.95);text-decoration:underline;
+  text-underline-offset:2px}
+
 /* --- Hallazgos: lo que solo se sabe habiendo medido --------------------*/
 .hallazgos{display:grid;gap:1rem;margin:1.25rem 0;
   grid-template-columns:repeat(auto-fit,minmax(17.5rem,1fr))}

@@ -72,6 +72,10 @@
   {% endif %}
 </div>
 
+{% comment %} La foto va acá, después del precio y el veredicto: quien llega
+   buscando cuánto cuesta volar ya tiene su respuesta arriba. {% endcomment %}
+{% include "web/_foto.html" %}
+
 {% if stats and stats.median_30d %}
 <div class="stats rise d4">
   <div class="stat"><span>Mediana 30 d</span><b>S/ {{ stats.median_30d|floatformat:0 }}</b></div>

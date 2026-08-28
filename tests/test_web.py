@@ -748,6 +748,45 @@ def test_la_verificacion_de_search_console_es_opcional(client, route, stats, set
     assert '<meta name="google-site-verification" content="abc123">' in cuerpo
 
 
+def test_la_ficha_muestra_la_foto_del_destino(client, route, stats):
+    """La foto es del destino: es a donde va quien mira la página."""
+    _snapshot(route, "179")
+    cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
+    assert "ciudades/cusco" in cuerpo
+    assert "ciudades/lima" not in cuerpo          # el origen no
+
+
+def test_la_foto_reserva_su_espacio_y_carga_diferida(client, route, stats):
+    """Sin `width`/`height` la página salta al cargar la imagen, que es lo que
+    castiga Core Web Vitals; sin `lazy` compite con el dato por el ancho de
+    banda en un móvil peruano."""
+    _snapshot(route, "179")
+    cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
+    figura = cuerpo.split('class="foto')[1].split("</figure>")[0]
+    assert 'width="1200"' in figura and 'height="400"' in figura
+    assert 'loading="lazy"' in figura
+
+
+def test_la_foto_lleva_texto_alternativo_y_credito(client, route, stats):
+    _snapshot(route, "179")
+    cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
+    assert "Machu Picchu" in cuerpo               # alt descriptivo
+    assert "Foto de" in cuerpo and "Unsplash" in cuerpo
+
+
+def test_una_ciudad_sin_foto_no_dibuja_nada(client, peru_airports):
+    """Solo hay foto verificada de cinco ciudades. Poner la plaza equivocada
+    sería peor que no poner ninguna."""
+    from apps.web import photos
+
+    assert photos.FOTOS.get("puerto-maldonado") is None
+    ruta = _ruta_publicada("LIM", "PEM")
+    cuerpo = client.get(
+        reverse("web:route", args=[ruta.origin_id, ruta.destination_id])
+    ).content.decode()
+    assert 'class="foto' not in cuerpo
+
+
 def test_sin_correo_configurado_no_se_publica_ningun_contacto(client, route, stats, settings):
     """Publicar una dirección que rebota es peor que no publicar ninguna."""
     settings.CONTACT_EMAIL = ""

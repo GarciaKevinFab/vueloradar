@@ -25,7 +25,7 @@ from django.views.decorators.cache import cache_control, never_cache
 
 from apps.flights.models import Route
 
-from . import calendar_grid, chart, insights, queries, search
+from . import calendar_grid, chart, insights, photos, queries, search
 from .verdict import evaluate, evaluate_trend
 
 #: El barrido corre 06:00 y 18:00; media hora de caché en el borde es seguro
@@ -134,6 +134,8 @@ def route_detail(request, origin: str, destination: str):
         "all_time_low": queries.all_time_low(route),
         # Los mismos análisis, pero de esta ruta: el mejor día para volar a
         # Cusco no tiene por qué ser el mejor para volar a Iquitos.
+        # La foto es del DESTINO: es a donde va quien mira esta página.
+        "foto": photos.foto_de(route.destination),
         "insight_dia": insights.weekday_prices(route),
         "insight_ventana": insights.booking_windows(route),
         "insight_aerolineas": insights.cheapest_airlines(route),
@@ -177,6 +179,7 @@ def city_hub(request, ciudad: str):
         "destinos": destinos,
         "mas_barato": min((d["desde"] for d in con_precio), default=None),
         "otras_ciudades": [c for c in queries.cities_with_routes() if c.pk != airport.pk],
+        "foto": photos.foto_de(airport),
         "updated_at": timezone.now(),
     })
 

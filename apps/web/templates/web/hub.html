@@ -25,6 +25,8 @@
   {{ destinos|length }} destino{{ destinos|length|pluralize }} dos veces al día
   {% if mas_barato %}— el más barato hoy arranca en <strong>S/ {{ mas_barato|floatformat:0 }}</strong>{% endif %}.</p>
 
+{% include "web/_foto.html" %}
+
 <ul class="routes">
   {% for d in destinos %}
   <li class="reveal">

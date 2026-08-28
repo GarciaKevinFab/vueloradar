@@ -1,0 +1,25 @@
+{% load static %}{% comment %}
+La banda de la ciudad. No se dibuja nada si no hay foto: solo tenemos imagen
+verificada de cinco ciudades, y poner la plaza equivocada sería peor que no
+poner ninguna.
+
+`width` y `height` van explícitos aunque el CSS mande: sin ellos el navegador
+no sabe cuánto espacio reservar y la página salta cuando la imagen carga, que
+es justo lo que castiga Core Web Vitals.
+
+`loading="lazy"` porque la banda va debajo del precio — el dato es lo primero
+que tiene que aparecer, y una foto compitiendo por el ancho de banda en un
+móvil peruano retrasa lo que la persona vino a ver.
+{% endcomment %}
+{% if foto %}
+<figure class="foto reveal">
+  <img src="{% static foto.archivo %}" alt="{{ foto.alt }}"
+       width="{{ foto.ancho }}" height="{{ foto.alto }}"
+       loading="lazy" decoding="async">
+  {% comment %} La licencia de Unsplash no exige atribución, pero se acredita
+     igual: son fotos que alguien regaló y cuesta una línea. {% endcomment %}
+  <figcaption>Foto de {{ foto.autor }} ·
+    <a href="https://unsplash.com/es/licencia" target="_blank"
+       rel="noopener external nofollow">Unsplash</a></figcaption>
+</figure>
+{% endif %}
