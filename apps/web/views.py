@@ -25,7 +25,7 @@ from django.views.decorators.cache import cache_control, never_cache
 
 from apps.flights.models import Route
 
-from . import calendar_grid, chart, insights, photos, queries, search
+from . import calendar_grid, chart, insights, og_images, photos, queries, search
 from .verdict import evaluate, evaluate_trend
 
 #: El barrido corre 06:00 y 18:00; media hora de caché en el borde es seguro
@@ -136,6 +136,11 @@ def route_detail(request, origin: str, destination: str):
         # Cusco no tiene por qué ser el mejor para volar a Iquitos.
         # La foto es del DESTINO: es a donde va quien mira esta página.
         "foto": photos.foto_de(route.destination),
+        "og_image": _og_de_ruta(route),
+        # El texto que se manda por WhatsApp. Se arma acá y no en la plantilla
+        # porque lleva el precio, y un `{% if %}` anidado dentro de un atributo
+        # `href` es donde se cuelan los errores de comillas.
+        "comparte_texto": _texto_para_compartir(route, fechas),
         "insight_dia": insights.weekday_prices(route),
         "insight_ventana": insights.booking_windows(route),
         "insight_aerolineas": insights.cheapest_airlines(route),
@@ -180,6 +185,8 @@ def city_hub(request, ciudad: str):
         "mas_barato": min((d["desde"] for d in con_precio), default=None),
         "otras_ciudades": [c for c in queries.cities_with_routes() if c.pk != airport.pk],
         "foto": photos.foto_de(airport),
+        "og_image": (f"web/og/desde-{airport.slug}.png"
+                     if airport.slug in og_images.CIUDADES else None),
         "updated_at": timezone.now(),
     })
 
@@ -419,6 +426,40 @@ def cuando_comprar(request):
         "horizonte": insights.SEMANAS[-1][1],
         "updated_at": timezone.now(),
     })
+
+
+def _og_de_ruta(route) -> str | None:
+    """Imagen de compartir de una ruta, si se generó.
+
+    Se pregunta contra un `frozenset` en memoria y no contra el disco: con el
+    manifiesto de estáticos, referenciar un archivo que no está tira 500 en
+    producción, así que preguntar antes es la diferencia entre una página y un
+    error. Las genera `scripts/build_og_images.py`.
+    """
+    clave = f"{route.origin_id}-{route.destination_id}"
+    return f"web/og/{clave}.png" if clave in og_images.RUTAS else None
+
+
+def _texto_para_compartir(route, fechas) -> str:
+    """Lo que le llega a quien recibe el enlace por WhatsApp.
+
+    Lleva el precio porque es el gancho, pero el mensaje lo escribe la persona
+    en el momento: si el precio cambió, quien hace clic ve el actual en la
+    página. Distinto de la imagen de compartir, que se genera una vez y por eso
+    NO lleva precio.
+    """
+    ruta = f"{route.origin.city} a {route.destination.city}"
+    precios = [f["price"] for f in fechas]
+    if not precios:
+        return f"Mirá el histórico de precios de vuelos {ruta} en VueloRadar:"
+
+    baratas = len([f for f in fechas if f["verdict"].should_buy])
+    desde = min(precios)
+    if baratas:
+        return (f"Vuelos {ruta} desde S/ {desde:.0f}. "
+                f"Hay {baratas} fecha{'s' if baratas != 1 else ''} a buen precio "
+                f"según el histórico:")
+    return f"Vuelos {ruta} desde S/ {desde:.0f}, según el histórico real:"
 
 
 def ads_txt(request):

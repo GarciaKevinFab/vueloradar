@@ -24,7 +24,10 @@
 <meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
 <meta property="og:title" content="{% block og_title %}{{ site_name }}{% endblock %}">
 <meta property="og:description" content="{% block og_description %}Histórico real de precios de vuelos domésticos en Perú.{% endblock %}">
-<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'web/og.png' %}">
+{% comment %} Cada página comparte su propia imagen. Antes todas mostraban la
+   misma, así que un enlace a Lima–Cusco se veía igual que uno a la portada y
+   no decía nada — y WhatsApp es el canal real de difusión en Perú. {% endcomment %}
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static og_image|default:'web/og.png' %}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -445,6 +448,17 @@ body::after{content:'';position:fixed;inset:0;z-index:2;pointer-events:none;
   0 2px 0 color-mix(in srgb,var(--ink) 9%,transparent),
   0 3px 0 color-mix(in srgb,var(--ink) 6%,transparent),
   0 12px 26px color-mix(in srgb,var(--ink) 18%,transparent)}
+
+/* --- Compartir ---------------------------------------------------------
+   Un enlace a wa.me, no un widget: sin JS y sin que Meta cargue un script en
+   la pagina. WhatsApp tiene 94% de penetracion en Peru — es el unico canal
+   por el que este sitio se puede difundir solo.                           */
+.compartir{display:inline-flex;align-items:center;gap:.5rem;margin-top:1.25rem;
+  border:1px solid var(--line);background:var(--bg-elev);border-radius:2rem;
+  padding:.55rem 1.05rem;font-size:.875rem;font-weight:600;color:var(--ink-2);
+  transition:border-color .2s ease,transform .2s ease,color .2s ease}
+.compartir:hover{border-color:var(--good);color:var(--good);transform:translateY(-1px)}
+.compartir svg{width:1.1rem;height:1.1rem;fill:currentColor;flex-shrink:0}
 
 /* --- Foto de la ciudad -------------------------------------------------
    Una banda, no una portada. La foto acompaña; el dato sigue mandando. Por

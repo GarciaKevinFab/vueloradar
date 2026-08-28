@@ -390,10 +390,42 @@ def test_open_graph_con_imagen_absoluta(client, route, stats):
     """WhatsApp descarta `og:image` relativa: tiene que ser URL completa."""
     _snapshot(route, "179")
     cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
-    assert 'property="og:image" content="http://testserver/static/web/og.png"' in cuerpo
+    # El invariante es que sea ABSOLUTA, no cuál es: desde que cada página
+    # comparte su propia imagen, fijar el archivo concreto acá solo ataría el
+    # test a un detalle que va a cambiar.
+    assert 'property="og:image" content="http://testserver/static/web/' in cuerpo
+    assert 'content="/static/' not in cuerpo
     assert 'property="og:image:width" content="1200"' in cuerpo
     assert 'name="twitter:card" content="summary_large_image"' in cuerpo
     assert 'property="og:locale" content="es_PE"' in cuerpo
+
+
+def test_cada_ruta_comparte_su_propia_imagen(client, route, stats):
+    """Antes todas las páginas compartían la misma, así que un enlace a
+    Lima-Cusco se veía igual que uno a la portada y no decía nada."""
+    _snapshot(route, "179")
+    cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
+    assert "web/og/LIM-CUZ.png" in cuerpo
+
+
+def test_sin_imagen_generada_se_cae_a_la_generica(client, peru_airports):
+    """`{% static %}` con manifiesto revienta si el archivo no está: preguntar
+    antes es la diferencia entre una página y un 500."""
+    from apps.web import og_images
+
+    assert "LIM-PEM" in og_images.RUTAS          # las generadas están
+    assert "ZZZ-YYY" not in og_images.RUTAS      # y una inventada no
+
+
+def test_la_ficha_ofrece_compartir_por_whatsapp(client, route, stats):
+    """WhatsApp tiene ~94% de penetración en Perú: es el único canal por el que
+    este sitio puede difundirse sin presupuesto."""
+    _snapshot(route, "179")
+    cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
+    assert "wa.me/?text=" in cuerpo
+    # La URL viaja dentro del parámetro `text`, así que sus barras van
+    # codificadas o WhatsApp corta el mensaje.
+    assert "%2Fvuelos%2FLIM-CUZ%2F" in cuerpo
 
 
 def test_open_graph_describe_la_ruta_concreta(client, route, stats):

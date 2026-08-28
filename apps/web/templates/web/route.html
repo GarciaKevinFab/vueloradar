@@ -72,6 +72,12 @@
   {% endif %}
 </div>
 
+{% comment %} El botón de compartir va justo después del precio: es el momento
+   en que la persona ya tiene algo concreto que mandarle a alguien. {% endcomment %}
+{% if desde %}
+{% include "web/_compartir.html" with texto_compartir=comparte_texto %}
+{% endif %}
+
 {% comment %} La foto va acá, después del precio y el veredicto: quien llega
    buscando cuánto cuesta volar ya tiene su respuesta arriba. {% endcomment %}
 {% include "web/_foto.html" %}
