@@ -780,6 +780,7 @@ def test_la_privacidad_solo_declara_analitica_si_la_hay(client, settings):
     """Mismo error que ya cometimos con AdSense: la página no puede afirmar
     que no hay analítica mientras el beacon carga."""
     settings.CLOUDFLARE_ANALYTICS_TOKEN = ""
+    settings.ANALYTICS_ENABLED = False
     assert "Cloudflare Web Analytics" not in client.get(
         reverse("web:privacidad")).content.decode()
 
@@ -787,6 +788,22 @@ def test_la_privacidad_solo_declara_analitica_si_la_hay(client, settings):
     cuerpo = client.get(reverse("web:privacidad")).content.decode()
     assert "Cloudflare Web Analytics" in cuerpo
     assert "no tenemos instalada ninguna herramienta de analítica" not in cuerpo
+
+
+def test_la_privacidad_declara_la_analitica_inyectada_en_el_borde(client, settings):
+    """Cloudflare puede inyectar el beacon sin que nuestro HTML lo mencione.
+
+    Verificado el 2026-08-28 con «automatic setup»: `curl` no ve el script y un
+    navegador real sí. Atar la declaración al token nuestro haría que la página
+    negara una analítica que está corriendo.
+    """
+    settings.CLOUDFLARE_ANALYTICS_TOKEN = ""     # no lo inyectamos nosotros
+    settings.ANALYTICS_ENABLED = True            # pero está activa igual
+
+    cuerpo = client.get(reverse("web:privacidad")).content.decode()
+    assert "Cloudflare Web Analytics" in cuerpo
+    # Y aun así no cargamos el script: duplicaría el conteo.
+    assert "cloudflareinsights" not in cuerpo
 
 
 def test_la_privacidad_declara_la_publicidad_cuando_esta_activa(client, settings):

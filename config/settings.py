@@ -200,6 +200,14 @@ CONTACT_EMAIL = os.getenv("CONTACT_EMAIL", "")
 # sostiene la marca. Sin token no se carga absolutamente nada.
 CLOUDFLARE_ANALYTICS_TOKEN = os.getenv("CLOUDFLARE_ANALYTICS_TOKEN", "")
 
+# Que la analitica este ACTIVA es distinto de que la inyectemos NOSOTROS.
+# Cloudflare puede insertar el beacon en el borde ("automatic setup") sin que
+# el HTML de Django lo mencione: verificado el 2026-08-28 — curl no lo ve, un
+# navegador real si. Esta bandera existe para que la politica de privacidad
+# hable de la realidad y no de nuestra plantilla. Poner el token ADEMAS de la
+# inyeccion automatica duplicaria el conteo.
+ANALYTICS_ENABLED = env_bool("ANALYTICS_ENABLED", False)
+
 LANGUAGE_CODE = "es"
 TIME_ZONE = "America/Lima"
 USE_I18N = True

@@ -23,7 +23,10 @@
 <div class="card rise d3">
   <p style="margin:0 0 .85rem"><strong>Nosotros no guardamos nada tuyo.</strong> No hay
      cuentas y no ponemos cookies propias.
-     {% if cf_analytics_token %}Para saber cuánta gente entra usamos
+     {% comment %} `analytics_activa`, no `cf_analytics_token`: Cloudflare
+        inyecta el beacon en el borde y nuestro HTML ni se entera. La página
+        declara lo que ocurre, no lo que hace nuestra plantilla. {% endcomment %}
+     {% if analytics_activa %}Para saber cuánta gente entra usamos
      <strong>Cloudflare Web Analytics</strong>, que <em>no usa cookies</em> ni te
      identifica: cuenta visitas a páginas y nada más. Por eso este sitio no te
      molesta con un cartel de cookies.

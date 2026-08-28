@@ -29,4 +29,11 @@ def site(request):
         "contact_email": getattr(settings, "CONTACT_EMAIL", ""),
         # Analítica sin cookies. Sin token no se carga el script.
         "cf_analytics_token": getattr(settings, "CLOUDFLARE_ANALYTICS_TOKEN", ""),
+        # Distinto de lo anterior: Cloudflare puede inyectar el beacon en el
+        # borde sin que nuestro HTML lo mencione. Esto es lo que mira la
+        # política de privacidad, para que declare lo que de verdad ocurre.
+        "analytics_activa": bool(
+            getattr(settings, "CLOUDFLARE_ANALYTICS_TOKEN", "")
+            or getattr(settings, "ANALYTICS_ENABLED", False)
+        ),
     }
