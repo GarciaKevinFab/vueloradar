@@ -22,8 +22,12 @@
 <h2>Si solo navegás</h2>
 <div class="card rise d3">
   <p style="margin:0 0 .85rem"><strong>Nosotros no guardamos nada tuyo.</strong> No hay
-     cuentas, no ponemos cookies propias y no tenemos instalada ninguna herramienta de
-     analítica — ni Google Analytics ni equivalentes.</p>
+     cuentas y no ponemos cookies propias.
+     {% if cf_analytics_token %}Para saber cuánta gente entra usamos
+     <strong>Cloudflare Web Analytics</strong>, que <em>no usa cookies</em> ni te
+     identifica: cuenta visitas a páginas y nada más. Por eso este sitio no te
+     molesta con un cartel de cookies.
+     {% else %}No tenemos instalada ninguna herramienta de analítica.{% endif %}</p>
   <p class="{% if adsense_client %}muted{% else %}flat muted{% endif %}">Lo normal de
      cualquier sitio sí ocurre: nuestro proveedor de infraestructura (Cloudflare) procesa la
      petición para servirte la página y protegerla de abuso, y conserva registros técnicos
@@ -116,6 +120,11 @@
   <li><strong>Borrar todo:</strong> pedilo por el bot y eliminamos tu registro completo.</li>
   <li><strong>Dejar de usarlo:</strong> bloquear el bot en Telegram corta cualquier mensaje nuestro.</li>
   <li><strong>Baja del correo:</strong> el enlace al pie de cualquier aviso, en un clic.</li>
+  {% if contact_email %}
+  <li><strong>Cualquier otra cosa:</strong> escribinos a
+      <a class="link" href="mailto:{{ contact_email }}">{{ contact_email }}</a> y te
+      respondemos.</li>
+  {% endif %}
 </ul>
 
 <h2>Menores</h2>

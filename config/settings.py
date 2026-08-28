@@ -187,6 +187,19 @@ ADSENSE_SLOT_ROUTE = os.getenv("ADSENSE_SLOT_ROUTE", "")
 # consultas traen visitas.
 GOOGLE_SITE_VERIFICATION = os.getenv("GOOGLE_SITE_VERIFICATION", "")
 
+# Correo de contacto publico. Vacio por defecto A PROPOSITO: publicar una
+# direccion que rebota es peor que no publicar ninguna, asi que se configura
+# solo cuando el buzon existe de verdad (Cloudflare Email Routing). Ademas de
+# la cortesia, AdSense revisa que se sepa quien opera el sitio, y la ley 29733
+# exige un canal para ejercer derechos sobre los datos personales.
+CONTACT_EMAIL = os.getenv("CONTACT_EMAIL", "")
+
+# Cloudflare Web Analytics: gratis, SIN cookies y por eso sin banner de
+# consentimiento. Se eligio sobre Google Analytics justamente por eso: GA
+# obligaria a pedir consentimiento y a contradecir la promesa de privacidad que
+# sostiene la marca. Sin token no se carga absolutamente nada.
+CLOUDFLARE_ANALYTICS_TOKEN = os.getenv("CLOUDFLARE_ANALYTICS_TOKEN", "")
+
 LANGUAGE_CODE = "es"
 TIME_ZONE = "America/Lima"
 USE_I18N = True

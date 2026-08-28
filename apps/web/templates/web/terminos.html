@@ -73,7 +73,14 @@
 <h2>6. Cambios y contacto</h2>
 <p>Podemos modificar estos términos. Los cambios relevantes se reflejan en la fecha de esta
    página. Seguir usando el servicio implica aceptarlos.</p>
+<h2>Contacto</h2>
+{% if contact_email %}
+<p>Escribinos a <a class="link" href="mailto:{{ contact_email }}">{{ contact_email }}</a> —
+   leemos todo{% if bot_url %}, o mandanos un mensaje por
+   <a class="link" href="{{ bot_url }}" rel="noopener">el bot de Telegram</a>{% endif %}.</p>
+{% else %}
 <p>Para cualquier consulta, escribinos por el bot de Telegram.</p>
+{% endif %}
 
 <p class="tiny dim mt-4">Última actualización: {{ updated_at|date:"j \d\e F \d\e Y" }}</p>
 {% endblock %}

@@ -748,6 +748,47 @@ def test_la_verificacion_de_search_console_es_opcional(client, route, stats, set
     assert '<meta name="google-site-verification" content="abc123">' in cuerpo
 
 
+def test_sin_correo_configurado_no_se_publica_ningun_contacto(client, route, stats, settings):
+    """Publicar una dirección que rebota es peor que no publicar ninguna."""
+    settings.CONTACT_EMAIL = ""
+    cuerpo = client.get(reverse("web:home")).content.decode()
+    assert "mailto:" not in cuerpo
+
+
+def test_el_contacto_aparece_en_el_pie_y_en_las_legales(client, route, stats, settings):
+    settings.CONTACT_EMAIL = "contacto@vueloradar.com"
+    for url in (reverse("web:home"), reverse("web:terminos"), reverse("web:privacidad")):
+        assert "mailto:contacto@vueloradar.com" in client.get(url).content.decode(), url
+
+
+def test_sin_token_no_se_carga_analitica(client, route, stats, settings):
+    """Cero peticiones a terceros mientras no haya analítica configurada."""
+    settings.CLOUDFLARE_ANALYTICS_TOKEN = ""
+    cuerpo = client.get(reverse("web:home")).content.decode()
+    assert "cloudflareinsights" not in cuerpo
+
+
+def test_con_token_la_analitica_se_carga_diferida(client, route, stats, settings):
+    """`defer` para que no compita con el contenido por el ancho de banda."""
+    settings.CLOUDFLARE_ANALYTICS_TOKEN = "0" * 32
+    cuerpo = client.get(reverse("web:home")).content.decode()
+    assert "static.cloudflareinsights.com/beacon.min.js" in cuerpo
+    assert "<script defer" in cuerpo
+
+
+def test_la_privacidad_solo_declara_analitica_si_la_hay(client, settings):
+    """Mismo error que ya cometimos con AdSense: la página no puede afirmar
+    que no hay analítica mientras el beacon carga."""
+    settings.CLOUDFLARE_ANALYTICS_TOKEN = ""
+    assert "Cloudflare Web Analytics" not in client.get(
+        reverse("web:privacidad")).content.decode()
+
+    settings.CLOUDFLARE_ANALYTICS_TOKEN = "0" * 32
+    cuerpo = client.get(reverse("web:privacidad")).content.decode()
+    assert "Cloudflare Web Analytics" in cuerpo
+    assert "no tenemos instalada ninguna herramienta de analítica" not in cuerpo
+
+
 def test_la_privacidad_declara_la_publicidad_cuando_esta_activa(client, settings):
     """La página no puede afirmar que no hay publicidad mientras el script carga.
 

@@ -13,6 +13,7 @@ versionan. Por eso Pillow no está en `requirements.txt`.
 from __future__ import annotations
 
 import sys
+from io import BytesIO
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -79,6 +80,33 @@ def load_font(candidates, size: int):
     return ImageFont.load_default(size)
 
 
+def _guardar(img: Image.Image, destino: Path) -> int:
+    """Guarda el PNG con paleta si eso lo achica, y en color completo si no.
+
+    Estos activos son marca plana: un logo de dos colores y texto sobre fondo
+    liso. Una paleta de 256 colores los reproduce sin diferencia visible y pesa
+    una fraccion del RGBA completo. Importa sobre todo en `og.png`, que es la
+    imagen que descarga WhatsApp cada vez que alguien comparte un enlace — y
+    WhatsApp es el canal de difusion real en Peru.
+
+    Se comparan las dos versiones y se queda la mas chica: en una imagen con
+    degradados la paleta puede pesar MAS, ademas de verse peor.
+    """
+    completo = BytesIO()
+    img.save(completo, format="PNG", optimize=True)
+
+    # FASTOCTREE es el unico metodo de cuantizacion de Pillow que conserva el
+    # canal alfa, y estos iconos llevan las esquinas transparentes.
+    paleta = BytesIO()
+    img.quantize(colors=256, method=Image.Quantize.FASTOCTREE).save(
+        paleta, format="PNG", optimize=True
+    )
+
+    mejor = paleta if paleta.tell() < completo.tell() else completo
+    destino.write_bytes(mejor.getvalue())
+    return destino.stat().st_size
+
+
 def _tile(source: Image.Image, lado: int, escala: float) -> Image.Image:
     """El logo a un tamaño dado, con las esquinas transparentes."""
     tile = source.resize((lado, lado), Image.LANCZOS).convert("RGBA")
@@ -89,8 +117,8 @@ def _tile(source: Image.Image, lado: int, escala: float) -> Image.Image:
 def build_icons(source: Image.Image, escala: float) -> list[str]:
     hechos = []
     for name, size in ICON_SIZES.items():
-        _tile(source, size, escala).save(OUT / name, optimize=True)
-        hechos.append(f"{name} ({size}x{size})")
+        peso = _guardar(_tile(source, size, escala), OUT / name)
+        hechos.append(f"{name} ({size}x{size}, {peso // 1024} KB)")
 
     # El .ico lleva los dos tamaños que piden los navegadores.
     _tile(source, 64, escala).save(OUT / "favicon.ico", sizes=[(32, 32), (16, 16)])
@@ -115,8 +143,8 @@ def build_og(source: Image.Image, escala: float) -> str:
     d.text((x, 328), "¿El precio de hoy es bueno?", font=load_font(FONT_REGULAR, 36), fill=MUTED)
     d.text((x, 378), "Histórico real de vuelos en Perú", font=load_font(FONT_REGULAR, 36), fill=MUTED)
 
-    lienzo.save(OUT / "og.png", optimize=True)
-    return f"og.png ({OG_SIZE[0]}x{OG_SIZE[1]})"
+    peso = _guardar(lienzo, OUT / "og.png")
+    return f"og.png ({OG_SIZE[0]}x{OG_SIZE[1]}, {peso // 1024} KB)"
 
 
 def main() -> int:

@@ -24,4 +24,9 @@ def site(request):
         "adsense_slot_route": getattr(settings, "ADSENSE_SLOT_ROUTE", ""),
         # Verificación de Search Console. Público, no es un secreto.
         "google_site_verification": getattr(settings, "GOOGLE_SITE_VERIFICATION", ""),
+        # Vacío mientras el buzón no exista: una dirección que rebota es peor
+        # que no publicar ninguna.
+        "contact_email": getattr(settings, "CONTACT_EMAIL", ""),
+        # Analítica sin cookies. Sin token no se carga el script.
+        "cf_analytics_token": getattr(settings, "CLOUDFLARE_ANALYTICS_TOKEN", ""),
     }

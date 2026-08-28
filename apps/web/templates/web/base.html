@@ -563,6 +563,10 @@ body::after{content:'';position:fixed;inset:0;z-index:2;pointer-events:none;
         <li><a href="{% url 'web:buscar' %}">Buscar mi vuelo</a></li>
         <li><a href="{% url 'web:nuevo_aviso' %}">Avisarme por correo</a></li>
         {% if bot_url %}<li><a href="{{ bot_url }}" rel="noopener">Bot de Telegram</a></li>{% endif %}
+        {% comment %} Un contacto real y visible: AdSense revisa que se sepa
+           quién opera el sitio, y la ley 29733 exige un canal para ejercer
+           derechos sobre los datos. {% endcomment %}
+        {% if contact_email %}<li><a href="mailto:{{ contact_email }}">Contacto</a></li>{% endif %}
       </ul>
     </nav>
 
@@ -592,6 +596,16 @@ body::after{content:'';position:fixed;inset:0;z-index:2;pointer-events:none;
 
 {% comment %} El enlace lleva el contexto de la ruta cuando la página lo tiene
    (bloque bot_start): abrir el bot en blanco desperdicia la conversión. {% endcomment %}
+{% comment %} Analítica al final del body, no en el head: es diferida y no
+   puede competir con el contenido por el ancho de banda. Cloudflare Web
+   Analytics no usa cookies ni identifica al visitante, así que no necesita
+   banner de consentimiento — es la razón por la que se eligió sobre Google
+   Analytics, que obligaría a contradecir la promesa de privacidad. {% endcomment %}
+{% if cf_analytics_token %}
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js"
+        data-cf-beacon='{"token":"{{ cf_analytics_token }}"}'></script>
+{% endif %}
+
 {% if bot_url %}
 <a class="fab" href="{{ bot_url }}{% block bot_start %}{% endblock %}" rel="noopener"
    aria-label="Preguntale al bot de {{ site_name }} en Telegram">
