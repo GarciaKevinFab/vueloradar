@@ -780,6 +780,46 @@ def test_la_verificacion_de_search_console_es_opcional(client, route, stats, set
     assert '<meta name="google-site-verification" content="abc123">' in cuerpo
 
 
+def test_ningun_enlace_del_pie_esta_roto(client, route, stats):
+    """Regresión: «Avisarme por correo» apuntaba a `/aviso/nuevo/` sin ruta y
+    la vista contestaba 404. Un enlace muerto en TODAS las páginas del sitio, y
+    justo en el formulario que captura correos.
+
+    El test recorre el pie entero, no solo ese enlace: el error no fue de esa
+    URL en particular, fue que nadie estaba mirando los enlaces del pie.
+
+    Se siembra histórico porque el invariante que interesa es «en un sitio
+    normal, ningún enlace del pie está roto». Sin datos, `/cuando-comprar/`
+    contesta 404 a propósito —no publicamos un análisis sin muestras— y eso
+    solo ocurre en una instalación recién creada, antes del primer barrido.
+    """
+    import re
+
+    _historia_para_la_curva(route)
+    cuerpo = client.get(reverse("web:home")).content.decode()
+    pie = cuerpo.split("<footer")[1]
+    internos = {
+        u for u in re.findall(r'href="(/[^"#]*)"', pie)
+        if not u.startswith("/static/")
+    }
+    assert internos, "el pie no tiene enlaces internos: el test no está mirando nada"
+
+    for url in sorted(internos):
+        assert client.get(url).status_code == 200, f"{url} está roto en el pie"
+
+
+def test_avisarme_sin_ruta_ofrece_elegirla(client, route, stats):
+    resp = client.get(reverse("web:nuevo_aviso"))
+    assert resp.status_code == 200
+    assert "¿Qué ruta querés seguir?" in resp.content.decode()
+
+
+def test_una_ruta_escrita_a_mano_que_no_existe_sigue_dando_404(client, route, stats):
+    """Sin ruta se ofrece elegir; con una ruta concreta que no tenemos, 404.
+    La persona pidió algo puntual y no lo tenemos."""
+    assert client.get(reverse("web:nuevo_aviso"), {"ruta": "ZZZ-YYY"}).status_code == 404
+
+
 def test_el_dataset_declara_su_licencia(client, route, stats):
     """Search Console lo pedía como aviso no crítico: sin `license`, Google
     sabe que hay un dataset pero no bajo qué condiciones se puede usar."""

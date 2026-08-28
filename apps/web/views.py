@@ -307,12 +307,24 @@ def nuevo_aviso(request):
     from apps.flights.models import Route
 
     codigo = (request.GET.get("ruta") or request.POST.get("ruta") or "").upper()
+
+    # Sin ruta se ofrece elegirla, no un 404. El pie de TODAS las páginas
+    # enlazaba acá sin parámetro, así que "Avisarme por correo" llevaba a
+    # "esta página no existe" en todo el sitio.
+    if not codigo:
+        return render(request, "web/aviso_elegir.html", {
+            "rutas": queries.published_routes(),
+            "updated_at": timezone.now(),
+        })
+
     origen, _, destino = codigo.partition("-")
     route = (
         Route.objects.select_related("origin", "destination")
         .filter(origin_id=origen, destination_id=destino)
         .first()
     )
+    # Con una ruta escrita a mano que no existe sí es 404: la persona pidió
+    # algo concreto que no tenemos.
     if route is None:
         raise Http404("Ruta desconocida")
 
