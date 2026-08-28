@@ -67,10 +67,45 @@ def build_bot() -> Bot:
     )
 
 
+#: El menú que aparece al tocar "/" en Telegram.
+#:
+#: Se publica desde acá y no a mano en BotFather porque si no, el menú y el
+#: código se desincronizan sin que nadie lo note: el bot llevaba TODOS los
+#: comandos sin registrar, así que quien abría el menú no veía ninguno y daba
+#: por hecho que el bot no hacía nada. Un comando que existe pero no se anuncia
+#: no existe para el usuario.
+COMANDOS = [
+    ("vuelo", "Buscar un vuelo: /vuelo LIM CUZ 15/10"),
+    ("rutas", "Rutas monitoreadas y su precio mínimo"),
+    ("alerta", "Avisarme cuando baje: /alerta LIM CUZ"),
+    ("misalertas", "Ver y desactivar mis alertas"),
+    ("premium", "Quitar los límites con estrellas de Telegram"),
+    ("ayuda", "Cómo funciona y qué incluye el precio"),
+]
+
+
+async def publicar_comandos(bot: Bot) -> None:
+    """Sincroniza el menú de Telegram con lo que el bot realmente entiende.
+
+    Nunca lanza: quedarse sin menú es molesto, pero no arrancar el bot por eso
+    sería peor.
+    """
+    from aiogram.types import BotCommand
+
+    try:
+        await bot.set_my_commands(
+            [BotCommand(command=c, description=d) for c, d in COMANDOS]
+        )
+        logger.info("bot: menu de comandos publicado (%s)", len(COMANDOS))
+    except Exception:  # noqa: BLE001
+        logger.exception("bot: no se pudo publicar el menu de comandos")
+
+
 async def run_polling() -> None:
     bot = build_bot()
     dispatcher = build_dispatcher()
 
+    await publicar_comandos(bot)
     me = await bot.get_me()
     logger.info("bot: conectado como @%s (%s) en modo polling", me.username, me.id)
 

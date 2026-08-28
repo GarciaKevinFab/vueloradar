@@ -10,7 +10,7 @@
 <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
 {# Dataset: describimos con honestidad lo que la pagina realmente publica. #}
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"Dataset","name":"Histórico de precios de vuelos {{ route.origin_id }}-{{ route.destination_id }}","description":"Precios mínimos observados dos veces al día para la ruta {{ route.origin.city }} a {{ route.destination.city }}, en soles y con impuestos incluidos.","temporalCoverage":"P{{ history_days }}D","isAccessibleForFree":true,"creator":{"@type":"Organization","name":"{{ site_name }}"}}
+{"@context":"https://schema.org","@type":"Dataset","name":"Histórico de precios de vuelos {{ route.origin_id }}-{{ route.destination_id }}","description":"Precios mínimos observados dos veces al día para la ruta {{ route.origin.city }} a {{ route.destination.city }}, en soles y con impuestos incluidos.","temporalCoverage":"P{{ history_days }}D","isAccessibleForFree":true,"license":"https://creativecommons.org/licenses/by/4.0/","url":"{{ request.scheme }}://{{ request.get_host }}{{ request.path }}","creator":{"@type":"Organization","name":"{{ site_name }}","url":"{{ request.scheme }}://{{ request.get_host }}/"}}
 </script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[

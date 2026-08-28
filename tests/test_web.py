@@ -748,6 +748,14 @@ def test_la_verificacion_de_search_console_es_opcional(client, route, stats, set
     assert '<meta name="google-site-verification" content="abc123">' in cuerpo
 
 
+def test_el_dataset_declara_su_licencia(client, route, stats):
+    """Search Console lo pedía como aviso no crítico: sin `license`, Google
+    sabe que hay un dataset pero no bajo qué condiciones se puede usar."""
+    _snapshot(route, "179")
+    cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
+    assert "creativecommons.org/licenses/by/4.0/" in cuerpo
+
+
 def _historia_para_la_curva(route):
     """Suficientes muestras por semana de anticipación para que opine."""
     from datetime import timedelta as td
