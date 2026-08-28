@@ -433,6 +433,41 @@ ignora (el kernel protege al PID 1 de su propio namespace). La prueba válida es
   en el puerto y el nuevo no llegaba a levantar. Ante un cambio en Python que
   «no se aplica», levantar en un puerto nuevo antes de diagnosticar.
 
+### Contacto, analítica e imágenes (2026-08-28)
+
+- **`docker compose up -d` NO recreó el contenedor al cambiar solo el `.env`.**
+  Gunicorn siguió con el entorno viejo mientras `exec … python` —proceso
+  nuevo— ya veía la variable nueva, así que el sitio y la consola decían cosas
+  distintas. Ante un cambio de variable que «no se aplica»:
+  `up -d --force-recreate web`.
+- **Cloudflare reescribe los `mailto:`.** Con Scrape Shield → *Email Address
+  Obfuscation* (activo por defecto) el HTML servido trae
+  `/cdn-cgi/l/email-protection#…` y un `[email protected]`, y un script propio
+  lo descifra en el navegador. **`curl` nunca va a ver la dirección**: buscarla
+  con grep da cero y parece un bug que no existe. Verificado en navegador real:
+  el enlace resuelve a `mailto:contacto@vueloradar.com` y el texto se ve.
+- **`CONTACT_EMAIL` vacío por defecto**: publicar una dirección que rebota es
+  peor que no publicar ninguna. Recibe por Cloudflare Email Routing, que
+  reenvía a un Gmail. Ojo con la trampa del panel: *Destination Address* es el
+  buzón externo que **recibe**, no la dirección que se quiere crear — ponerla
+  ahí deja un `Pending` que nadie puede verificar nunca.
+- **La analítica ya estaba activa por «automatic setup» de Cloudflare**, que
+  inyecta el beacon en el borde sin que Django lo sepa. `curl` no lo ve; un
+  navegador real sí. Por eso `ANALYTICS_ENABLED` (lo que declara la privacidad)
+  está separado de `CLOUDFLARE_ANALYTICS_TOKEN` (lo que inyectamos nosotros):
+  **poner los dos duplicaría el conteo.**
+- **Tres veces se cayó en el mismo error**: la privacidad afirmando lo
+  contrario de lo que la página hace (AdSense, analítica propia, analítica del
+  borde). La regla que quedó: toda afirmación sobre terceros va condicionada a
+  la variable que gobierna ese tercero, y con test.
+- **Las imágenes bajaron de 442 KB a 43 KB.** `og.png` de 111 a 14 KB —es la
+  que descarga WhatsApp en cada enlace compartido—, `icon-512` de 235 a 9 KB.
+  La optimización vive en `scripts/build_brand_assets.py` (`_guardar`), no en
+  los archivos, así que regenerar el logo no la deshace. Son marca plana, así
+  que una paleta de 256 colores las reproduce sin diferencia visible; se
+  comparan ambas versiones y se guarda la más chica, porque con degradados la
+  paleta puede pesar más.
+
 ### Notas del pie, la publicidad y el botón al bot (2026-08-27)
 
 - **El pie eran cuatro párrafos apilados** y la promesa que sostiene la marca
