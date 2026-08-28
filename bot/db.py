@@ -47,6 +47,20 @@ def consume_search(user):
     return _consume(user)
 
 
+@sync_to_async
+def estado_premium(user):
+    from apps.users.payments import estado_premium as _estado
+
+    return _estado(user)
+
+
+@sync_to_async
+def acreditar_pago(user, *, charge_id: str, estrellas: int, dias: int):
+    from apps.users.payments import acreditar_pago as _acreditar
+
+    return _acreditar(user, charge_id=charge_id, estrellas=estrellas, dias=dias)
+
+
 # -------------------------------------------------------------------- vuelos
 async def search_flights(origin: str, dest: str, flight_date: date) -> list | None:
     """Corre la búsqueda en un thread aparte: bloquea segundos por el scraping.

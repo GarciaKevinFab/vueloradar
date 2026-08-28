@@ -30,7 +30,7 @@ def build_dispatcher() -> Dispatcher:
 
     El router de texto libre va último: recibe lo que no matcheó ningún comando.
     """
-    from .handlers import admin, alerts, commands, natural
+    from .handlers import admin, alerts, commands, natural, premium
     from .middlewares.antiflood import SingleFlightMiddleware
     from .middlewares.logging import LoggingMiddleware
 
@@ -41,6 +41,9 @@ def build_dispatcher() -> Dispatcher:
 
     dispatcher.include_router(admin.router)
     dispatcher.include_router(commands.router)
+    # Antes que `natural`: ese captura texto suelto y se tragaría el mensaje de
+    # servicio del pago si llegara primero.
+    dispatcher.include_router(premium.router)
     dispatcher.include_router(alerts.router)
     dispatcher.include_router(natural.router)
 

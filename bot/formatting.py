@@ -210,9 +210,11 @@ def help_message(limit: int) -> str:
         f"<code>/alerta LIM CUZ</code> — te aviso de cualquier oferta real\n"
         f"<code>/alerta LIM CUZ 180</code> — te aviso si baja de S/ 180\n"
         f"<code>/misalertas</code> — ver y desactivar tus alertas\n"
+        f"<code>/premium</code> — quitar los límites, con estrellas de Telegram\n"
         f"<code>/ayuda</code> — este mensaje\n\n"
         f"<b>Tu plan</b>\n"
-        f"Gratis: {limit} búsquedas por día y 2 alertas. Premium: ilimitadas.\n\n"
+        f"Gratis: {limit} búsquedas por día y 2 alertas. Premium: sin límites.\n"
+        f"El veredicto y los avisos funcionan igual en los dos.\n\n"
         f"<b>Sobre los precios</b>\n"
         f"Son <b>finales, con impuestos</b>: incluyen la tarifa base, el IGV del 18% "
         f"y la tasa de aeropuerto (TUUA). Es lo que pagás por el pasaje.\n\n"
@@ -549,3 +551,96 @@ def buy_link(legs: list, *, etiqueta: str = "Ver y comprar en Google Flights") -
     if not url:
         return ""
     return f'🔗 <a href="{url}">{escape(etiqueta)}</a>'
+
+
+# --- premium -----------------------------------------------------------------
+
+def premium_offer(estado: dict) -> str:
+    """La oferta de premium.
+
+    Se listan primero los límites reales del plan gratis y después lo que
+    cambia: vender "acceso premium" sin decir qué se está limitando hoy es
+    justamente lo que hace que la gente desconfíe de un botón de pago.
+    """
+    from django.conf import settings
+
+    from apps.users.payments import PLANES
+
+    if estado.get("es_premium"):
+        dias = estado.get("dias_restantes")
+        cabecera = [
+            "⭐ <b>Ya sos premium</b>",
+            (f"Te quedan <b>{dias} días</b>." if dias is not None
+             else "Tu acceso no tiene fecha de vencimiento."),
+            "",
+            "Si comprás de nuevo, los días se <b>suman</b> a los que ya tenés.",
+            "",
+        ]
+    else:
+        cabecera = [
+            "⭐ <b>VueloRadar Premium</b>",
+            "",
+            f"<b>Gratis</b> tenés {settings.FREE_DAILY_SEARCHES} búsquedas por día "
+            f"y {settings.FREE_MAX_ALERTS} alertas activas.",
+            "",
+            "<b>Con premium:</b>",
+            "· Búsquedas sin límite",
+            f"· Hasta {settings.PREMIUM_MAX_ALERTS} alertas a la vez",
+            "",
+            # Decir qué NO cambia vale más que inflar la lista. El veredicto y
+            # los avisos ya funcionan gratis; venderlos como exclusivos sería
+            # cobrar por algo que la persona ya tiene, y este producto vive de
+            # que se le crea.
+            "<i>El veredicto de compra, el histórico y los avisos funcionan "
+            "igual en el plan gratis. Premium solo quita los límites.</i>",
+            "",
+        ]
+
+    planes = [
+        f"· <b>{p.titulo}</b> — {p.estrellas} ⭐  "
+        f"({p.por_mes:g} ⭐ por mes)"
+        for p in PLANES.values()
+    ]
+
+    return "\n".join([
+        *cabecera,
+        *planes,
+        "",
+        "<i>Se paga con estrellas de Telegram, desde la misma app. "
+        "No pedimos tarjeta ni datos: nosotros nunca vemos tu medio de pago.</i>",
+    ])
+
+
+def premium_gracias(acreditacion) -> str:
+    """Confirmación del pago."""
+    if acreditacion.ya_estaba_acreditado:
+        # El mismo pago llegó dos veces. Se le dice la verdad en vez de
+        # simular que sumó días: si cree que pagó dos meses y tiene uno, el
+        # reclamo llega igual, solo que más tarde y con menos confianza.
+        return (
+            "Ese pago ya estaba acreditado, así que no te cobramos de nuevo.\n"
+            f"Tu premium sigue vigente hasta el <b>{format_date(acreditacion.hasta)}</b>."
+        )
+
+    return "\n".join([
+        "⭐ <b>¡Listo! Ya sos premium.</b>",
+        "",
+        f"Sumaste <b>{acreditacion.dias} días</b>. "
+        f"Vence el <b>{format_date(acreditacion.hasta)}</b>.",
+        "",
+        "Búsquedas sin límite y alertas ampliadas desde este momento. "
+        "Probá con <code>/vuelo LIM CUZ 15/10</code> o creá una alerta.",
+        "",
+        "<i>Si algo no funciona como esperabas, escribinos y te devolvemos "
+        "las estrellas.</i>",
+    ])
+
+
+def premium_error() -> str:
+    """El pago entró pero no se pudo acreditar. Nunca callar esto."""
+    return (
+        "⚠️ Recibimos tu pago pero no pudimos activarte el premium "
+        "automáticamente.\n\n"
+        "Ya quedó registrado y lo vamos a resolver a mano. Escribinos y, si "
+        "preferís, te devolvemos las estrellas."
+    )

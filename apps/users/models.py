@@ -23,6 +23,8 @@ class TelegramUser(models.Model):
     first_name = models.CharField("nombre", max_length=128, blank=True)
 
     plan = models.CharField("plan", max_length=10, choices=PLAN_CHOICES, default=PLAN_FREE)
+    #: Hasta cuándo vale el premium. Nulo = no caduca (regalo del admin).
+    premium_until = models.DateField("premium hasta", null=True, blank=True)
 
     created_at = models.DateTimeField("registrado en", auto_now_add=True)
     last_active_at = models.DateTimeField("última actividad", default=timezone.now)
@@ -41,7 +43,20 @@ class TelegramUser(models.Model):
 
     @property
     def is_premium(self) -> bool:
-        return self.plan == self.PLAN_PREMIUM
+        """Premium vigente: el plan **y** que no esté vencido.
+
+        Sigue siendo propiedad y no método: se usa sin paréntesis en
+        `users/services.py`, `bot/db.py` y el motor de alertas, y un método
+        devolvería siempre un objeto verdadero en esos `if`.
+
+        Sin `premium_until` el premium no caduca, para que el admin pueda
+        regalar acceso permanente sin inventar una fecha lejana.
+        """
+        if self.plan != self.PLAN_PREMIUM:
+            return False
+        if self.premium_until is None:
+            return True
+        return self.premium_until >= timezone.localdate()
 
     def reset_counter_if_needed(self, today=None) -> bool:
         """Pone el contador en cero si cambió el día. Devuelve si reseteó."""
@@ -62,3 +77,34 @@ class TelegramUser(models.Model):
     def can_search(self, limit: int, today=None) -> bool:
         remaining = self.remaining_searches(limit, today)
         return remaining is None or remaining > 0
+
+
+class StarPayment(models.Model):
+    """Un pago en Telegram Stars.
+
+    Se guarda sobre todo por el `charge_id`: es lo único que permite
+    reembolsar con `refundStarPayment`, y Telegram no lo vuelve a dar. Sin esta
+    tabla, devolverle la plata a alguien sería imposible.
+
+    También es el registro contable: cuántas estrellas entraron y por qué.
+    """
+
+    user = models.ForeignKey(
+        TelegramUser, on_delete=models.CASCADE, related_name="star_payments",
+        verbose_name="usuario",
+    )
+    #: `telegram_payment_charge_id`. Único: si Telegram reenvía el update, el
+    #: pago no se acredita dos veces.
+    charge_id = models.CharField("cargo de Telegram", max_length=128, unique=True)
+    stars = models.PositiveIntegerField("estrellas")
+    days = models.PositiveIntegerField("días de premium")
+    created_at = models.DateTimeField("pagado en", auto_now_add=True)
+    refunded_at = models.DateTimeField("reembolsado en", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "pago en estrellas"
+        verbose_name_plural = "pagos en estrellas"
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.stars}⭐ de {self.user_id} ({self.days} días)"
