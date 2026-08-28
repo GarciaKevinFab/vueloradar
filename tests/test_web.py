@@ -748,6 +748,52 @@ def test_la_verificacion_de_search_console_es_opcional(client, route, stats, set
     assert '<meta name="google-site-verification" content="abc123">' in cuerpo
 
 
+def _historia_para_la_curva(route):
+    """Suficientes muestras por semana de anticipación para que opine."""
+    from datetime import timedelta as td
+
+    hoy = timezone.localdate()
+    filas = []
+    for semana in range(5):
+        dias = semana * 7 + 3
+        precio = Decimal(400 - semana * 20)      # curva descendente clara
+        for _ in range(60):
+            filas.append(PriceSnapshot(
+                route=route, flight_date=hoy + td(days=dias),
+                min_price_pen=precio, avg_price_pen=precio,
+                offers_count=3, days_ahead=dias,
+            ))
+    PriceSnapshot.objects.bulk_create(filas)
+
+
+def test_cuando_comprar_publica_el_analisis(client, route, stats):
+    _historia_para_la_curva(route)
+    resp = client.get(reverse("web:cuando_comprar"))
+    assert resp.status_code == 200
+
+    cuerpo = resp.content.decode()
+    assert "50 a 70 días" in cuerpo               # el mito que se desmiente
+    assert "Cómo lo medimos" in cuerpo            # el método, que es el valor
+    assert "FAQPage" in cuerpo                    # datos estructurados
+
+
+def test_cuando_comprar_dice_hasta_donde_puede_hablar(client, route, stats):
+    """Reconocer el límite del horizonte es lo que hace creíble el resto."""
+    _historia_para_la_curva(route)
+    cuerpo = client.get(reverse("web:cuando_comprar")).content.decode()
+    assert "no lo medimos" in cuerpo
+
+
+def test_sin_historico_la_pagina_no_existe(client, route, stats):
+    """Publicarla vacía sería una promesa incumplida en el sitemap."""
+    assert client.get(reverse("web:cuando_comprar")).status_code == 404
+
+
+def test_cuando_comprar_esta_en_el_sitemap(client, route, stats):
+    _historia_para_la_curva(route)
+    assert "/cuando-comprar/" in client.get("/sitemap.xml").content.decode()
+
+
 def test_la_ficha_muestra_la_foto_del_destino(client, route, stats):
     """La foto es del destino: es a donde va quien mira la página."""
     _snapshot(route, "179")

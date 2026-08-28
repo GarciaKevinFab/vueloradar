@@ -65,7 +65,8 @@
 
 <h2>Lo que sabemos por haber estado midiendo</h2>
 <p class="muted mt-0 mb-2">Ninguna de estas tres cosas se puede saber mirando el precio
-   de hoy. Salen de {{ snapshots|intcomma }} observaciones acumuladas.</p>
+   de hoy. Salen de {{ snapshots|intcomma }} observaciones acumuladas —
+   <a class="link" href="{% url 'web:cuando_comprar' %}">acá está el análisis completo</a>.</p>
 {% include "web/_hallazgos.html" with ambito="en todo el Perú" %}
 
 <h2>Todas las rutas</h2>

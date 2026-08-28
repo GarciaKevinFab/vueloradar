@@ -197,6 +197,41 @@ def booking_windows(route=None) -> Hallazgo | None:
     return _armar(grupos)
 
 
+#: Semanas de anticipación, para el detalle de `/cuando-comprar/`. Las franjas
+#: de `FRANJAS` sirven para dar un titular; acá hace falta el grano fino,
+#: porque lo interesante es la FORMA de la curva y no el mínimo suelto.
+#: Se corta en 62 días porque el barrido no mira más lejos: afirmar algo sobre
+#: los 70 días sería inventar sobre datos que no tenemos.
+SEMANAS = [(i * 7, i * 7 + 6, f"{i * 7}–{i * 7 + 6} días", str(i * 7)) for i in range(9)]
+
+
+def booking_curve(route=None) -> Hallazgo | None:
+    """El precio semana a semana antes del vuelo.
+
+    Es la misma pregunta que `booking_windows`, con más resolución: sirve para
+    mostrar que la curva tiene forma de U —caro a último momento y caro
+    demasiado temprano— y no para dar un titular.
+    """
+    por_dia = {
+        r["days_ahead"]: (r["precio"], r["n"])
+        for r in _base(route)
+        .filter(days_ahead__isnull=False, days_ahead__lte=SEMANAS[-1][1])
+        .values("days_ahead")
+        .annotate(precio=Avg("min_price_pen"), n=Count("id"))
+    }
+
+    grupos = []
+    for desde, hasta, etiqueta, corto in SEMANAS:
+        dias = [d for d in por_dia if desde <= d <= hasta]
+        muestras = sum(por_dia[d][1] for d in dias)
+        if not muestras:
+            continue
+        total = sum(por_dia[d][0] * por_dia[d][1] for d in dias)
+        grupos.append((etiqueta, corto, total / muestras, muestras))
+
+    return _armar(grupos)
+
+
 def cheapest_airlines(route=None, limite: int = 4) -> list[Aerolinea]:
     """Qué aerolínea aparece más veces como la más barata.
 

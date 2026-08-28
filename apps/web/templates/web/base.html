@@ -577,6 +577,7 @@ body::after{content:'';position:fixed;inset:0;z-index:2;pointer-events:none;
       <ul class="foot-list">
         <li><a href="{% url 'web:home' %}">Todas las rutas</a></li>
         <li><a href="{% url 'web:buscar' %}">Buscar mi vuelo</a></li>
+        <li><a href="{% url 'web:cuando_comprar' %}">Cuándo comprar</a></li>
         <li><a href="{% url 'web:nuevo_aviso' %}">Avisarme por correo</a></li>
         {% if bot_url %}<li><a href="{{ bot_url }}" rel="noopener">Bot de Telegram</a></li>{% endif %}
         {% comment %} Un contacto real y visible: AdSense revisa que se sepa

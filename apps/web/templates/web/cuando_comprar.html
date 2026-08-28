@@ -1,0 +1,127 @@
+{% extends "web/base.html" %}
+{% load l10n humanize %}
+
+{% comment %}
+La página que responde la única pregunta que un comparador no puede contestar
+sin haber estado midiendo. Su valor entero está en que cada número sale del
+histórico propio y se dice de dónde: si fuera una lista de consejos genéricos,
+sería indistinguible de los cientos que ya existen.
+
+Por eso el bloque de método no es relleno. Es la diferencia entre «dicen que
+conviene comprar los martes» y «medimos 15.568 precios y esto muestran».
+{% endcomment %}
+
+{% block title %}¿Cuándo comprar vuelos en Perú? Lo que dicen {{ snapshots|intcomma }} precios medidos — {{ site_name }}{% endblock %}
+{% block description %}Medimos {{ snapshots|intcomma }} precios de vuelos domésticos peruanos. Comprar con 50-70 días de anticipación NO es lo más barato: acá están los datos.{% endblock %}
+{% block og_title %}¿Cuándo comprar vuelos en Perú?{% endblock %}
+{% block og_description %}El consejo que repiten los medios —comprar con 50 a 70 días— no coincide con lo que muestran {{ snapshots|intcomma }} precios medidos.{% endblock %}
+
+{% block head_extra %}
+<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+{% comment %} Datos estructurados de pregunta y respuesta: es literalmente el
+   formato de esta página, y es lo que Google puede mostrar directamente. {% endcomment %}
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+ {"@type":"Question","name":"¿Cuándo conviene comprar un vuelo doméstico en Perú?",
+  "acceptedAnswer":{"@type":"Answer","text":"Según {{ snapshots|intcomma }} precios que medimos, lo más barato es comprar {{ insight_ventana.mejor.etiqueta }} antes del vuelo: promedia S/ {{ insight_ventana.mejor.precio|floatformat:0 }} contra S/ {{ insight_ventana.peor.precio|floatformat:0 }} de {{ insight_ventana.peor.etiqueta }}."}}{% if insight_dia and insight_dia.vale_la_pena %},
+ {"@type":"Question","name":"¿Qué día de la semana es más barato volar en Perú?",
+  "acceptedAnswer":{"@type":"Answer","text":"Volar {{ insight_dia.mejor.etiqueta }} promedia S/ {{ insight_dia.mejor.precio|floatformat:0 }}, un {{ insight_dia.ahorro_pct }}% menos que {{ insight_dia.peor.etiqueta }}, que promedia S/ {{ insight_dia.peor.precio|floatformat:0 }}."}}{% endif %}
+]}
+</script>
+{% endblock %}
+
+{% block content %}
+<ol class="crumbs">
+  <li><a href="{% url 'web:home' %}">Inicio</a></li>
+  <li aria-current="page">Cuándo comprar</li>
+</ol>
+
+<h1 class="rise d1">¿Cuándo comprar<br>un vuelo en Perú?</h1>
+<p class="lede rise d2">La respuesta corta: <strong>{{ insight_ventana.mejor.etiqueta }} antes de volar</strong>.
+   La larga es más interesante, porque contradice lo que vas a leer en casi todos lados.</p>
+
+{% if insight_ventana and insight_ventana.vale_la_pena %}
+<div class="card card-hero rise d3">
+  <p class="eyebrow mt-0">Lo que encontramos</p>
+  <p class="titular" style="font-size:clamp(1.5rem,4.4vw,2.1rem)">Comprar
+     <b>{{ insight_ventana.mejor.etiqueta }}</b> antes sale
+     S/&nbsp;{{ insight_ventana.ahorro_pen|floatformat:0 }} más barato
+     que dejarlo para {{ insight_ventana.peor.etiqueta }}.</p>
+  <p class="muted mb-0">Un {{ insight_ventana.ahorro_pct }}% de diferencia sobre el mismo vuelo,
+     medido en {{ snapshots|intcomma }} observaciones de rutas domésticas peruanas.</p>
+</div>
+{% endif %}
+
+<h2>El mito de los dos meses de anticipación</h2>
+<p>Vas a encontrar en medios peruanos el consejo de comprar los pasajes nacionales
+   <strong>con 50 a 70 días de anticipación</strong>. Nosotros medimos el precio real
+   semana a semana, y la curva no dice eso.</p>
+
+<div class="chart reveal">
+  {% localize off %}
+  <div class="barras" style="height:11rem" aria-hidden="true">
+    {% for b in curva.barras %}
+    <i class="barra{% if b.es_mejor %} mejor{% endif %}"
+       style="height:{{ b.alto_pct }}%;animation-delay:{{ forloop.counter0 }}00ms"></i>
+    {% endfor %}
+  </div>
+  {% endlocalize %}
+  <div class="barras-pie">
+    {% for b in curva.barras %}
+    <span{% if b.es_mejor %} class="mejor"{% endif %}><b>{{ b.precio|floatformat:0 }}</b>{{ b.corto }}</span>
+    {% endfor %}
+  </div>
+  <p class="tiny dim" style="margin:.9rem 0 0;text-align:center">Precio promedio en soles
+     según cuántos días antes del vuelo se miró · abajo, los días de anticipación</p>
+</div>
+
+<p class="mt-2">La curva tiene <strong>forma de U</strong>: comprar a último momento es
+   carísimo, como todo el mundo sabe. Lo que casi nadie dice es que comprar
+   <em>demasiado temprano</em> también sale caro — las aerolíneas abren la venta con
+   tarifas altas y recién las ajustan cuando ven cómo se va llenando el avión.</p>
+
+<div class="card nota reveal">
+  <p class="small flat"><strong>Hasta dónde podemos hablar.</strong> Nuestro barrido mira
+     los próximos {{ horizonte }} días, así que la curva termina ahí. No podemos decir nada
+     sobre comprar con 90 días o más: no lo medimos, y preferimos decirlo antes que
+     rellenar el hueco con una suposición.</p>
+</div>
+
+{% if insight_dia and insight_dia.vale_la_pena %}
+<h2>Y el día en que volás pesa más de lo que parece</h2>
+<p>No el día en que comprás —eso es otro mito—, sino el día en que despega el avión.
+   Volar <strong>{{ insight_dia.mejor.etiqueta }}</strong> promedia
+   S/&nbsp;{{ insight_dia.mejor.precio|floatformat:0 }};
+   {{ insight_dia.peor.etiqueta }}, S/&nbsp;{{ insight_dia.peor.precio|floatformat:0 }}.
+   Un {{ insight_dia.ahorro_pct }}% por correr el viaje un par de días.</p>
+{% endif %}
+
+{% include "web/_hallazgos.html" with ambito="en todo el Perú" %}
+
+<h2>Cómo lo medimos</h2>
+<div class="card reveal">
+  <p class="mt-0">Consultamos el precio de cada ruta monitoreada <strong>dos veces al día</strong>
+     y guardamos lo que vemos. Nunca se borra: el histórico acumulado es lo único
+     que permite responder estas preguntas.</p>
+  <ul class="muted">
+    <li><strong>{{ snapshots|intcomma }} observaciones</strong> de precio, cada una con la fecha
+        del vuelo y la fecha en que la miramos.</li>
+    <li>La ventana de análisis son los últimos <strong>{{ dias_de_historia }} días</strong>.</li>
+    <li>Precios <strong>finales, con impuestos</strong> — tarifa base, IGV y TUUA.</li>
+    <li>Si un grupo no llega a 20 observaciones, no entra. Si la diferencia es menor
+        al 5%, no la publicamos: eso es ruido, no un consejo.</li>
+  </ul>
+  <p class="small muted mb-0">Los promedios son de rutas domésticas peruanas en conjunto.
+     <strong>Tu ruta puede comportarse distinto</strong> — de hecho suele hacerlo, y por eso
+     cada ficha trae su propio análisis.</p>
+</div>
+
+<div class="cta reveal">
+  <h3>Esto es el promedio. ¿Y tu ruta?</h3>
+  <p>El mejor día para volar a Cusco no es el mejor para volar a Iquitos. Mirá el
+     histórico de la tuya, o dejá que te avisemos cuando el precio caiga de verdad.</p>
+  <a class="btn" href="{% url 'web:home' %}">Ver todas las rutas →</a>
+</div>
+
+<p class="tiny dim mt-3">Actualizado {{ updated_at|date:"j \d\e F, H:i" }} (hora de Perú).</p>
+{% endblock %}

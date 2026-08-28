@@ -11,6 +11,8 @@ app_name = "web"
 urlpatterns = [
     path("", views.home, name="home"),
     path("buscar/", views.buscar, name="buscar"),
+    # Antes que `vuelos/...`: es una página propia, no una ruta de vuelo.
+    path("cuando-comprar/", views.cuando_comprar, name="cuando_comprar"),
     path("aviso/nuevo/", views.nuevo_aviso, name="nuevo_aviso"),
     path("aviso/confirmar/<str:token>/", views.confirmar_aviso, name="confirmar_aviso"),
     path("aviso/baja/<str:token>/", views.baja_aviso, name="baja_aviso"),

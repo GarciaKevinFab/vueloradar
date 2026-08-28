@@ -393,6 +393,34 @@ def legal(request, pagina: str):
     return render(request, f"web/{pagina}.html", {"updated_at": timezone.now()})
 
 
+@cache_control(public=True, max_age=300, s_maxage=EDGE_TTL)
+def cuando_comprar(request):
+    """La respuesta a «¿cuándo conviene comprar un vuelo en Perú?».
+
+    Existe porque es la única pregunta que un comparador no puede responder sin
+    haber estado midiendo, y porque la respuesta que repite la prensa peruana
+    —comprar con 50 a 70 días— contradice lo que muestra el histórico.
+
+    Se publica solo si hay datos para sostenerla: sin curva, la página no
+    tendría nada que decir y sería una promesa vacía en el sitemap.
+    """
+    curva = insights.booking_curve()
+    if curva is None:
+        raise Http404("Todavía no hay histórico suficiente para publicar esto")
+
+    return render(request, "web/cuando_comprar.html", {
+        "curva": curva,
+        "insight_ventana": insights.booking_windows(),
+        "insight_dia": insights.weekday_prices(),
+        "insight_aerolineas": insights.cheapest_airlines(),
+        "snapshots": queries.total_snapshots(),
+        "dias_de_historia": insights.DIAS_DE_HISTORIA,
+        # El horizonte del barrido: hasta dónde podemos hablar con datos.
+        "horizonte": insights.SEMANAS[-1][1],
+        "updated_at": timezone.now(),
+    })
+
+
 def ads_txt(request):
     """`/ads.txt`: declara quién puede vender el inventario de este dominio.
 
