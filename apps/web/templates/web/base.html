@@ -293,13 +293,37 @@ footer.wrap{margin:6rem auto 0;padding:2.5rem 1.5rem 3rem;
 .foot-bar{display:flex;flex-wrap:wrap;gap:.75rem 1.25rem;align-items:center;
   margin-top:2.75rem;padding-top:1.25rem;border-top:1px solid var(--line);
   color:var(--ink-3);font-size:.8125rem}
-.foot-by{margin-left:auto;display:inline-flex;align-items:center;gap:.5rem}
+/* El credito va como distintivo y no como texto suelto: es el formato que el
+   estudio usa en los demas sitios que construye, y asi se reconocen entre si.
+   El texto es el mismo de antes; cambia la forma. */
+.foot-by{margin-left:auto;display:inline-flex;align-items:center;gap:.7rem;
+  background:var(--bg-elev);border:1px solid var(--line);border-radius:.9rem;
+  padding:.5rem .9rem;box-shadow:var(--shadow-1);
+  transition:border-color .2s ease,transform .2s ease,box-shadow .2s ease}
+/* Flotante solo con pantalla ancha. Va a la IZQUIERDA porque la derecha la
+   ocupa el boton del bot, que es la conversion del sitio y no se mueve.
+   En movil vuelve al pie: dos elementos fijos sobre 375 px de ancho tapan el
+   contenido, y el que tiene que sobrevivir es el del bot. */
+@media (min-width:45rem){
+  .foot-by{position:fixed;z-index:29;margin-left:0;
+    left:1rem;bottom:calc(1rem + env(safe-area-inset-bottom));
+    backdrop-filter:saturate(1.4) blur(10px);
+    background:color-mix(in srgb,var(--bg-elev) 88%,transparent)}
+}
+.foot-by:hover{border-color:var(--accent);transform:translateY(-1px);
+  box-shadow:var(--shadow-2)}
 /* El logotipo no es cuadrado (1,76:1): se fija el alto y el ancho se deduce,
    porque forzarlo a cuadrado lo aplastaria. Tiene transparencia real y sus
    rojos y azules se leen en los dos temas, asi que no lleva fondo propio. */
-.foot-by img{height:1.5rem;width:auto;display:block}
-.foot-by a{color:var(--ink-2);font-weight:600}
-.foot-by a:hover{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+.foot-by img{height:1.75rem;width:auto;display:block;flex-shrink:0}
+.foot-by em{display:block;font-style:normal;font-size:.625rem;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-3);line-height:1.2}
+.foot-by b{display:block;font-size:.9375rem;font-weight:600;color:var(--ink);
+  letter-spacing:-.01em;line-height:1.25;margin-top:.1rem}
+/* El punto es un acento de marca, no un indicador de estado: no dice "en
+   linea" ni nada que despues haya que sostener con un dato. */
+.foot-by u{width:.5rem;height:.5rem;border-radius:50%;background:var(--good);
+  flex-shrink:0;text-decoration:none;margin-left:.2rem}
 @media (max-width:44rem){
   .foot-by{margin-left:0}
   /* El boton flotante tapa la ultima linea del pie si no le hacemos sitio. */
@@ -613,14 +637,15 @@ body::after{content:'';position:fixed;inset:0;z-index:2;pointer-events:none;
   <div class="foot-bar">
     <span>© {% now "Y" %} {{ site_name }}</span>
     {% if builder_name %}
-    <span class="foot-by">
-      {% comment %} El logotipo es opcional: sin BUILDER_LOGO queda el crédito en
-         texto. Referenciar un estático inexistente reventaría el manifiesto de
-         WhiteNoise en producción, así que no se asume que el archivo esté. {% endcomment %}
+    {% comment %} Es un enlace entero, no un texto con un enlace adentro: como
+       distintivo flotante, el area de clic tiene que ser toda la pastilla.
+       El logotipo es opcional — referenciar un estático inexistente reventaría
+       el manifiesto de WhiteNoise en producción. {% endcomment %}
+    <a class="foot-by" href="{{ builder_url }}" target="_blank" rel="noopener external">
       {% if builder_logo %}<img src="{% static builder_logo %}" alt="" width="42" height="24">{% endif %}
-      <span>Hecho por
-        <a href="{{ builder_url }}" target="_blank" rel="noopener external">{{ builder_name }}</a></span>
-    </span>
+      <span><em>Hecho por</em><b>{{ builder_name }}</b></span>
+      <u aria-hidden="true"></u>
+    </a>
     {% endif %}
   </div>
 </footer>
