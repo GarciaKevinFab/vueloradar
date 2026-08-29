@@ -469,7 +469,20 @@ BACKUP_RETENTION_DAYS = int(os.getenv("BACKUP_RETENTION_DAYS", "14"))
 PG_DUMP_PATH = os.getenv("PG_DUMP_PATH", "pg_dump")
 
 # --- Salud del sistema ---
-HEALTH_MAX_SNAPSHOT_AGE_HOURS = 8    # sin snapshots nuevos = algo se rompió
+# Sin snapshots nuevos = algo se rompio. El numero sale de la aritmetica del
+# barrido, no de una intuicion: corre 06:00 y 18:00, tarda ~2h, asi que el
+# ultimo snapshot de la noche entra ~20:00 y el siguiente recien a las 06:00.
+# Son 10h de hueco NORMAL. Con los 8h que habia, la alerta saltaba todas las
+# madrugadas entre las 04:00 y las 06:00 sin que nada estuviera roto — y una
+# alerta que grita cada noche entrena a ignorarla, que es peor que no tenerla.
+# Un barrido realmente perdido da ~22h, asi que 16 separa limpio los dos casos.
+HEALTH_MAX_SNAPSHOT_AGE_HOURS = env_int("HEALTH_MAX_SNAPSHOT_AGE_HOURS", 16)
+
+# El chequeo corre cada 30 min. Sin tregua, un problema real manda 48 mensajes
+# por dia hasta que alguien lo arregle: la misma fatiga, por el otro lado. Se
+# avisa una vez y no se repite hasta pasadas estas horas, salvo que cambie el
+# diagnostico.
+HEALTH_ALERT_COOLDOWN_HOURS = env_int("HEALTH_ALERT_COOLDOWN_HOURS", 6)
 HEALTH_MAX_PAUSE_HOURS = 2           # fuente pausada demasiado tiempo
 
 # --- Observabilidad ---

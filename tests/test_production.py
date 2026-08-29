@@ -211,6 +211,97 @@ def test_healthcheck_ok_con_snapshots_recientes(peru_airports, settings):
 
 
 @pytest.mark.django_db
+def test_el_hueco_normal_entre_barridos_no_dispara_la_alerta(peru_airports, settings):
+    """Regresión: el barrido corre 06:00 y 18:00 y tarda ~2h, así que el último
+    snapshot de la noche entra ~20:00 y el siguiente recién a las 06:00 — 10h
+    de hueco NORMAL. Con el tope de 8h que había, la alerta saltaba todas las
+    madrugadas, y una alerta que grita cada noche entrena a ignorarla.
+    """
+    from django.utils import timezone
+
+    from apps.flights.models import PriceSnapshot, Route
+    from apps.scraping.maintenance import system_healthcheck
+
+    ruta = Route.objects.create(origin_id="LIM", destination_id="CUZ")
+    snap = PriceSnapshot.objects.create(
+        route=ruta, flight_date=FECHA, min_price_pen=Decimal("200"),
+        avg_price_pen=Decimal("240"), offers_count=5,
+    )
+    # 11 horas: dentro de lo normal entre dos barridos.
+    PriceSnapshot.objects.filter(pk=snap.pk).update(
+        snapshot_at=timezone.now() - timedelta(hours=11)
+    )
+
+    with patch("apps.scraping.maintenance.send_admin_alert") as aviso:
+        resultado = system_healthcheck.apply().get()
+
+    assert resultado["status"] == "ok"
+    aviso.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_el_mismo_problema_no_se_avisa_dos_veces(peru_airports, settings):
+    """El chequeo corre cada 30 min: sin tregua, un problema de un día manda 48
+    mensajes idénticos y deja de leerse justo cuando hay algo que leer."""
+    from django.core.cache import cache
+
+    from apps.scraping.maintenance import system_healthcheck
+
+    cache.clear()   # sin snapshots en la base, el problema es real
+
+    with patch("apps.scraping.maintenance.send_admin_alert") as aviso:
+        primera = system_healthcheck.apply().get()
+        segunda = system_healthcheck.apply().get()
+
+    assert primera["notified"] is True
+    assert segunda["notified"] is False
+    assert aviso.call_count == 1
+
+
+@pytest.mark.django_db
+def test_al_volver_a_la_normalidad_se_limpia_la_tregua(peru_airports, settings):
+    """Si el problema reaparece mañana hay que enterarse enseguida, no seis
+    horas después."""
+    from django.core.cache import cache
+
+    from apps.flights.models import PriceSnapshot, Route
+    from apps.scraping.maintenance import _CLAVE_AVISO, system_healthcheck
+
+    cache.clear()
+    with patch("apps.scraping.maintenance.send_admin_alert"):
+        system_healthcheck.apply().get()
+    assert cache.get(_CLAVE_AVISO) is not None
+
+    ruta = Route.objects.create(origin_id="LIM", destination_id="CUZ")
+    PriceSnapshot.objects.create(
+        route=ruta, flight_date=FECHA, min_price_pen=Decimal("200"),
+        avg_price_pen=Decimal("240"), offers_count=5,
+    )
+    with patch("apps.scraping.maintenance.send_admin_alert"):
+        assert system_healthcheck.apply().get()["status"] == "ok"
+
+    assert cache.get(_CLAVE_AVISO) is None
+
+
+@pytest.mark.django_db
+def test_un_problema_nuevo_se_avisa_aunque_el_anterior_siga(peru_airports, settings):
+    """Callar un síntoma distinto porque otro sigue abierto sería esconder
+    información."""
+    from django.core.cache import cache
+
+    from apps.scraping.maintenance import _avisar_una_vez
+
+    cache.clear()
+    with patch("apps.scraping.maintenance.send_admin_alert") as aviso:
+        assert _avisar_una_vez(["el histórico se congeló"]) is True
+        assert _avisar_una_vez(["el histórico se congeló"]) is False
+        assert _avisar_una_vez(
+            ["el histórico se congeló", "la fuente está pausada"]) is True
+
+    assert aviso.call_count == 2
+
+
+@pytest.mark.django_db
 def test_healthcheck_avisa_si_el_histórico_se_congeló(peru_airports, settings):
     from apps.flights.models import PriceSnapshot, Route
     from apps.scraping.maintenance import system_healthcheck

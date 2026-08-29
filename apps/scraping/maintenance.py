@@ -10,6 +10,7 @@ from pathlib import Path
 
 from celery import shared_task
 from django.conf import settings
+from django.core.cache import cache
 
 from . import offsite
 from django.utils import timezone
@@ -145,14 +146,50 @@ def system_healthcheck(self) -> dict:
             problemas.append(f"la fuente {PRIMARY_SOURCE} está pausada")
 
     if not problemas:
+        # Al volver a la normalidad se limpia la tregua: si el problema
+        # reaparece mañana hay que enterarse enseguida, no seis horas después.
+        cache.delete(_CLAVE_AVISO)
         logger.info("healthcheck: todo en orden")
         return {"status": "ok", "issues": []}
 
-    detalle = "\n".join(f"- {p}" for p in problemas)
-    logger.error("healthcheck: %d problemas detectados\n%s", len(problemas), detalle)
-    send_admin_alert(f"VueloRadar: chequeo de salud con problemas.\n{detalle}")
+    # Al log siempre; el log no se cansa de leer.
+    logger.error(
+        "healthcheck: %d problemas detectados\n%s", len(problemas), _detalle(problemas)
+    )
+    return {
+        "status": "degraded",
+        "issues": problemas,
+        "notified": _avisar_una_vez(problemas),
+    }
 
-    return {"status": "degraded", "issues": problemas}
+
+#: Dónde se recuerda de qué se avisó, para no repetirlo cada media hora.
+_CLAVE_AVISO = "healthcheck:ultimo-aviso"
+
+
+def _detalle(problemas: list[str]) -> str:
+    return "\n".join(f"- {p}" for p in problemas)
+
+
+def _avisar_una_vez(problemas: list[str]) -> bool:
+    """Manda el aviso salvo que sea el mismo de hace poco.
+
+    El chequeo corre cada 30 minutos. Sin esto, un problema que dure un día
+    entero manda 48 mensajes idénticos, y el efecto es que se dejan de leer —
+    justo cuando hay algo que leer.
+
+    La huella es el diagnóstico completo: si aparece un problema NUEVO se avisa
+    igual, aunque el anterior siga vigente. Callar un síntoma distinto porque
+    otro sigue abierto sería esconder información.
+    """
+    huella = "|".join(sorted(problemas))
+    if cache.get(_CLAVE_AVISO) == huella:
+        logger.info("healthcheck: mismo diagnóstico que el último aviso, no se repite")
+        return False
+
+    send_admin_alert(f"VueloRadar: chequeo de salud con problemas.\n{_detalle(problemas)}")
+    cache.set(_CLAVE_AVISO, huella, settings.HEALTH_ALERT_COOLDOWN_HOURS * 3600)
+    return True
 
 
 def _pause_started_at() -> float | None:
