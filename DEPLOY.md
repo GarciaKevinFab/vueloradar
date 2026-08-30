@@ -215,6 +215,9 @@ R2_BUCKET=vueloradar-backups
 R2_PREFIX=backups/
 ```
 
+Configuradas en el VPS el 2026-08-30; hasta entonces el bucket estaba vacío y
+el respaldo no salía del servidor.
+
 Sin ellas la subida no ocurre y el backup local sigue funcionando igual. **Con
 ellas configuradas, un fallo de subida te llega por Telegram**: en un
 filesystem efímero eso significaría que no quedó ninguna copia.
@@ -246,7 +249,8 @@ limpio y las cinco tablas coincidieron fila por fila con producción
 Procedimiento verificado, sin tocar producción:
 
 ```bash
-DUMP=$(docker compose -f docker-compose.prod.yml exec -T worker-default ls /backups | tr -d '' | tail -1)
+DUMP=$(docker compose -f docker-compose.prod.yml exec -T worker-default ls /backups | tr -d '
+' | tail -1)
 docker compose -f docker-compose.prod.yml cp worker-default:/backups/$DUMP /tmp/$DUMP
 
 docker run -d --name pg-restore-test -e POSTGRES_PASSWORD=prueba   -e POSTGRES_DB=verificacion postgres:17-alpine
@@ -258,9 +262,12 @@ docker exec pg-restore-test psql -U postgres -d verificacion -c   "SELECT count(
 docker rm -f pg-restore-test && rm -f /tmp/$DUMP
 ```
 
-`pg_restore` reporta **3 errores ignorados** sobre `vault.secrets`: es un esquema
-interno de Supabase (bóveda de secretos cifrados) que no nos pertenece y no se
-puede restaurar. No afecta a ninguna tabla del proyecto.
+`pg_restore` reporta **1 error ignorado**: `schema "public" already exists`.
+Toda base de Postgres trae ese esquema de fábrica, así que el `CREATE SCHEMA`
+del dump siempre choca. Es cosmético y no afecta a ninguna tabla.
+
+> Hasta el 2026-08-30 eran **tres**, sobre `supabase_vault` y `vault.secrets`:
+> el dump se llevaba los esquemas que gestiona Supabase. Ya no los incluye.
 
 ```bash
 docker compose -f docker-compose.prod.yml cp worker-default:/backups/vueloradar-20260823-040000.dump ./restore.dump
@@ -274,18 +281,19 @@ El `--clean --if-exists` borra los objetos antes de recrearlos. **Nunca lo
 corras contra la base de producción sin haberlo probado antes en otra**, porque
 elimina las tablas actuales.
 
-**Errores esperables al restaurar en un Postgres que no es Supabase:** vas a ver
-2 o 3 errores sobre `supabase_vault` y `vault.secrets`. Son objetos de la
-plataforma Supabase, no datos del proyecto — el dump los incluye pero un
-Postgres vanilla no los tiene. `pg_restore` los ignora y sigue. Lo que importa
-es que las tablas del proyecto queden completas:
+**Qué error es esperable y cuál no.** Debe salir exactamente uno, el de
+`schema "public" already exists`. Si aparece cualquier otro, no lo ignores: el
+dump ahora se limita a `public`, así que ya no hay motivo para que falle nada
+más. Lo que importa es que las tablas del proyecto queden completas:
 
 ```bash
 psql -d restauracion -c "select count(*) from flights_pricesnapshot"
 ```
 
-Verificado el 2026-08-23 contra un `postgres:17-alpine` limpio: los 8.289
-snapshots, 47.395 ofertas, 44 rutas y 20 aeropuertos restauraron intactos.
+**Verificado el 2026-08-30, bajando el dump DESDE R2** y restaurándolo en un
+`postgres:17-alpine` limpio: 123.624 ofertas, 21.185 snapshots y 44 rutas
+intactas, con el único error esperable. Bajarlo de R2 y no del volumen local
+es la parte que importa: el día que haga falta el respaldo, el VPS no estará.
 
 ## 8. Runbook de incidentes
 
