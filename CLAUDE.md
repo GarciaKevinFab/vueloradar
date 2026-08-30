@@ -527,10 +527,24 @@ ignora (el kernel protege al PID 1 de su propio namespace). La prueba válida es
   AdSense no paga sin ese archivo: el inventario queda como no autorizado y los
   anunciantes no pujan. Sin ID devuelve 404, no un archivo con `pub-` vacío,
   que sería una declaración falsa sobre quién puede vender la publicidad.
-- **El sitio no está en Google Search Console** (verificado el 2026-08-27: no
-  hay TXT de `google-site-verification` en la zona). `GOOGLE_SITE_VERIFICATION`
-  pinta la meta cuando se configure. Sin Search Console la indexación es
-  pasiva: no se puede pedir rastreo ni ver qué consultas traen visitas.
+- **Search Console: la verificación por DNS ya está puesta** (comprobado el
+  2026-08-29: la zona sirve el TXT `google-site-verification=7ere6DRUZ7Mb…`).
+  Es una **propiedad de dominio**, que cubre la raíz, `www`, `http` y `https`
+  de una sola vez y no depende de que la web siga sirviendo una etiqueta.
+  Por eso `GOOGLE_SITE_VERIFICATION` está y debe seguir **vacía**: la meta del
+  `<head>` es la vía *alternativa* de verificación, no un complemento.
+  Falta lo que solo se hace desde el panel: confirmar la propiedad y **enviar
+  `sitemap.xml`** (63 URLs: portada, buscar, cuando-comprar, términos,
+  privacidad, 18 hubs y 40 fichas). Sin eso la indexación sigue siendo pasiva.
+- **Las fichas de ruta redirigen 301 a la forma canónica en MAYÚSCULAS.** La
+  URL acepta cualquier caja a propósito (`[A-Za-z]{3}` en `urls.py`) para que
+  un enlace tecleado a mano llegue, pero el `<link rel="canonical">` se arma
+  con `{{ request.path }}`: sin el redirect, `/vuelos/lim-cuz/` y
+  `/vuelos/LIM-CUZ/` devolvían 200 declarándose canónica cada una. Son 2^6
+  combinaciones por ruta, 2.560 URLs con el mismo contenido. La canónica es
+  mayúsculas porque es lo que ya emiten los `{% url %}`, el sitemap y los
+  nombres de las imágenes OG. Los hubs y las estáticas nunca tuvieron el
+  problema: `/vuelos/desde-Lima/` da 404.
 - **`https://www.sisac.pe/` sirve un certificado autofirmado** y falla la
   verificación TLS; la raíz `https://sisac.pe/` responde bien. Es el sitio del
   constructor, no éste, pero conviene saberlo antes de enlazar el `www`.
