@@ -693,6 +693,91 @@ def test_el_pie_enlaza_lo_legal_desde_cualquier_pagina(client, route, stats):
         assert "/terminos/" in cuerpo and "/privacidad/" in cuerpo
 
 
+def _sitemap_entradas(client):
+    """{url: {"lastmod": …, "changefreq": …}} a partir del sitemap servido."""
+    import xml.etree.ElementTree as ET
+    ns = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+    raiz = ET.fromstring(client.get("/sitemap.xml").content)
+    salida = {}
+    for u in raiz.findall("s:url", ns):
+        def dato(tag):
+            nodo = u.find(f"s:{tag}", ns)
+            return nodo.text if nodo is not None else None
+        salida[dato("loc")] = {"lastmod": dato("lastmod"), "changefreq": dato("changefreq")}
+    return salida
+
+
+def test_las_paginas_que_cambian_con_el_barrido_declaran_lastmod(client, route, stats):
+    """`changefreq` sin `lastmod` es una intención; la fecha es la señal real.
+
+    Portada, buscador, cuándo-comprar y los hubs se rehacen con cada barrido
+    igual que las fichas, pero sólo las fichas traían fecha: le pedíamos a
+    Googlebot que volviera a diario sin darle con qué comprobarlo.
+    """
+    _snapshot(route, "179")
+    entradas = _sitemap_entradas(client)
+    for camino in ("/", "/buscar/", "/cuando-comprar/", "/vuelos/desde-lima/"):
+        url = next(u for u in entradas if u.endswith(camino))
+        assert entradas[url]["lastmod"], f"{camino} sin lastmod"
+        assert entradas[url]["changefreq"] == "daily"
+
+
+def test_las_legales_no_dicen_que_cambian_a_diario(client, route, stats):
+    """Términos y privacidad son texto fijo: no se rastrean como los precios.
+
+    Declararlas diarias gasta rastreo en páginas que llevan meses iguales y le
+    resta credibilidad a la señal en las que sí cambian.
+    """
+    _snapshot(route, "179")
+    entradas = _sitemap_entradas(client)
+    for camino in ("/terminos/", "/privacidad/"):
+        url = next(u for u in entradas if u.endswith(camino))
+        assert entradas[url]["changefreq"] == "yearly", camino
+        assert entradas[url]["lastmod"] is None, camino
+
+
+def test_el_lastmod_de_una_ciudad_sale_de_sus_propias_rutas(client, peru_airports):
+    """Si saliera del máximo global, todas las ciudades mentirían la misma fecha."""
+    from datetime import timedelta as _td
+    lima = Route.objects.create(origin_id="LIM", destination_id="CUZ", is_monitored=True)
+    pem = Route.objects.create(origin_id="PEM", destination_id="LIM", is_monitored=True)
+    for r in (lima, pem):
+        _snapshot(r, "179")
+    RouteStats.objects.create(route=lima, avg_30d=Decimal("270"), min_30d=Decimal("150"),
+                              p25_30d=Decimal("200"), median_30d=Decimal("260"), samples_count=40)
+    vieja = RouteStats.objects.create(route=pem, avg_30d=Decimal("270"), min_30d=Decimal("150"),
+                                      p25_30d=Decimal("200"), median_30d=Decimal("260"), samples_count=40)
+    # `updated_at` es auto_now: se fuerza con update() para saltearlo.
+    RouteStats.objects.filter(pk=vieja.pk).update(updated_at=timezone.now() - _td(days=9))
+
+    entradas = _sitemap_entradas(client)
+    hub_lima = next(u for u in entradas if u.endswith("/vuelos/desde-lima/"))
+    hub_pem = next(u for u in entradas if u.endswith("/vuelos/desde-puerto-maldonado/"))
+    assert entradas[hub_lima]["lastmod"] != entradas[hub_pem]["lastmod"]
+
+
+def test_los_titulos_no_se_truncan_en_los_resultados(client, peru_airports):
+    """Google corta el title alrededor de los 60 caracteres.
+
+    Se mide contra el peor caso REAL del catálogo, no contra un nombre corto:
+    Puerto Maldonado es la ciudad de nombre más largo, y es la que hacía que el
+    patrón de los hubs llegara a 83 caracteres. El tope es 62 porque eso es lo
+    que cuesta esa ciudad en una ficha (`Vuelos Lima a Puerto Maldonado: …`);
+    bajar más obligaría a romper el patrón para ganar dos caracteres.
+    """
+    import re
+    lima = Route.objects.create(origin_id="LIM", destination_id="PEM", is_monitored=True)
+    pem = Route.objects.create(origin_id="PEM", destination_id="LIM", is_monitored=True)
+    for r in (lima, pem):
+        _snapshot(r, "179")
+
+    for camino in ("/", "/cuando-comprar/", "/vuelos/desde-puerto-maldonado/",
+                   "/vuelos/LIM-PEM/"):
+        cuerpo = client.get(camino).content.decode()
+        titulo = re.search(r"<title>(.*?)</title>", cuerpo, re.S).group(1).strip()
+        assert len(titulo) <= 62, f"{camino}: {len(titulo)} caracteres — {titulo}"
+
+
 def test_las_legales_estan_en_el_sitemap(client, db):
     # El sitemap tambien recorre rutas y ciudades, asi que necesita la base.
     cuerpo = client.get("/sitemap.xml").content.decode()
