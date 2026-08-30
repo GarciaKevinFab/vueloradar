@@ -18,7 +18,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.http import Http404, HttpResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.views.decorators.cache import cache_control, never_cache
@@ -101,6 +101,20 @@ def home(request):
 @cache_control(public=True, max_age=300, s_maxage=EDGE_TTL)
 def route_detail(request, origin: str, destination: str):
     """Ficha de una ruta: precio desde, veredicto por fecha, histórico y calendario."""
+    # La URL acepta cualquier caja a propósito, para que un enlace tecleado a
+    # mano o copiado en minúsculas llegue igual. Pero sólo una forma es
+    # canónica, y hay que redirigir a ella: el `<link rel="canonical">` se arma
+    # con la URL pedida, así que sin este 301 la misma ficha vive en 64 URLs
+    # (2^6 combinaciones de mayúsculas) y cada una se declara canónica de sí
+    # misma. Google las trata como duplicados sin canónica elegida.
+    #
+    # La canónica es MAYÚSCULAS porque es lo que ya emiten los `{% url %}`, el
+    # sitemap y los nombres de las imágenes OG. Pasar a minúsculas obligaría a
+    # tocar diez plantillas y renombrar 63 archivos sin ganar nada.
+    if (origin, destination) != (origin.upper(), destination.upper()):
+        return redirect(
+            "web:route", origin.upper(), destination.upper(), permanent=True
+        )
     origin, destination = origin.upper(), destination.upper()
     try:
         # Mismo criterio que el sitemap: una ruta sin histórico no tiene nada

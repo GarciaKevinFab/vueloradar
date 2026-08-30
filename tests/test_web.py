@@ -162,8 +162,51 @@ def test_tendencia_marca_precio_alto():
 
 
 def test_ficha_acepta_iata_en_minuscula(client, route, stats):
+    """Un enlace tecleado a mano tiene que llegar, aunque sea por redirección."""
     _snapshot(route, "179")
-    assert client.get(reverse("web:route", args=["lim", "cuz"])).status_code == 200
+    assert client.get(reverse("web:route", args=["lim", "cuz"]), follow=True).status_code == 200
+
+
+def test_la_ficha_en_otra_caja_redirige_a_la_canonica(client, route, stats):
+    """Sin esto la misma ficha vive en 64 URLs, cada una canónica de sí misma.
+
+    El `<link rel="canonical">` se arma con la URL pedida, así que aceptar
+    cualquier combinación de mayúsculas con un 200 le entrega a Google 2^6
+    duplicados por ruta sin señal de cuál vale. La canónica es MAYÚSCULAS: es
+    lo que emiten los `{% url %}`, el sitemap y los nombres de las imágenes OG.
+    """
+    _snapshot(route, "179")
+    for pedida in ("lim-cuz", "Lim-Cuz", "lIM-cUz", "lim-CUZ"):
+        resp = client.get(f"/vuelos/{pedida}/")
+        assert resp.status_code == 301, f"{pedida} no redirigió"
+        assert resp["Location"] == "/vuelos/LIM-CUZ/", f"{pedida} fue a {resp['Location']}"
+
+
+def test_la_forma_canonica_no_redirige(client, route, stats):
+    """Un redirect sobre la canónica sería un bucle."""
+    _snapshot(route, "179")
+    assert client.get("/vuelos/LIM-CUZ/").status_code == 200
+
+
+def test_el_canonical_solo_puede_ser_la_forma_canonica(client, route, stats):
+    """El canonical se arma con `request.path`, así que lo fija la redirección.
+
+    Es la señal que Google lee para consolidar duplicados: si la URL pedida
+    llega intacta a la plantilla, cada caja se declara canónica de sí misma.
+    """
+    _snapshot(route, "179")
+    directa = client.get("/vuelos/LIM-CUZ/").content.decode()
+    assert 'rel="canonical" href="http://testserver/vuelos/LIM-CUZ/"' in directa
+
+    # Y llegando por redirección, el canonical tiene que ser el mismo.
+    redirigida = client.get("/vuelos/lim-cuz/", follow=True).content.decode()
+    assert 'rel="canonical" href="http://testserver/vuelos/LIM-CUZ/"' in redirigida
+    assert "/vuelos/lim-cuz/" not in redirigida
+
+
+def test_una_ruta_inexistente_en_otra_caja_no_se_traga_el_404(client, peru_airports):
+    """La redirección va primero, pero el 404 tiene que seguir llegando."""
+    assert client.get("/vuelos/lim-aqp/", follow=True).status_code == 404
 
 
 def test_ruta_inexistente_da_404(client, peru_airports):
