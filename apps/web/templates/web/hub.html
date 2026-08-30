@@ -1,6 +1,6 @@
 {% extends "web/base.html" %}
 
-{% block title %}Vuelos baratos desde {{ airport.city }}: precios reales y cuándo comprar — {{ site_name }}{% endblock %}
+{% block title %}Vuelos desde {{ airport.city }}: precios reales — {{ site_name }}{% endblock %}
 {% block description %}Precios de vuelos desde {{ airport.city }} ({{ airport.iata_code }}){% if mas_barato %} desde S/ {{ mas_barato|floatformat:0 }}{% endif %}. Histórico real de {{ destinos|length }} destino{{ destinos|length|pluralize }}, con veredicto por fecha.{% endblock %}
 {% block og_title %}Vuelos desde {{ airport.city }}{% if mas_barato %} desde S/ {{ mas_barato|floatformat:0 }}{% endif %}{% endblock %}
 {% block og_description %}{{ destinos|length }} destino{{ destinos|length|pluralize }} con histórico real de precios. Te decimos qué fechas valen la pena y cuáles dejar pasar.{% endblock %}

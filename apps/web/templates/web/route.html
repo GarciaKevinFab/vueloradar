@@ -1,7 +1,7 @@
 {% extends "web/base.html" %}
 {% load l10n %}
 
-{% block title %}Vuelos {{ route.origin.city }} a {{ route.destination.city }}: ¿es buen precio hoy? — {{ site_name }}{% endblock %}
+{% block title %}Vuelos {{ route.origin.city }} a {{ route.destination.city }}: ¿buen precio hoy? — {{ site_name }}{% endblock %}
 {% block description %}Vuelos {{ route.origin.city }} a {{ route.destination.city }}{% if desde %} desde S/ {{ desde|floatformat:0 }}{% endif %}: qué fechas están a buen precio y cuáles no, según el histórico real de los últimos 30 días.{% endblock %}
 {% block og_title %}{{ route.origin.city }} → {{ route.destination.city }}{% if desde %} desde S/ {{ desde|floatformat:0 }}{% endif %}{% endblock %}
 {% block og_description %}{% if baratas %}{{ baratas|length }} de {{ fechas|length }} fechas están a buen precio hoy.{% else %}Ninguna fecha está barata hoy en esta ruta.{% endif %} Según el histórico real de los últimos 30 días.{% endblock %}
