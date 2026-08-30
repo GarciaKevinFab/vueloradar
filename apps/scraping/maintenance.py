@@ -47,6 +47,22 @@ def backup_database(self) -> dict:
         "--format=custom",
         "--no-owner",
         "--no-privileges",
+        # SOLO `public`, que es lo nuestro.
+        #
+        #   Sin esto el volcado se llevaba tambien los esquemas que gestiona
+        #   Supabase: `auth` (216 objetos), `storage`, `realtime`, `extensions`
+        #   y `vault` -- incluida la tabla `vault.secrets`. Ninguno lo escribe
+        #   esta aplicacion: VueloRadar autentica con el auth de Django, que
+        #   vive en `public`. Se comprobo antes de recortar: auth.users,
+        #   vault.secrets y storage.objects tienen cero filas.
+        #
+        #   Arrastrarlos costaba tres cosas. Un `pg_restore` sobre un Postgres
+        #   normal fallaba con tres errores por la extension `supabase_vault`,
+        #   que no existe fuera de Supabase; restaurar sobre un proyecto de
+        #   Supabase nuevo chocaria con lo que el ya trae; y una tabla de
+        #   secretos acababa copiada en el VPS y en R2 sin que nadie lo
+        #   hubiera decidido.
+        "--schema=public",
         f"--file={archivo}",
         settings.DATABASE_URL,
     ]
