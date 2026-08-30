@@ -249,10 +249,18 @@ celery -A config beat                                # scheduler
   pantalla y hubo que rotarla. Para secretos, `nano` directo en el servidor, y
   **nunca volcar el `.env`** — verificar con booleanos (`bool(...)`, `len(...)`,
   `startswith(...)`), jamás con el valor.
-- **AdSense configurado (2026-08-27):** `ADSENSE_CLIENT=ca-pub-4805616769009135`
-  en el `.env` del VPS. El script carga en el `<head>` y `/ads.txt` responde. No
-  hay slots todavía, así que no se dibuja ningún hueco. La cuenta está en «Su
-  sitio necesita revisión».
+- **AdSense configurado (2026-08-27):** `ADSENSE_CLIENT=ca-pub-4805816769009138`
+  en el `.env` del VPS. El script carga en el `<head>` y `/ads.txt` responde.
+  **Ojo: esta nota tuvo el ID mal hasta el 2026-08-29** (decía
+  `...4805616769009135`, con dos dígitos cambiados). El bueno es el que sirve
+  producción, y se verifica sin entrar al panel: el `<script>` del `<head>` y
+  `/ads.txt` tienen que coincidir, porque `/ads.txt` se deriva de la misma
+  variable. Un ID equivocado en el `.env` no rompe nada visible — simplemente
+  declara que otro editor puede vender el inventario y no se cobra nunca.
+  Estado al 2026-08-29: `vueloradar.com` en «Preparando el sitio» con el
+  ads.txt «Autorizado». No hay slots todavía
+  (`ADSENSE_SLOT_HOME` / `ADSENSE_SLOT_ROUTE` vacíos), así que no se dibuja
+  ningún hueco: el script carga y paga latencia sin devolver un anuncio.
 - ~~Los correos de aviso nunca salieron.~~ (Resuelto arriba.) El DNS de Resend está puesto y
   propagado en Cloudflare (DKIM en `resend._domainkey.vueloradar.com`, SPF y MX
   de rebotes en `send.vueloradar.com`, o sea el dominio verificado es la raíz
