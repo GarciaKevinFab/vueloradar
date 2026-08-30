@@ -418,6 +418,49 @@ Cola en cero y sin snapshots nuevos significa que beat no está encolando;
 revisá los logs de `beat`. Cola llena y sin snapshots significa que el worker
 está trabado; reinicialo.
 
+**Antes de declarar que un barrido quedó a medias, contá por corrida.** Dos
+formas de leer mal el histórico y ver un corte donde no lo hay:
+
+1. Contar rutas *del día*: si el barrido de la mañana completó las 40, tapa
+   cualquier problema de la tarde.
+2. Agrupar por fecha **en UTC**: el barrido de la tarde va de 23:00 a 01:00
+   UTC, así que queda partido en dos días y cada mitad parece truncada.
+
+Agrupando por hora las dos trampas desaparecen:
+
+```bash
+docker compose -f docker-compose.prod.yml exec -T web python manage.py shell -c "
+from apps.flights.models import PriceSnapshot
+from django.db.models import Count
+from django.db.models.functions import TruncHour
+from django.utils import timezone
+from datetime import timedelta
+filas = (PriceSnapshot.objects
+         .filter(snapshot_at__gte=timezone.now() - timedelta(days=2))
+         .annotate(h=TruncHour('snapshot_at')).values('h')
+         .annotate(rutas=Count('route_id', distinct=True), n=Count('id'))
+         .order_by('h'))
+for f in filas:
+    print(f['h'].strftime('%Y-%m-%d %H:00'), '|', f['rutas'], 'rutas |', f['n'], 'snapshots')
+"
+```
+
+Forma de una corrida sana, medida el 2026-08-28/29 y repetida en las cuatro
+corridas observadas (horas en `America/Lima`):
+
+```
+06:00 | 22-23 rutas | ~660 snapshots
+07:00 | 18-19 rutas | ~460 snapshots
+08:00 |  1 ruta     |  ~10 snapshots
+```
+
+Las tres franjas suman **40 rutas distintas** y la corrida cierra en menos de
+dos horas. Si ves ese patrón, el barrido terminó, sin importar cómo se vea
+repartido por día. Una corrida realmente cortada se interrumpe de golpe y no
+llega a las 40; ahí sí revisá los logs del worker.
+
+No hay nada que reparar: el siguiente barrido vuelve a cubrir las 40.
+
 ## 9. Operación diaria
 
 ```bash
@@ -430,15 +473,66 @@ docker compose -f docker-compose.prod.yml logs -f --tail=100 worker-scraping
 
 Métricas desde Telegram: mandale `/stats` al bot (solo responde a tu chat ID).
 
+### Antes de desplegar: mirá si hay un barrido corriendo
+
+**Verificado el 2026-08-29: un `up -d` a los 21 minutos de arrancar el barrido
+no perdió nada.** Los workers volvieron, retomaron la cola y la corrida terminó
+con las 40 rutas, con el mismo reparto por hora que las corridas intactas.
+`acks_late` y el reencolado funcionan.
+
+Aun así conviene no desplegar a ciegas dentro de la ventana. Lo que se paga es
+tiempo: la corrida se estira, y si el despliegue falla y los contenedores
+quedan abajo un rato largo, ahí sí se pierde lo que quede en la cola.
+
+Las dos ventanas, en **UTC**, que es como reporta `date` en el servidor (el
+beat corre en `America/Lima`, UTC-5, y cada barrido dura unas 2 h):
+
+| Barrido | Hora Perú | Ventana UTC |
+|---|---|---|
+| mañana | 06:00 | **11:00 – 13:00** |
+| tarde  | 18:00 | **23:00 – 01:00** |
+
+Fuera de esas ventanas el despliegue no cuesta un solo snapshot. Si tenés que
+desplegar dentro de una, o simplemente querés asegurarte, comprobá que no haya
+nada en vuelo — las dos cosas tienen que dar vacío y cero:
+
+```bash
+docker compose -f docker-compose.prod.yml exec -T worker-scraping celery -A config inspect active --timeout 20
+```
+
+```bash
+docker compose -f docker-compose.prod.yml exec -T redis redis-cli llen scraping
+```
+
+Si hay trabajo pendiente y el despliegue no es urgente, esperá a que la cola
+drene. Si es urgente, desplegá igual: la evidencia dice que se recupera solo, y
+en el peor caso el siguiente barrido vuelve a cubrir las 40 rutas.
+
+**Ojo al leer el histórico: el barrido de la tarde cruza la medianoche UTC.**
+Agrupar snapshots por `date(snapshot_at)` en UTC parte esa corrida en dos y la
+mitad parece un barrido truncado. Es la trampa que hizo diagnosticar una
+pérdida que no existió. Agrupá por hora, o por fecha en `America/Lima`.
+
+**Y mirá los logs ANTES de recrear, no después.** `up -d` destruye el contenedor
+viejo y con él sus logs; si algo venía fallando, la evidencia se va con él.
+
 Actualizar el código:
 
 ```bash
 git pull && docker compose -f docker-compose.prod.yml build && docker compose -f docker-compose.prod.yml up -d && docker compose -f docker-compose.prod.yml exec web python manage.py migrate
 ```
 
-Matar cualquier contenedor es seguro: todos tienen `restart: unless-stopped` y
-las tasks usan `acks_late`, así que una task a medio hacer se re-encola en vez
-de perderse.
+Después del despliegue, si tocaste plantillas o vistas, purgá el borde: el
+caché declara `s-maxage=1800`, así que sin purga el cambio tarda hasta media
+hora en verse.
+
+```bash
+docker compose -f docker-compose.prod.yml exec -T web python -c "import django,os; os.environ.setdefault('DJANGO_SETTINGS_MODULE','config.settings'); django.setup(); from apps.web.cloudflare import purge_everything; print(purge_everything())"
+```
+
+Matar un contenedor **fuera de las ventanas de barrido** es seguro: todos tienen
+`restart: unless-stopped` y las tasks usan `acks_late`, así que la task en curso
+se re-encola en vez de perderse.
 
 ## 10. Checklist pre-lanzamiento
 
