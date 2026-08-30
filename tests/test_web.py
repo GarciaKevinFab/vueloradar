@@ -1064,3 +1064,21 @@ def test_con_editor_y_slot_el_anuncio_se_rotula(client, route, stats, settings):
     assert "Publicidad" in cuerpo
     assert 'data-ad-slot="1234567890"' in cuerpo
     assert "googlesyndication" in cuerpo
+
+
+def test_un_anuncio_sin_relleno_no_deja_una_caja_vacia(client, route, stats, settings):
+    """Google marca el <ins> con data-ad-status="unfilled" cuando no sirve nada.
+
+    Sin la regla que colapsa el bloque queda un recuadro rotulado "Publicidad"
+    con 6rem de vacío, y el rótulo lo vuelve más visible, no menos. Pasa
+    mientras la cuenta no está aprobada, cuando nadie puja por el espacio y con
+    cualquier bloqueador — o sea, la mayor parte del tiempo al principio.
+
+    El selector tiene que alcanzar al `<aside>` entero: ocultar sólo el `<ins>`
+    deja el marco y el rótulo dibujados sobre la nada.
+    """
+    settings.ADSENSE_CLIENT = "ca-pub-0000000000000000"
+    settings.ADSENSE_SLOT_ROUTE = "1234567890"
+    _snapshot(route, "179")
+    cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
+    assert '.ad:has(> .adsbygoogle[data-ad-status="unfilled"]){display:none}' in cuerpo
