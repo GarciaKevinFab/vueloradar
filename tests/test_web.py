@@ -761,21 +761,26 @@ def test_los_titulos_no_se_truncan_en_los_resultados(client, peru_airports):
 
     Se mide contra el peor caso REAL del catálogo, no contra un nombre corto:
     Puerto Maldonado es la ciudad de nombre más largo, y es la que hacía que el
-    patrón de los hubs llegara a 83 caracteres. El tope es 62 porque eso es lo
-    que cuesta esa ciudad en una ficha (`Vuelos Lima a Puerto Maldonado: …`);
-    bajar más obligaría a romper el patrón para ganar dos caracteres.
+    patrón de los hubs llegara a 83 caracteres.
+
+    El peor par no es el obvio. `Lima a Puerto Maldonado` da 62, pero
+    `Puerto Maldonado a Cusco` —que es una ruta real y monitoreada— da 63, y
+    un test escrito sobre LIM-PEM lo dejaba pasar dando falsa seguridad. De ahí
+    el tope: 63 es lo que cuesta la peor combinación dentro del patrón
+    `Vuelos A a B`, y romperlo para ganar un carácter en 2 de 63 páginas no
+    compensa. Si aparece una ciudad de nombre más largo, este test avisa.
     """
     import re
-    lima = Route.objects.create(origin_id="LIM", destination_id="PEM", is_monitored=True)
-    pem = Route.objects.create(origin_id="PEM", destination_id="LIM", is_monitored=True)
-    for r in (lima, pem):
+    rutas = [("LIM", "PEM"), ("PEM", "LIM"), ("CUZ", "PEM"), ("PEM", "CUZ")]
+    for origen, destino in rutas:
+        r = Route.objects.create(origin_id=origen, destination_id=destino, is_monitored=True)
         _snapshot(r, "179")
 
     for camino in ("/", "/cuando-comprar/", "/vuelos/desde-puerto-maldonado/",
-                   "/vuelos/LIM-PEM/"):
+                   "/vuelos/LIM-PEM/", "/vuelos/PEM-CUZ/", "/vuelos/CUZ-PEM/"):
         cuerpo = client.get(camino).content.decode()
         titulo = re.search(r"<title>(.*?)</title>", cuerpo, re.S).group(1).strip()
-        assert len(titulo) <= 62, f"{camino}: {len(titulo)} caracteres — {titulo}"
+        assert len(titulo) <= 63, f"{camino}: {len(titulo)} caracteres — {titulo}"
 
 
 def test_las_legales_estan_en_el_sitemap(client, db):
