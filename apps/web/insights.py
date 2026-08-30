@@ -43,9 +43,13 @@ MIN_MUESTRAS_AEROLINEA = 40
 #: Nombre largo para la frase, corto para el pie de la barra. En un teléfono
 #: de 375 px caben siete columnas de 36 px: "miércoles" no entra y truncarlo
 #: con puntos suspensivos borra justo el dato que la barra viene a mostrar.
+#: El nombre largo va en PLURAL porque los cuatro lugares donde aparece hablan
+#: del día en genérico ("los sábados salen más baratos"), nunca de una fecha
+#: concreta. De lunes a viernes el plural es idéntico al singular y el defecto
+#: pasaba inadvertido; sábado y domingo salían publicados como "de los sábado".
 _DIAS = {2: ("lunes", "lun"), 3: ("martes", "mar"), 4: ("miércoles", "mié"),
-         5: ("jueves", "jue"), 6: ("viernes", "vie"), 7: ("sábado", "sáb"),
-         1: ("domingo", "dom")}
+         5: ("jueves", "jue"), 6: ("viernes", "vie"), 7: ("sábados", "sáb"),
+         1: ("domingos", "dom")}
 _ORDEN_SEMANA = [2, 3, 4, 5, 6, 7, 1]
 
 #: Franjas de anticipación. Los cortes no son arbitrarios: 0-6 es el pánico de

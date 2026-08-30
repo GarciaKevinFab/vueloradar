@@ -25,7 +25,7 @@ conviene comprar los martes» y «medimos 15.568 precios y esto muestran».
  {"@type":"Question","name":"¿Cuándo conviene comprar un vuelo doméstico en Perú?",
   "acceptedAnswer":{"@type":"Answer","text":"Según {{ snapshots|intcomma }} precios que medimos, lo más barato es comprar {{ insight_ventana.mejor.etiqueta }} antes del vuelo: promedia S/ {{ insight_ventana.mejor.precio|floatformat:0 }} contra S/ {{ insight_ventana.peor.precio|floatformat:0 }} de {{ insight_ventana.peor.etiqueta }}."}}{% if insight_dia and insight_dia.vale_la_pena %},
  {"@type":"Question","name":"¿Qué día de la semana es más barato volar en Perú?",
-  "acceptedAnswer":{"@type":"Answer","text":"Volar {{ insight_dia.mejor.etiqueta }} promedia S/ {{ insight_dia.mejor.precio|floatformat:0 }}, un {{ insight_dia.ahorro_pct }}% menos que {{ insight_dia.peor.etiqueta }}, que promedia S/ {{ insight_dia.peor.precio|floatformat:0 }}."}}{% endif %}
+  "acceptedAnswer":{"@type":"Answer","text":"Volar los {{ insight_dia.mejor.etiqueta }} promedia S/ {{ insight_dia.mejor.precio|floatformat:0 }}, un {{ insight_dia.ahorro_pct }}% menos que los {{ insight_dia.peor.etiqueta }}, que promedia S/ {{ insight_dia.peor.precio|floatformat:0 }}."}}{% endif %}
 ]}
 </script>
 {% endblock %}
@@ -99,9 +99,9 @@ conviene comprar los martes» y «medimos 15.568 precios y esto muestran».
 {% if insight_dia and insight_dia.vale_la_pena %}
 <h2>Y el día en que volás pesa más de lo que parece</h2>
 <p>No el día en que comprás —eso es otro mito—, sino el día en que despega el avión.
-   Volar <strong>{{ insight_dia.mejor.etiqueta }}</strong> promedia
+   Volar <strong>los {{ insight_dia.mejor.etiqueta }}</strong> promedia
    S/&nbsp;{{ insight_dia.mejor.precio|floatformat:0 }};
-   {{ insight_dia.peor.etiqueta }}, S/&nbsp;{{ insight_dia.peor.precio|floatformat:0 }}.
+   los {{ insight_dia.peor.etiqueta }}, S/&nbsp;{{ insight_dia.peor.precio|floatformat:0 }}.
    Un {{ insight_dia.ahorro_pct }}% por correr el viaje un par de días.</p>
 {% endif %}
 

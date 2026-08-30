@@ -80,9 +80,26 @@ def test_encuentra_el_dia_mas_barato(route):
 
     h = insights.weekday_prices()
     assert h.mejor.etiqueta == "miércoles"
-    assert h.peor.etiqueta == "domingo"
+    assert h.peor.etiqueta == "domingos"
     assert h.ahorro_pct == 50            # de 400 a 200
     assert h.ahorro_pen == Decimal("200")
+
+
+def test_la_etiqueta_larga_del_dia_va_en_plural(route):
+    """La plantilla escribe "los {etiqueta}": en singular publicaba "los sábado".
+
+    De lunes a viernes el plural es idéntico al singular, así que el defecto
+    sólo se veía cuando el día más caro caía sábado o domingo — y salía en la
+    portada y en las 40 fichas a la vez.
+    """
+    _snaps(route, cuantos=150, precio="400", dia_semana=5)   # sábado
+    _snaps(route, cuantos=150, precio="300", dia_semana=6)   # domingo
+    _snaps(route, cuantos=150, precio="200", dia_semana=0)   # lunes
+
+    etiquetas = [b.etiqueta for b in insights.weekday_prices().barras]
+    assert "sábados" in etiquetas
+    assert "domingos" in etiquetas
+    assert "lunes" in etiquetas          # el plural no le agrega una "s" de más
 
 
 def test_una_diferencia_menor_al_5_por_ciento_no_es_titular(route):
