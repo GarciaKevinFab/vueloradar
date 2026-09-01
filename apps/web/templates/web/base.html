@@ -588,6 +588,27 @@ body::after{content:'';position:fixed;inset:0;z-index:2;pointer-events:none;
   }
 }
 
+/* Los 45 bloques con .reveal de la portada dependian SOLO de la regla de
+   arriba, y `animation-timeline:view()` no lo entienden todos los navegadores:
+   donde falta, la entrada en 3D no ocurria — el contenido se leia bien, pero
+   plano y sin el efecto. El estado de reposo lo pone el propio script (clase
+   .reveal-js) y NO el CSS, para que sin JS no quede nada invisible: sin JS no
+   pasa nada, con JS aparece el mismo movimiento. */
+@media (prefers-reduced-motion:no-preference){
+  .reveal-js{opacity:0;transform:perspective(1200px) rotateX(-16deg) translate3d(0,42px,-90px)}
+  .reveal-js.visto{animation:emerger .9s cubic-bezier(.16,1,.3,1) both}
+}
+
+/* Relieve al pasar el raton sobre las cifras de la portada. Muy poco angulo:
+   son numeros que hay que leer, no una atraccion. */
+@media (prefers-reduced-motion:no-preference) and (hover:hover) and (pointer:fine){
+  .pulso{perspective:900px}
+  .pulso div{transition:transform .28s cubic-bezier(.2,.8,.3,1),border-color .28s ease,
+    box-shadow .28s ease}
+  .pulso div:hover{transform:translateY(-4px) rotateX(4deg) scale(1.02);
+    border-color:var(--accent);box-shadow:0 14px 30px -16px rgba(0,0,0,.55)}
+}
+
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;
     transition-duration:.01ms !important}
@@ -676,6 +697,35 @@ body::after{content:'';position:fixed;inset:0;z-index:2;pointer-events:none;
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js"
         data-cf-beacon='{"token":"{{ cf_analytics_token }}"}'></script>
 {% endif %}
+
+{% comment %} Suplente de la entrada en 3D para los navegadores que todavia no
+   traen animation-timeline. No se carga como fichero aparte: son doce lineas y
+   una peticion mas costaria mas que el codigo. {% endcomment %}
+<script>
+(function () {
+  // Si el navegador SI entiende animation-timeline, la regla CSS ya se encarga
+  // y este script no debe tocar nada: haria el trabajo dos veces.
+  if (!window.CSS || !CSS.supports || CSS.supports('animation-timeline', 'view()')) return;
+  if (!('IntersectionObserver' in window)) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  var bloques = document.querySelectorAll('.reveal');
+  if (!bloques.length) return;
+
+  var ojo = new IntersectionObserver(function (entradas) {
+    for (var i = 0; i < entradas.length; i++) {
+      if (!entradas[i].isIntersecting) continue;
+      entradas[i].target.classList.add('visto');
+      ojo.unobserve(entradas[i].target);   // una vez visto, se deja en paz
+    }
+  }, { rootMargin: '0px 0px -12% 0px' });
+
+  for (var i = 0; i < bloques.length; i++) {
+    bloques[i].classList.add('reveal-js');
+    ojo.observe(bloques[i]);
+  }
+})();
+</script>
 
 {% if bot_url %}
 <a class="fab" href="{{ bot_url }}{% block bot_start %}{% endblock %}" rel="noopener"
