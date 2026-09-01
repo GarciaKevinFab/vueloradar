@@ -18,6 +18,7 @@ urlpatterns = [
     path("aviso/baja/<str:token>/", views.baja_aviso, name="baja_aviso"),
     path("terminos/", views.legal, {"pagina": "terminos"}, name="terminos"),
     path("privacidad/", views.legal, {"pagina": "privacidad"}, name="privacidad"),
+    path("reclamaciones/", views.legal, {"pagina": "reclamaciones"}, name="reclamaciones"),
     # El hub va primero y la ficha exige tres letras por lado: sin esa
     # restricción, /vuelos/desde-lima/ entraría como origen "desde" y
     # destino "lima".

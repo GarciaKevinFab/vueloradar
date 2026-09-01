@@ -421,7 +421,7 @@ def baja_aviso(request, token: str):
 @cache_control(public=True, max_age=3600, s_maxage=86400)
 def legal(request, pagina: str):
     """Términos y privacidad. Cambian poco: se cachean un día en el borde."""
-    if pagina not in ("terminos", "privacidad"):
+    if pagina not in ("terminos", "privacidad", "reclamaciones"):
         raise Http404("Página legal desconocida")
     return render(request, f"web/{pagina}.html", {"updated_at": timezone.now()})
 
