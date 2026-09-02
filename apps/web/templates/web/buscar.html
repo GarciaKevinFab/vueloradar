@@ -1,9 +1,9 @@
 {% extends "web/base.html" %}
 
 {% block title %}Buscar vuelos en Perú — {{ site_name }}{% endblock %}
-{% block description %}Escribí a dónde querés ir y te decimos si el precio de esa fecha es bueno, según el histórico real de la ruta.{% endblock %}
+{% block description %}Escribe a dónde quieres ir y te decimos si el precio de esa fecha es bueno, según el histórico real de la ruta.{% endblock %}
 {% block og_title %}Buscar vuelos en Perú{% endblock %}
-{% block og_description %}Escribilo como lo dirías: «de Lima a Cusco el 15 de setiembre».{% endblock %}
+{% block og_description %}Escríbelo como lo dirías: «de Lima a Cusco el 15 de setiembre».{% endblock %}
 
 {% block head_extra %}
 <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{% url 'web:buscar' %}">
@@ -16,8 +16,8 @@
   <li aria-current="page">Buscar</li>
 </ol>
 
-<h1 class="rise d1">¿A dónde<br>querés ir?</h1>
-<p class="lede rise d2">Escribilo como lo dirías en voz alta. Te decimos si el precio de esa
+<h1 class="rise d1">¿A dónde<br>quieres ir?</h1>
+<p class="lede rise d2">Escríbelo como lo dirías en voz alta. Te decimos si el precio de esa
    fecha es bueno para esa ruta — y te dejamos el link para comprar.</p>
 
 <form class="card card-hero rise d3" method="get" action="{% url 'web:buscar' %}">
@@ -58,7 +58,7 @@
 </form>
 
 {% if not texto %}
-<p class="tiny dim" style="margin:0 0 .5rem;letter-spacing:.06em;text-transform:uppercase">Probá con</p>
+<p class="tiny dim" style="margin:0 0 .5rem;letter-spacing:.06em;text-transform:uppercase">Prueba con</p>
 <ul class="chips">
   {% for e in ejemplos %}
   <li><a href="{% url 'web:buscar' %}?q={{ e|urlencode }}">{{ e }}</a></li>

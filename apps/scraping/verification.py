@@ -2,7 +2,7 @@
 
 Google Flights a veces muestra tarifas que no existen en el checkout real
 (promos de app, equipaje incluido de otra forma). Antes de decirle a alguien
-"comprá ya", vale la pena confirmar con la fuente.
+"compra ya", vale la pena confirmar con la fuente.
 """
 
 from __future__ import annotations

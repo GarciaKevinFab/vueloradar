@@ -238,8 +238,8 @@ tbody tr:hover{background:var(--bg-sunk)}
   border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.16),transparent 65%)}
 .cta h3{font-size:1.25rem;margin:0 0 .35rem;letter-spacing:-.02em;position:relative}
 .cta p{margin:0 0 1.15rem;opacity:.88;font-size:.9375rem;max-width:32rem;position:relative}
-.btn{display:inline-flex;align-items:center;gap:.5rem;background:var(--accent-ink);color:var(--accent);
-  font-weight:600;font-size:.9375rem;padding:.8rem 1.5rem;border-radius:2rem;position:relative;
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;background:var(--accent-ink);color:var(--accent);
+  font-weight:600;font-size:.9375rem;padding:.8rem 1.5rem;border-radius:2rem;position:relative;min-height:44px;
   transition:transform .2s cubic-bezier(.2,.8,.3,1),box-shadow .2s ease}
 .btn:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.22)}
 
@@ -288,7 +288,7 @@ footer.wrap{margin:6rem auto 0;padding:2.5rem 1.5rem 3rem;
 @media (max-width:24rem){.foot-grid{grid-template-columns:1fr}}
 .foot-brand p{margin:0 0 .6rem;max-width:27rem}
 .foot-mark{display:inline-flex;align-items:center;gap:.5rem;font-weight:600;color:var(--ink);
-  letter-spacing:-.02em;margin-bottom:.75rem}
+  letter-spacing:-.02em;margin-bottom:.75rem;min-height:44px}
 .foot-mark img{width:1.25rem;height:1.25rem;border-radius:.3rem;display:block}
 .foot-promise{color:var(--ink);font-weight:600}
 .foot-h{font-size:.6875rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);
@@ -302,7 +302,8 @@ footer.wrap{margin:6rem auto 0;padding:2.5rem 1.5rem 3rem;
 .foot-list a{color:var(--ink-2);display:inline-flex;align-items:center;min-height:44px}
 .foot-list li+li{margin-top:0}
 header .brand-sub{display:inline-flex;align-items:center;min-height:44px}
-.crumbs a{display:inline-flex;align-items:center;min-height:44px}
+.crumbs a{display:inline-flex;align-items:center;justify-content:center;
+  min-height:44px;min-width:44px;padding-inline:.5rem;margin-inline:-.5rem}
 .foot-list a:hover{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
 /* Las columnas de enlaces se alinean opticamente con la marca, que es mas
    alta: sin este empujon los titulillos flotan por encima del logotipo. */
@@ -384,7 +385,13 @@ header .brand-sub{display:inline-flex;align-items:center;min-height:44px}
 .input,.select{font-family:inherit;font-size:1.0625rem;color:var(--ink);background:var(--bg-sunk);
   border:1px solid var(--line);border-radius:.75rem;padding:.85rem 1rem;width:100%;
   transition:border-color .2s ease,box-shadow .2s ease}
-.select{font-size:1rem;padding:.65rem .8rem;width:auto}
+/* 43 px: un pixel por debajo del objetivo tactil. Son los desplegables
+   de pasajeros del buscador, que se tocan siempre desde el telefono. */
+.select{font-size:1rem;padding:.65rem .8rem;width:auto;min-height:44px}
+/* Los dos desplegables de pasajeros del buscador no llevan la clase
+   .select, asi que la regla de arriba no los alcanzaba. Un <select> es
+   siempre algo que se pulsa: la altura minima va sobre el elemento. */
+select{min-height:44px}
 .input:focus,.select:focus{outline:none;border-color:var(--accent);
   box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
 .btn-primary{background:var(--accent);color:var(--accent-ink);border:0;cursor:pointer}
@@ -486,7 +493,7 @@ body::after{content:'';position:fixed;inset:0;z-index:2;pointer-events:none;
    Un enlace a wa.me, no un widget: sin JS y sin que Meta cargue un script en
    la pagina. WhatsApp tiene 94% de penetracion en Peru — es el unico canal
    por el que este sitio se puede difundir solo.                           */
-.compartir{display:inline-flex;align-items:center;gap:.5rem;margin-top:1.25rem;
+.compartir{display:inline-flex;align-items:center;gap:.5rem;margin-top:1.25rem;min-height:44px;
   border:1px solid var(--line);background:var(--bg-elev);border-radius:2rem;
   padding:.55rem 1.05rem;font-size:.875rem;font-weight:600;color:var(--ink-2);
   transition:border-color .2s ease,transform .2s ease,color .2s ease}
@@ -636,7 +643,7 @@ body::after{content:'';position:fixed;inset:0;z-index:2;pointer-events:none;
       <p>Por eso podemos decirte que esperes — un comparador que gana con tu clic nunca
          lo hará.{% if adsense_client %} Los anuncios que ves no dependen de que compres,
          así que tampoco mueven el veredicto.{% endif %}</p>
-      <p class="tiny dim">Los precios cambian a cada momento. Verificá siempre en la
+      <p class="tiny dim">Los precios cambian a cada momento. Verifica siempre en la
          aerolínea antes de comprar.</p>
     </div>
 

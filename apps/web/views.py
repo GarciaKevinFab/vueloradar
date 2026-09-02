@@ -283,9 +283,9 @@ def _que_falta(consulta) -> str:
     if not consulta.origen and not consulta.destino:
         return "No reconocimos ninguna ciudad."
     if not consulta.destino:
-        return "Falta el destino: escribí las dos ciudades."
+        return "Falta el destino: escribe las dos ciudades."
     if not consulta.fecha:
-        return "Falta la fecha. Podés escribirla como «15 de setiembre», «15/09» o «mañana»."
+        return "Falta la fecha. Puedes escribirla como «15 de setiembre», «15/09» o «mañana»."
     return "No pudimos entender la consulta."
 
 
@@ -354,12 +354,12 @@ def nuevo_aviso(request):
     try:
         validate_email(correo)
     except ValidationError:
-        contexto["error"] = "Ese correo no parece válido. Revisalo y probá de nuevo."
+        contexto["error"] = "Ese correo no parece válido. Revísalo y prueba de nuevo."
         contexto["email"] = correo
         return render(request, "web/aviso.html", contexto)
 
     if _supera_el_limite(request):
-        contexto["error"] = "Demasiados avisos desde esta conexión. Probá de nuevo en un rato."
+        contexto["error"] = "Demasiados avisos desde esta conexión. Prueba de nuevo en un rato."
         return render(request, "web/aviso.html", contexto)
 
     alerta, creada = Alert.objects.get_or_create(
@@ -477,7 +477,7 @@ def _texto_para_compartir(route, fechas) -> str:
     ruta = f"{route.origin.city} a {route.destination.city}"
     precios = [f["price"] for f in fechas]
     if not precios:
-        return f"Mirá el histórico de precios de vuelos {ruta} en VueloRadar:"
+        return f"Mira el histórico de precios de vuelos {ruta} en VueloRadar:"
 
     baratas = len([f for f in fechas if f["verdict"].should_buy])
     desde = min(precios)

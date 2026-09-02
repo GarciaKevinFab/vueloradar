@@ -250,7 +250,7 @@ def send_confirmation_email(alerta, base_url: str) -> bool:
         )
         + _boton(confirmar, "Confirmar el aviso")
         + _parrafo(
-            "Si no fuiste vos, ignorá este correo: sin confirmar no te vamos a "
+            "Si no fuiste vos, ignora este correo: sin confirmar no te vamos a "
             "escribir nunca más.",
             tenue=True,
         )
@@ -261,7 +261,7 @@ def send_confirmation_email(alerta, base_url: str) -> bool:
     )
     return _enviar(
         alerta.email,
-        f"Confirmá el aviso de {ruta}",
+        f"Confirma el aviso de {ruta}",
         contenido,
         preheader=f"Un clic y quedás avisado de {ruta}.",
         pie=pie,
