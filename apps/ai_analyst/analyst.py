@@ -1,4 +1,4 @@
-"""Veredicto de compra: "comprá ahora" o "esperá", con la razón.
+"""Veredicto de compra: "compra ahora" o "espera", con la razón.
 
 El contexto que se le manda al modelo sale entero de la base — stats de 30
 días y la evolución del precio para esa ruta y fecha. El modelo no inventa

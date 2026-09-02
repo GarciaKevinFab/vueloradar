@@ -12,9 +12,9 @@ misma página de alta a la que se llega desde una ficha.
 {% endcomment %}
 
 {% block title %}Avisarme cuando baje el precio — {{ site_name }}{% endblock %}
-{% block description %}Elegí tu ruta y te escribimos cuando el precio caiga de verdad, según el histórico. Sin cuenta y sin costo.{% endblock %}
+{% block description %}Elige tu ruta y te escribimos cuando el precio caiga de verdad, según el histórico. Sin cuenta y sin costo.{% endblock %}
 {% block og_title %}Te avisamos cuando baje{% endblock %}
-{% block og_description %}Elegí tu ruta y te escribimos cuando el precio caiga de verdad — no cuando una aerolínea lo llame oferta.{% endblock %}
+{% block og_description %}Elige tu ruta y te escribimos cuando el precio caiga de verdad — no cuando una aerolínea lo llame oferta.{% endblock %}
 
 {% block content %}
 <ol class="crumbs">
@@ -23,14 +23,14 @@ misma página de alta a la que se llega desde una ficha.
 </ol>
 
 <h1 class="rise d1">Te avisamos<br>cuando baje</h1>
-<p class="lede rise d2">Elegí tu ruta y dejá tu correo. Te escribimos cuando el precio
+<p class="lede rise d2">Elige tu ruta y deja tu correo. Te escribimos cuando el precio
    caiga de verdad — comparado contra el histórico de esa ruta, no cuando una aerolínea
    lo llame oferta.</p>
 
 <div class="card card-hero rise d3">
   <form method="get" action="{% url 'web:nuevo_aviso' %}">
     <div class="field">
-      <label for="ruta">¿Qué ruta querés seguir?</label>
+      <label for="ruta">¿Qué ruta quieres seguir?</label>
       <select class="input" id="ruta" name="ruta" required>
         {% for r in rutas %}
         <option value="{{ r.origin_id }}-{{ r.destination_id }}">{{ r.origin.city }} → {{ r.destination.city }}</option>
@@ -43,7 +43,7 @@ misma página de alta a la que se llega desde una ficha.
   </form>
 </div>
 
-<p class="small muted mt-2">También podés entrar a la ficha de tu ruta y pedir el aviso
+<p class="small muted mt-2">También puedes entrar a la ficha de tu ruta y pedir el aviso
    desde ahí — <a class="link" href="{% url 'web:home' %}">acá están todas</a>.</p>
 
 {% if bot_url %}

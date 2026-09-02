@@ -169,7 +169,7 @@
 {% if semanas %}
 <h2>Calendario de precios</h2>
 <p class="muted" style="margin:-.5rem 0 1rem">Cada día, el precio más barato que observamos.
-   Tocá una fecha barata y usá el botón de arriba para que te avisemos si baja más.</p>
+   Toca una fecha barata y usá el botón de arriba para que te avisemos si baja más.</p>
 
 <div class="cal reveal">
   <div class="cal-cab">
@@ -219,7 +219,7 @@
 <h2>Otras rutas</h2>
 <div class="reveal">
   {% if related.inverse %}
-    <p>¿Volvés? Mirá <a class="link" href="{% url 'web:route' related.inverse.origin_id related.inverse.destination_id %}">{{ related.inverse.origin.city }} → {{ related.inverse.destination.city }}</a>.</p>
+    <p>¿Volvés? Mira <a class="link" href="{% url 'web:route' related.inverse.origin_id related.inverse.destination_id %}">{{ related.inverse.origin.city }} → {{ related.inverse.destination.city }}</a>.</p>
   {% endif %}
   {% if related.from_origin %}
     <p class="tiny dim" style="margin:1.25rem 0 0;letter-spacing:.06em;text-transform:uppercase">Desde {{ route.origin.city }}</p>

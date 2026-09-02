@@ -3,7 +3,7 @@
 {% block title %}Libro de Reclamaciones — {{ site_name }}{% endblock %}
 {% block description %}Libro de Reclamaciones virtual de VueloRadar, conforme a la Ley 29571 del Perú.{% endblock %}
 {% block og_title %}Libro de Reclamaciones{% endblock %}
-{% block og_description %}Dejá tu reclamo o queja. Respondemos en 15 días hábiles.{% endblock %}
+{% block og_description %}Deja tu reclamo o queja. Respondemos en 15 días hábiles.{% endblock %}
 
 {% block head_extra %}
 <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
@@ -21,7 +21,7 @@
 </ol>
 
 <h1 class="rise d1">Libro de<br>Reclamaciones</h1>
-<p class="lede rise d2">Si algo del servicio no te cerró, contanos acá. Lo leemos y te respondemos
+<p class="lede rise d2">Si algo del servicio no te cerró, cuéntanos acá. Lo leemos y te respondemos
    por correo dentro del plazo que marca la ley.</p>
 
 <div class="card rise d3" style="margin-bottom:2rem">
@@ -77,7 +77,7 @@
 
   <p><label for="r-detalle">Qué pasó *</label>
      <textarea id="r-detalle" name="detalle" rows="6" required
-       placeholder="Contanos con fechas, si las recordás."></textarea></p>
+       placeholder="Cuéntanos con fechas, si las recordás."></textarea></p>
 
   <p><label for="r-pedido">Qué pedís</label>
      <textarea id="r-pedido" name="pedido" rows="3"
@@ -86,7 +86,7 @@
   <p><button type="submit" class="btn">Enviar la hoja</button></p>
 
   <p class="tiny dim">Al enviar se abre tu programa de correo con la hoja ya escrita, dirigida
-     a soporte@sisac.pe. Si no se abriera, escribinos directo a esa dirección: vale igual y
+     a soporte@sisac.pe. Si no se abriera, escríbenos directo a esa dirección: vale igual y
      el plazo corre desde la fecha de tu correo.</p>
 </form>
 
@@ -129,7 +129,7 @@ document.getElementById('hoja-reclamo').addEventListener('submit', function (e) 
   ].join('\n');
 
   aviso.innerHTML = '<div class="card"><p class="flat">Abriendo tu correo con la hoja escrita. ' +
-    'Si no se abre, mandá el texto a soporte@sisac.pe.</p></div>';
+    'Si no se abre, manda el texto a soporte@sisac.pe.</p></div>';
 
   window.location.href = 'mailto:soporte@sisac.pe' +
     '?subject=' + encodeURIComponent('[' + v('r-tipo') + '] VueloRadar — ' + v('r-nombre')) +

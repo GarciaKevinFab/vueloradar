@@ -1,7 +1,7 @@
 {% extends "web/base.html" %}
 
 {% block title %}Avisame si baja: {{ route.origin.city }} → {{ route.destination.city }} — {{ site_name }}{% endblock %}
-{% block description %}Dejá tu correo y te avisamos cuando el precio de esta ruta caiga de verdad.{% endblock %}
+{% block description %}Deja tu correo y te avisamos cuando el precio de esta ruta caiga de verdad.{% endblock %}
 
 {% block head_extra %}<meta name="robots" content="noindex,follow">{% endblock %}
 
@@ -13,7 +13,7 @@
 </ol>
 
 {% if enviado %}
-  <h1 class="rise d1">Revisá tu<br>correo</h1>
+  <h1 class="rise d1">Revisa tu<br>correo</h1>
   {% if ya_confirmado %}
     <p class="lede rise d2">Ese aviso ya estaba confirmado y sigue activo. No te mandamos nada nuevo:
        cuando el precio de <strong>{{ route.origin.city }} → {{ route.destination.city }}</strong>

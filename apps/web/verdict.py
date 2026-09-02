@@ -1,6 +1,6 @@
 """Veredicto público: ¿el precio de hoy es bueno para esta ruta?
 
-Es la pieza que diferencia al sitio de un metabuscador: decimos "esperá"
+Es la pieza que diferencia al sitio de un metabuscador: decimos "espera"
 cuando conviene esperar. La lógica es pura (sin ORM) para poder testearla
 sin base de datos, igual que `apps/flights/stats.py`.
 
@@ -33,11 +33,11 @@ SIN_DATOS = "sin_datos"
 
 #: Etiqueta, acción recomendada y color por veredicto.
 LABELS = {
-    EXCELENTE: ("Excelente precio", "Comprá ahora", "#0f9d58"),
+    EXCELENTE: ("Excelente precio", "Compra ahora", "#0f9d58"),
     BUENO: ("Buen precio", "Buen momento para comprar", "#2e7d32"),
-    NORMAL: ("Precio normal", "Podés comprar sin apuro", "#8a6d1f"),
+    NORMAL: ("Precio normal", "Puedes comprar sin apuro", "#8a6d1f"),
     ALTO: ("Precio alto", "Conviene esperar", "#d97706"),
-    CARO: ("Caro", "Esperá, esto no es precio", "#c5221f"),
+    CARO: ("Caro", "Espera, esto no es precio", "#c5221f"),
     SIN_DATOS: ("Sin histórico suficiente", "Todavía no opinamos", "#5f6368"),
 }
 
