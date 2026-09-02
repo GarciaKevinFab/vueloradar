@@ -306,59 +306,13 @@ footer.wrap{margin:6rem auto 0;padding:2.5rem 1.5rem 3rem;
 /* El credito va como distintivo y no como texto suelto: es el formato que el
    estudio usa en los demas sitios que construye, y asi se reconocen entre si.
    El texto es el mismo de antes; cambia la forma. */
-.foot-by{margin-left:auto;display:inline-flex;align-items:center;gap:.5rem;
-  background:var(--bg-elev);border:1px solid var(--line);border-radius:.7rem;
-  padding:.35rem .6rem;box-shadow:var(--shadow-1);
-  transition:border-color .2s ease,transform .2s ease,box-shadow .2s ease,
-             opacity .2s ease}
-/* Flotante solo con pantalla ancha. Va a la IZQUIERDA porque la derecha la
-   ocupa el boton del bot, que es la conversion del sitio y no se mueve.
-   En movil vuelve al pie: dos elementos fijos sobre 375 px de ancho tapan el
-   contenido, y el que tiene que sobrevivir es el del bot. */
-@media (min-width:45rem){
-  .foot-by{position:fixed;z-index:29;margin-left:0;
-    left:1rem;bottom:calc(1rem + env(safe-area-inset-bottom));
-    backdrop-filter:saturate(1.4) blur(10px);
-    background:color-mix(in srgb,var(--bg-elev) 82%,transparent);
-    /* Atenuado en reposo: es un credito, no contenido. Se acerca al color
-       completo al pasar el cursor, que es cuando alguien lo esta mirando. */
-    opacity:.62}
-  .foot-by:hover{opacity:1}
-
-  /* En reposo se queda en el logotipo y el texto se recoge.
-     No es un capricho: con el texto desplegado mide 220 px, y al ser fijo en la
-     esquina inferior izquierda tapaba lo que hubiera debajo. Estaba comiendose
-     el chip "Juliaca" de la portada -un enlace a los vuelos desde Juliaca que,
-     sencillamente, no se podia pulsar-.
-
-     Recogido mide ~44 px y no alcanza a ningun destino. El texto sigue en el
-     DOM, asi que los lectores de pantalla lo leen igual: solo esta plegado. */
-  .foot-by span{
-    max-width:0;opacity:0;overflow:hidden;white-space:nowrap;
-    transition:max-width .3s cubic-bezier(.2,.7,.3,1),opacity .2s ease}
-  .foot-by:hover span,
-  .foot-by:focus-visible span,
-  .foot-by:focus-within span{max-width:11rem;opacity:1}
 }
-/* El punto solo tiene sentido flotando; en el pie es ruido. */
-@media (max-width:44.999rem){.foot-by u{display:none}}
-.foot-by:hover{border-color:var(--accent);transform:translateY(-1px);
-  box-shadow:var(--shadow-2)}
 /* El logotipo no es cuadrado (1,76:1): se fija el alto y el ancho se deduce,
    porque forzarlo a cuadrado lo aplastaria. Tiene transparencia real y sus
    rojos y azules se leen en los dos temas, asi que no lleva fondo propio. */
-.foot-by img{height:1.25rem;width:auto;display:block;flex-shrink:0}
-.foot-by em{display:block;font-style:normal;font-size:.5rem;letter-spacing:.11em;
-  text-transform:uppercase;color:var(--ink-3);line-height:1.2}
-.foot-by b{display:block;font-size:.75rem;font-weight:600;color:var(--ink-2);
-  letter-spacing:-.005em;line-height:1.25;margin-top:.05rem;white-space:nowrap}
-.foot-by:hover b{color:var(--ink)}
 /* El punto es un acento de marca, no un indicador de estado: no dice "en
    linea" ni nada que despues haya que sostener con un dato. */
-.foot-by u{width:.5rem;height:.5rem;border-radius:50%;background:var(--good);
-  flex-shrink:0;text-decoration:none;margin-left:.2rem}
 @media (max-width:44rem){
-  .foot-by{margin-left:0}
   /* El boton flotante tapa la ultima linea del pie si no le hacemos sitio. */
   footer.wrap{padding-bottom:6rem}
 }
@@ -690,17 +644,6 @@ body::after{content:'';position:fixed;inset:0;z-index:2;pointer-events:none;
 
   <div class="foot-bar">
     <span>© {% now "Y" %} {{ site_name }}</span>
-    {% if builder_name %}
-    {% comment %} Es un enlace entero, no un texto con un enlace adentro: como
-       distintivo flotante, el area de clic tiene que ser toda la pastilla.
-       El logotipo es opcional — referenciar un estático inexistente reventaría
-       el manifiesto de WhiteNoise en producción. {% endcomment %}
-    <a class="foot-by" href="{{ builder_url }}" target="_blank" rel="noopener external">
-      {% if builder_logo %}<img src="{% static builder_logo %}" alt="" width="42" height="24">{% endif %}
-      <span><em>Hecho por</em><b>{{ builder_name }}</b></span>
-      <u aria-hidden="true"></u>
-    </a>
-    {% endif %}
   </div>
 </footer>
 
@@ -732,9 +675,17 @@ body::after{content:'';position:fixed;inset:0;z-index:2;pointer-events:none;
 
   var ojo = new IntersectionObserver(function (entradas) {
     for (var i = 0; i < entradas.length; i++) {
-      if (!entradas[i].isIntersecting) continue;
-      entradas[i].target.classList.add('visto');
-      ojo.unobserve(entradas[i].target);   // una vez visto, se deja en paz
+      var e = entradas[i];
+      // Se muestra si esta entrando... O SI YA QUEDO POR ENCIMA.
+      //
+      // Lo segundo no es un adorno: con `isIntersecting` a secas, saltar de
+      // golpe -la barra de scroll, la tecla Fin, o llegar por un ancla- lleva
+      // al bloque de "abajo" a "arriba" sin que llegue a intersectar en ningun
+      // fotograma. El observador no dispara y el bloque se queda invisible
+      // PARA SIEMPRE, aunque el lector pase por encima.
+      if (!e.isIntersecting && e.boundingClientRect.top > 0) continue;
+      e.target.classList.add('visto');
+      ojo.unobserve(e.target);   // una vez visto, se deja en paz
     }
   }, { rootMargin: '0px 0px -12% 0px' });
 
@@ -752,6 +703,234 @@ body::after{content:'';position:fixed;inset:0;z-index:2;pointer-events:none;
   <b>Preguntale al bot</b>
 </a>
 {% endif %}
+
+<!-- ==========================================================================
+     Distintivo de constructor - "hecho por"
+     ==========================================================================
+     Se pega tal cual antes de </body>. No necesita nada mas: ni scripts, ni
+     hojas externas, ni tipografias descargadas. El logo va incrustado como
+     data URI, asi que la pastilla no genera NI UNA peticion.
+
+     LAS DOS DECISIONES QUE NO SE TOCAN
+     ----------------------------------
+     z-index 29. Bajo a proposito. Si el sitio tiene un flotante propio -el
+     boton de WhatsApp, un chat, un CTA- ese va por encima, y si aun asi
+     estorba, este credito se muda al lado contrario con .sb-izquierda. Un
+     credito nunca puede taparle la conversion al cliente.
+
+     El punto verde es un acento de marca y NADA MAS. No pulsa, no dice "en
+     linea" y no hay logica detras. Un punto verde que late afirma
+     disponibilidad, y aqui no hay nada midiendo ninguna disponibilidad: seria
+     mentir con un pixel.
+
+     AISLAMIENTO
+     -----------
+     Todas las declaraciones llevan !important. En un componente normal seria
+     un exceso; aqui es el punto: esto se pega en sitios ajenos cuyo CSS no
+     controlamos, y un `a{text-decoration:underline!important}` del anfitrion
+     -que los hay- desarmaria la pastilla sin el. Las variables --sb-* NO lo
+     llevan, porque los temas funcionan redefiniendolas y blindarlas dejaria
+     .sb-claro y .sb-oscuro sin efecto.
+
+     Clases con prefijo sb- y variables propias del componente. Todo lo que se
+     hereda -tipografia, interlineado, espaciado entre letras, decoracion de
+     texto, transformacion, direccion- se fija a mano, porque un
+     a{text-decoration:underline} o un body{letter-spacing:.05em} del sitio
+     anfitrion se colarian dentro. Tampoco se usan <b> ni <em>: si el sitio los
+     redefine, aqui no hay ninguno al que afectar.
+========================================================================== -->
+<style>
+.sb-credito {
+  /* Fichas propias. El componente no lee ninguna variable del sitio, asi que
+     un --color o un --radius del anfitrion no puede alterarlo. */
+  --sb-fondo: rgba(255,255,255,.92);
+  --sb-borde: rgba(2,6,23,.10);
+  --sb-tinta: #0f172a;
+  --sb-tenue: rgba(15,23,42,.58);
+  --sb-punto: #22c55e;
+  --sb-sombra: 0 1px 2px rgba(2,6,23,.06), 0 4px 12px rgba(2,6,23,.08);
+
+  position: fixed !important;
+  right: 1rem !important;
+  bottom: 1rem !important;
+  z-index: 29 !important;                 /* ver cabecera: bajo a proposito */
+
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: .5rem !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: .35rem .6rem !important;
+  border: 1px solid var(--sb-borde) !important;
+  border-radius: .7rem !important;
+  background: var(--sb-fondo) !important;
+  box-shadow: var(--sb-sombra) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  backdrop-filter: blur(8px) !important;
+
+  /* Blindaje contra el CSS del anfitrion. */
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif !important;
+  font-size: 1rem !important;
+  font-style: normal !important;
+  font-weight: 400 !important;
+  font-variant: normal !important;
+  line-height: 1.15 !important;
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+  text-align: left !important;
+  text-indent: 0 !important;
+  text-transform: none !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  direction: ltr !important;
+  color: var(--sb-tinta) !important;
+  -webkit-tap-highlight-color: transparent !important;
+
+  /* Es un credito, no contenido: presente, pero apagado. */
+  opacity: .62 !important;
+  transition: opacity .18s ease !important;
+}
+
+/* Para cuando el flotante del sitio ya ocupa la esquina derecha. */
+.sb-credito.sb-izquierda { right: auto !important; left: 1rem !important; }
+
+.sb-credito:hover,
+.sb-credito:focus-visible { opacity: 1 !important; }
+.sb-credito:focus-visible { outline: 2px solid var(--sb-punto) !important; outline-offset: 2px !important; }
+
+.sb-credito .sb-marca {
+  display: block !important;
+  height: 1.25rem !important;
+  width: auto !important;        /* la marca es apaisada; forzarla a cuadrada la deforma */
+  max-width: none !important;    /* muchos sitios llevan un img{max-width:100%} */
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  flex: none !important;
+}
+
+.sb-credito .sb-texto {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: .05rem !important;
+  min-width: 0 !important;
+}
+
+.sb-credito .sb-etiqueta {
+  font-size: .5rem !important;
+  font-weight: 600 !important;
+  letter-spacing: .11em !important;
+  text-transform: uppercase !important;
+  line-height: 1.1 !important;
+  color: var(--sb-tenue) !important;
+}
+
+.sb-credito .sb-nombre {
+  font-size: .75rem !important;
+  font-weight: 600 !important;
+  font-style: normal !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  line-height: 1.15 !important;
+  color: var(--sb-tinta) !important;
+}
+
+.sb-credito .sb-punto {
+  flex: none !important;
+  width: .4rem !important;
+  height: .4rem !important;
+  border-radius: 50% !important;
+  background: var(--sb-punto) !important;
+  /* Sin animacion: es un acento, no un semaforo. */
+}
+
+/* --- Tema -----------------------------------------------------------------
+   Por defecto sigue al sistema. En un sitio de tema FIJO eso falla: un
+   visitante con el sistema en oscuro veria una pastilla oscura sobre una
+   pagina clara. Para eso estan .sb-claro y .sb-oscuro, que mandan siempre. */
+@media (prefers-color-scheme: dark) {
+  .sb-credito:not(.sb-claro):not(.sb-oscuro) {
+    --sb-fondo: rgba(15,23,42,.92);
+    --sb-borde: rgba(255,255,255,.12);
+    --sb-tinta: #f8fafc;
+    --sb-tenue: rgba(248,250,252,.58);
+    --sb-sombra: 0 1px 2px rgba(0,0,0,.40), 0 4px 14px rgba(0,0,0,.35);
+  }
+}
+
+.sb-credito.sb-oscuro {
+  --sb-fondo: rgba(15,23,42,.92);
+  --sb-borde: rgba(255,255,255,.12);
+  --sb-tinta: #f8fafc;
+  --sb-tenue: rgba(248,250,252,.58);
+  --sb-sombra: 0 1px 2px rgba(0,0,0,.40), 0 4px 14px rgba(0,0,0,.35);
+}
+
+.sb-credito.sb-claro {
+  --sb-fondo: rgba(255,255,255,.92);
+  --sb-borde: rgba(2,6,23,.10);
+  --sb-tinta: #0f172a;
+  --sb-tenue: rgba(15,23,42,.58);
+  --sb-sombra: 0 1px 2px rgba(2,6,23,.06), 0 4px 12px rgba(2,6,23,.08);
+}
+
+/* ACTIVO en este sitio: ThemeContext pone/quita .dark en <html> y el usuario
+   puede elegir claro con el sistema en oscuro. Manda el tema del SITIO, no el
+   del sistema. Las dos reglas le ganan en especificidad al @media de arriba,
+   en los dos sentidos. */
+
+html.dark .sb-credito:not(.sb-claro):not(.sb-oscuro) {
+  --sb-fondo: rgba(15,23,42,.92);
+  --sb-borde: rgba(255,255,255,.12);
+  --sb-tinta: #f8fafc;
+  --sb-tenue: rgba(248,250,252,.58);
+  --sb-sombra: 0 1px 2px rgba(0,0,0,.40), 0 4px 14px rgba(0,0,0,.35);
+}
+html:not(.dark) .sb-credito:not(.sb-claro):not(.sb-oscuro) {
+  --sb-fondo: rgba(255,255,255,.92);
+  --sb-borde: rgba(2,6,23,.10);
+  --sb-tinta: #0f172a;
+  --sb-tenue: rgba(15,23,42,.58);
+  --sb-sombra: 0 1px 2px rgba(2,6,23,.06), 0 4px 12px rgba(2,6,23,.08);
+}
+
+/* --- Pantallas estrechas --------------------------------------------------
+   Encogerlo no bastaba. Aun reducido medía ~180 px y, al ir fijo en la esquina
+   inferior, seguia tapando el texto de la portada: en un movil de 375 px se
+   comia tres palabras de cada linea que le tocara debajo.
+
+   Se queda en el isotipo. La firma sigue estando -y los lectores de pantalla
+   la leen igual, porque el aria-label del enlace la lleva entera-, pero ocupa
+   lo que un boton y deja ver lo que hay detras. Es el mismo criterio que ya
+   usa ZenStay en movil. */
+@media (max-width: 30rem) {
+  .sb-credito { right: .6rem !important; bottom: .6rem !important; padding: .35rem !important; gap: 0 !important; border-radius: .7rem !important; opacity: .82; }
+  .sb-credito.sb-izquierda { left: .6rem !important; }
+  .sb-credito .sb-marca { height: 1.15rem !important; }
+  .sb-credito .sb-texto { display: none !important; }
+  .sb-credito .sb-punto { display: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-credito { transition: none !important; }
+}
+
+/* En papel no pinta nada. */
+@media print { .sb-credito { display: none !important; } }
+</style>
+<a class="sb-credito" href="https://sisac.pe/" target="_blank" rel="noopener external"
+   aria-label="Hecho por Star Insights IT by SISAC - se abre en una pestana nueva">
+  <img class="sb-marca" alt="" aria-hidden="true" width="67" height="40"
+       src="data:image/png;base64,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">
+  <span class="sb-texto">
+    <span class="sb-etiqueta">Hecho por</span>
+    <span class="sb-nombre">Star Insights IT by SISAC</span>
+  </span>
+  <span class="sb-punto" aria-hidden="true"></span>
+</a>
 
 </body>
 </html>
