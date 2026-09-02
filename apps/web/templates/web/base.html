@@ -302,7 +302,22 @@ footer.wrap{margin:6rem auto 0;padding:2.5rem 1.5rem 3rem;
 .foot-grid nav{padding-top:.4rem}
 .foot-bar{display:flex;flex-wrap:wrap;gap:.75rem 1.25rem;align-items:center;
   margin-top:2.75rem;padding-top:1.25rem;border-top:1px solid var(--line);
-  color:var(--ink-3);font-size:.8125rem}
+  color:var(--ink-3);font-size:.8125rem;justify-content:space-between}
+.foot-bar span{line-height:1.65}
+
+/* El distintivo del Libro. Es un boton y no un enlace de texto porque en Peru
+   el consumidor lo busca CON LA VISTA: es el sello que dice que el sitio cumple
+   la Ley 29571, y una linea mas en una columna no lo sustituye. */
+.pie-libro{display:inline-flex;align-items:center;gap:.7rem;flex:none;
+  border:1px solid var(--line);border-radius:.9rem;background:var(--bg-elev);
+  padding:.55rem .9rem;transition:border-color .2s ease,transform .2s ease}
+.pie-libro:hover{border-color:var(--accent);transform:translateY(-1px)}
+.pie-libro .icono{width:1.9rem;height:1.9rem;border-radius:.55rem;flex:none;
+  display:grid;place-items:center;font-size:.95rem;
+  background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent)}
+.pie-libro .arriba{display:block;font-size:.625rem;font-weight:600;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3)}
+.pie-libro .abajo-txt{display:block;font-size:.8125rem;font-weight:600;color:var(--ink-2)}
 /* El credito va como distintivo y no como texto suelto: es el formato que el
    estudio usa en los demas sitios que construye, y asi se reconocen entre si.
    El texto es el mismo de antes; cambia la forma. */
@@ -633,17 +648,34 @@ body::after{content:'';position:fixed;inset:0;z-index:2;pointer-events:none;
       </ul>
     </nav>
 
-    <nav aria-label="Legal">
-      <p class="foot-h">Legal</p>
+    <nav aria-label="Legal y contacto">
+      <p class="foot-h">Legal y contacto</p>
       <ul class="foot-list">
         <li><a href="{% url 'web:terminos' %}">Términos de uso</a></li>
         <li><a href="{% url 'web:privacidad' %}">Privacidad</a></li>
+        {% comment %} Faltaba: la pagina existia y no habia forma de llegar a
+           ella desde el pie, que es justo donde se la busca. {% endcomment %}
+        <li><a href="{% url 'web:reclamaciones' %}">Libro de Reclamaciones</a></li>
+        {% if contact_email %}<li><a href="mailto:{{ contact_email }}">{{ contact_email }}</a></li>{% endif %}
       </ul>
     </nav>
   </div>
 
   <div class="foot-bar">
-    <span>© {% now "Y" %} {{ site_name }}</span>
+    {% comment %} La razon social y el RUC en el pie: es lo que identifica a
+       quien opera el sitio. AdSense lo revisa, y la Ley 29733 pide saber ante
+       quien se ejercen los derechos sobre los datos. {% endcomment %}
+    <span>
+      © {% now "Y" %} SOLUCIONES INFORMÁTICAS MDD S.A.C. — RUC 20490042068<br>
+      Puerto Maldonado, Madre de Dios, Perú.
+    </span>
+    <a class="pie-libro" href="{% url 'web:reclamaciones' %}">
+      <span class="icono" aria-hidden="true">&#9998;</span>
+      <span>
+        <span class="arriba">Libro de</span>
+        <span class="abajo-txt">Reclamaciones</span>
+      </span>
+    </a>
   </div>
 </footer>
 
