@@ -4,8 +4,15 @@
 {% block description %}La página que buscás no existe.{% endblock %}
 
 {% block content %}
+{% comment %} Las migas dan el mismo aire que en el resto de fichas: sin ellas el
+   titulo quedaba pegado a la cabecera, y el enlace de salida era texto suelto
+   que no se distinguia del parrafo. {% endcomment %}
+<ol class="crumbs"><li><a href="{% url 'web:home' %}">Inicio</a></li><li>Página no encontrada</li></ol>
 <h1>Esta página no existe</h1>
-<p class="sub">Puede que la ruta no esté entre las que monitoreamos, o que todavía no
+<p class="lede">Puede que la ruta no esté entre las que monitoreamos, o que todavía no
    tengamos histórico suficiente para publicarla.</p>
-<p><a href="{% url 'web:home' %}">Ver todas las rutas con precios</a></p>
+<div class="row">
+  <a class="btn btn-primary" href="{% url 'web:home' %}">Ver todas las rutas con precios</a>
+  <a class="link" href="{% url 'web:buscar' %}">Buscar un vuelo</a>
+</div>
 {% endblock %}
