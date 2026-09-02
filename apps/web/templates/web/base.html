@@ -57,7 +57,7 @@
    oscuro = pantalla de radar.                                            */
 :root{
   --bg:#faf9f7; --bg-elev:#ffffff; --bg-sunk:#f2f0ec;
-  --ink:#14161a; --ink-2:#4a4f57; --ink-3:#8b9099;
+  --ink:#14161a; --ink-2:#4a4f57; --ink-3:#666b73;
   --line:#e3e0da; --line-2:#d5d1c9;
   --accent:#0054d4; --accent-ink:#ffffff;
   --good:#0a6b45; --good-soft:#e2f2ea;
@@ -75,7 +75,7 @@
 @media (prefers-color-scheme:dark){
   :root{
     --bg:#0a0c10; --bg-elev:#14171d; --bg-sunk:#070810;
-    --ink:#f0f1f3; --ink-2:#a4abb6; --ink-3:#6b727e;
+    --ink:#f0f1f3; --ink-2:#a4abb6; --ink-3:#7c8592;
     --line:#232830; --line-2:#2f353f;
     --accent:#5b9bff; --accent-ink:#04101f;
     --good:#3ddc97; --good-soft:#0c2b20;
@@ -122,7 +122,7 @@ h3{font-size:1.0625rem;font-weight:600;letter-spacing:-.01em;margin:0 0 .35rem}
 header{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 82%,transparent);
   backdrop-filter:saturate(1.6) blur(14px);border-bottom:1px solid var(--line)}
 header .wrap{display:flex;align-items:center;gap:.65rem;height:3.75rem}
-.brand{display:flex;align-items:center;gap:.55rem;font-weight:600;letter-spacing:-.02em}
+.brand{display:flex;align-items:center;gap:.55rem;font-weight:600;letter-spacing:-.02em;min-height:44px}
 .brand img{width:1.5rem;height:1.5rem;border-radius:.375rem;display:block}
 .brand-sub{color:var(--ink-3);font-size:.8125rem;margin-left:auto;text-align:right}
 
@@ -247,7 +247,7 @@ tbody tr:hover{background:var(--bg-sunk)}
 .chips{display:flex;flex-wrap:wrap;gap:.5rem;padding:0;margin:.75rem 0 0;list-style:none}
 .chips a{display:inline-block;border:1px solid var(--line);background:var(--bg-elev);
   border-radius:2rem;padding:.4rem .85rem;font-size:.875rem;
-  transition:border-color .2s ease,transform .2s ease}
+  transition:border-color .2s ease,transform .2s ease;display:inline-flex;align-items:center;min-height:44px}
 .chips a:hover{border-color:var(--accent);transform:translateY(-1px)}
 
 /* --- Publicidad --------------------------------------------------------
@@ -295,7 +295,14 @@ footer.wrap{margin:6rem auto 0;padding:2.5rem 1.5rem 3rem;
   margin:0 0 .7rem}
 .foot-list{list-style:none;padding:0;margin:0}
 .foot-list li+li{margin-top:.45rem}
-.foot-list a{color:var(--ink-2)}
+/* 44 px de alto en los enlaces de listas y del pie.
+   Medido antes: 34 enlaces de la portada median 18 px, menos de la mitad del
+   objetivo tactil que pide la guia. En un movil eso es fallar el toque una de
+   cada tres veces, y esta pagina se abre sobre todo desde el telefono. */
+.foot-list a{color:var(--ink-2);display:inline-flex;align-items:center;min-height:44px}
+.foot-list li+li{margin-top:0}
+header .brand-sub{display:inline-flex;align-items:center;min-height:44px}
+.crumbs a{display:inline-flex;align-items:center;min-height:44px}
 .foot-list a:hover{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
 /* Las columnas de enlaces se alinean opticamente con la marca, que es mas
    alta: sin este empujon los titulillos flotan por encima del logotipo. */
