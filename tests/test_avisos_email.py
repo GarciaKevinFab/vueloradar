@@ -53,7 +53,7 @@ def test_el_alta_crea_la_alerta_sin_confirmar(client, route):
 def test_el_alta_manda_el_correo_de_confirmacion(client, route):
     _alta(client, route)
     assert len(mail.outbox) == 1
-    assert "Confirmá" in mail.outbox[0].subject
+    assert "Confirma" in mail.outbox[0].subject
     assert mail.outbox[0].to == ["viajero@ejemplo.pe"]
     # El enlace de confirmacion tiene que estar en el cuerpo.
     assert "/aviso/confirmar/" in mail.outbox[0].body

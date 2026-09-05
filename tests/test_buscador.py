@@ -101,7 +101,7 @@ def test_el_link_nunca_lleva_cero_adultos():
 def test_el_buscador_vacio_responde(client, db):
     resp = client.get("/buscar/")
     assert resp.status_code == 200
-    assert "querés ir" in resp.content.decode()
+    assert "quieres ir" in resp.content.decode()
 
 
 def test_una_busqueda_completa_da_link_de_compra(client, peru_airports):

@@ -879,12 +879,25 @@ def test_el_pie_acredita_a_quien_construyo_el_sitio(client, route, stats):
     assert "https://sisac.pe/" in cuerpo
 
 
-def test_el_credito_del_pie_sale_por_configuracion(client, route, stats, settings):
-    """Sin BUILDER_NAME el pie no inventa un crédito vacío."""
+def test_el_credito_del_pie_ya_no_depende_de_la_configuracion(client, route, stats, settings):
+    """El distintivo pasó a ser un componente portable: dejó de leer BUILDER_*.
+
+    Antes el crédito salía de `BUILDER_NAME` / `BUILDER_URL` / `BUILDER_LOGO` y
+    vaciar la primera lo ocultaba. Ahora el nombre, el enlace y el logo están en
+    el marcado, para poder pegar el bloque en otro sitio sin arrastrar settings.
+
+    Este test afirmaba `'class="foot-by"' not in cuerpo`. Esa clase desapareció
+    con el rediseño, así que pasaba SIEMPRE: verificaba la ausencia de algo que
+    ya no podía existir. Ahora fija el contrato de verdad — el crédito aparece
+    aunque las tres variables estén vacías — y de paso deja constancia de que
+    esas settings quedaron sin usar.
+    """
     settings.BUILDER_NAME = ""
+    settings.BUILDER_URL = ""
+    settings.BUILDER_LOGO = ""
     cuerpo = client.get(reverse("web:home")).content.decode()
-    # `foot-by` a secas también matchea la regla CSS: hay que mirar el marcado.
-    assert 'class="foot-by"' not in cuerpo
+    assert "Star Insights IT by SISAC" in cuerpo
+    assert 'href="https://sisac.pe/"' in cuerpo
 
 
 def test_sin_publicidad_no_hay_ads_txt(client, settings):
@@ -944,7 +957,7 @@ def test_ningun_enlace_del_pie_esta_roto(client, route, stats):
 def test_avisarme_sin_ruta_ofrece_elegirla(client, route, stats):
     resp = client.get(reverse("web:nuevo_aviso"))
     assert resp.status_code == 200
-    assert "¿Qué ruta querés seguir?" in resp.content.decode()
+    assert "¿Qué ruta quieres seguir?" in resp.content.decode()
 
 
 def test_una_ruta_escrita_a_mano_que_no_existe_sigue_dando_404(client, route, stats):
@@ -1133,20 +1146,20 @@ def test_el_pie_se_separa_del_contenido(client, route, stats):
     assert "\nfooter{" not in cuerpo
 
 
-def test_el_logo_del_constructor_es_opcional(client, route, stats, settings):
-    """Sin BUILDER_LOGO no se referencia un estático que puede no existir:
-    `{% static %}` con manifiesto revienta en producción si falta el archivo."""
-    settings.BUILDER_LOGO = ""
-    cuerpo = client.get(reverse("web:home")).content.decode()
-    assert 'class="foot-by"' in cuerpo
-    marca_pie = cuerpo.split('class="foot-by"')[1].split("</span>")[0]
-    assert "<img" not in marca_pie
+def test_el_logo_del_constructor_va_embebido_y_no_por_static(client, route, stats):
+    """El logo era opcional por un riesgo concreto que ya no existe.
 
-
-def test_con_logo_configurado_el_pie_lo_muestra(client, route, stats, settings):
-    settings.BUILDER_LOGO = "web/sisac-logo.png"
+    Salía por `{% static %}`, y con `CompressedManifestStaticFilesStorage` un
+    archivo ausente del manifiesto no degrada: revienta la página entera en
+    producción. Por eso se podía apagar. Ahora va como data URI dentro del
+    propio marcado, así que no hay estático que pueda faltar — pero eso vale
+    sólo mientras siga embebido, que es lo que fija este test.
+    """
     cuerpo = client.get(reverse("web:home")).content.decode()
-    assert "sisac-logo.png" in cuerpo
+    distintivo = cuerpo.split('class="sb-credito')[1]
+    assert 'class="sb-marca"' in distintivo
+    assert 'src="data:image/png;base64,' in distintivo
+    assert "sisac-logo" not in distintivo, "el logo volvió a depender de un estático"
 
 
 def test_el_pie_mantiene_la_promesa_que_sostiene_la_marca(client, route, stats):
