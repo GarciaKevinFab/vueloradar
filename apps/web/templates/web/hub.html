@@ -6,6 +6,14 @@
 {% block og_description %}{{ destinos|length }} destino{{ destinos|length|pluralize }} con histórico real de precios. Te decimos qué fechas valen la pena y cuáles dejar pasar.{% endblock %}
 
 {% block head_extra %}
+{% if not indexable %}
+{% comment %} Trece de las dieciocho ciudades tienen un solo destino: su hub
+   muestra una fila y esa ficha ya existe, con más información. Se deja
+   accesible —el selector de la portada lleva acá— pero fuera del índice, para
+   que no compita en Google contra la página que sí tiene el contenido. En
+   cuanto la ciudad gane un segundo destino vuelve a indexarse sola. {% endcomment %}
+<meta name="robots" content="noindex,follow">
+{% endif %}
 <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
@@ -50,10 +58,17 @@
   {% endfor %}
 </ul>
 
+{% comment %} El análisis de ESTA ciudad, no el nacional. Es lo único que el
+   hub puede decir y la portada no: desde Cusco el mejor día para volar no
+   tiene por qué ser el mismo que desde Lima, y ese contraste es el motivo por
+   el que la página existe. Si no hay muestras suficientes no se dibuja nada,
+   igual que en la ficha. {% endcomment %}
+{% include "web/_hallazgos.html" with ambito="saliendo de "|add:airport.city %}
+
 {% if bot_url %}
 <div class="cta reveal">
-  <h3>Notificame cuando baje</h3>
-  <p>Seguimos todas estas rutas dos veces al día. Decile al bot cuál te interesa y te
+  <h3>Notifícame cuando baje</h3>
+  <p>Seguimos todas estas rutas dos veces al día. Dile al bot cuál te interesa y te
      escribimos cuando el precio caiga de verdad.</p>
   <a class="btn" href="{{ bot_url }}" rel="noopener">Abrir el bot en Telegram →</a>
 </div>

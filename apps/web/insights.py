@@ -115,11 +115,21 @@ class Aerolinea:
     cuota_pct: int
 
 
-def _base(route=None):
-    """Snapshots de la ventana de análisis, opcionalmente de una ruta."""
+def _base(route=None, origen: str | None = None):
+    """Snapshots de la ventana de análisis.
+
+    Se puede acotar a una ruta concreta (la ficha) o a todo lo que sale de un
+    aeropuerto (el hub de una ciudad). Lo segundo es lo que permite decir
+    «desde Cusco conviene volar en miércoles» sin repetir el dato nacional:
+    una ciudad no tiene por qué comportarse como el país.
+    """
     desde = timezone.localdate() - timedelta(days=DIAS_DE_HISTORIA)
     qs = PriceSnapshot.objects.filter(snapshot_at__date__gte=desde)
-    return qs.filter(route=route) if route is not None else qs
+    if route is not None:
+        return qs.filter(route=route)
+    if origen is not None:
+        return qs.filter(route__origin_id=origen)
+    return qs
 
 
 def _armar(grupos: list[tuple[str, str, Decimal, int]]) -> Hallazgo | None:
@@ -156,11 +166,11 @@ def _armar(grupos: list[tuple[str, str, Decimal, int]]) -> Hallazgo | None:
     return Hallazgo(barras=barras, mejor=mejor, peor=peor)
 
 
-def weekday_prices(route=None) -> Hallazgo | None:
+def weekday_prices(route=None, origen: str | None = None) -> Hallazgo | None:
     """¿Qué día de la semana sale más barato volar?"""
     filas = {
         r["d"]: r
-        for r in _base(route)
+        for r in _base(route, origen)
         .annotate(d=ExtractWeekDay("flight_date"))
         .values("d")
         .annotate(precio=Avg("min_price_pen"), n=Count("id"))
@@ -172,7 +182,7 @@ def weekday_prices(route=None) -> Hallazgo | None:
     ])
 
 
-def booking_windows(route=None) -> Hallazgo | None:
+def booking_windows(route=None, origen: str | None = None) -> Hallazgo | None:
     """¿Cuántos días antes del vuelo conviene comprar?
 
     Una sola consulta trae el promedio por día de anticipación y las franjas se
@@ -181,7 +191,7 @@ def booking_windows(route=None) -> Hallazgo | None:
     """
     por_dia = {
         r["days_ahead"]: (r["precio"], r["n"])
-        for r in _base(route)
+        for r in _base(route, origen)
         .filter(days_ahead__isnull=False)
         .values("days_ahead")
         .annotate(precio=Avg("min_price_pen"), n=Count("id"))
@@ -209,7 +219,7 @@ def booking_windows(route=None) -> Hallazgo | None:
 SEMANAS = [(i * 7, i * 7 + 6, f"{i * 7}–{i * 7 + 6} días", str(i * 7)) for i in range(9)]
 
 
-def booking_curve(route=None) -> Hallazgo | None:
+def booking_curve(route=None, origen: str | None = None) -> Hallazgo | None:
     """El precio semana a semana antes del vuelo.
 
     Es la misma pregunta que `booking_windows`, con más resolución: sirve para
@@ -218,7 +228,7 @@ def booking_curve(route=None) -> Hallazgo | None:
     """
     por_dia = {
         r["days_ahead"]: (r["precio"], r["n"])
-        for r in _base(route)
+        for r in _base(route, origen)
         .filter(days_ahead__isnull=False, days_ahead__lte=SEMANAS[-1][1])
         .values("days_ahead")
         .annotate(precio=Avg("min_price_pen"), n=Count("id"))
@@ -236,7 +246,7 @@ def booking_curve(route=None) -> Hallazgo | None:
     return _armar(grupos)
 
 
-def cheapest_airlines(route=None, limite: int = 4) -> list[Aerolinea]:
+def cheapest_airlines(route=None, origen: str | None = None, limite: int = 4) -> list[Aerolinea]:
     """Qué aerolínea aparece más veces como la más barata.
 
     No es «cuál es mejor»: es cuántas veces ganó en precio. La distinción
@@ -244,7 +254,7 @@ def cheapest_airlines(route=None, limite: int = 4) -> list[Aerolinea]:
     cost siempre gana.
     """
     filas = list(
-        _base(route)
+        _base(route, origen)
         .exclude(cheapest_airline="")
         .values("cheapest_airline")
         .annotate(n=Count("id"))

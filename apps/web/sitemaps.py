@@ -81,7 +81,13 @@ class LegalSitemap(Sitemap):
 
 
 class CitySitemap(Sitemap):
-    """Páginas por ciudad de origen."""
+    """Páginas por ciudad de origen, salvo las que no son un índice de nada.
+
+    Trece de las dieciocho ciudades tienen un solo destino publicado, así que
+    su hub es un enlace a una ficha que ya existe y con menos información que
+    ella. Publicarlos era pedirle a Google que indexara duplicados de las
+    fichas propias.
+    """
 
     changefreq = "daily"
     priority = 0.9
@@ -97,7 +103,8 @@ class CitySitemap(Sitemap):
             previo = self._ultimo_por_ciudad.get(r.origin_id)
             if previo is None or stats.updated_at > previo:
                 self._ultimo_por_ciudad[r.origin_id] = stats.updated_at
-        return queries.cities_with_routes()
+        return [a for a in queries.cities_with_routes()
+                if queries.hub_indexable(queries.routes_from(a))]
 
     def location(self, airport):
         return reverse("web:hub", args=[airport.slug])

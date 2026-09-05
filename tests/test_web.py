@@ -620,11 +620,37 @@ def test_la_ficha_trae_migas_hacia_el_hub(client, route, stats):
     assert "BreadcrumbList" in cuerpo
 
 
-def test_el_sitemap_incluye_las_ciudades(client, peru_airports):
+def test_el_sitemap_incluye_las_ciudades_con_varios_destinos(client, peru_airports):
     _ruta_publicada("LIM", "CUZ")
+    _ruta_publicada("LIM", "AQP")
     cuerpo = client.get("/sitemap.xml").content.decode()
     assert "/vuelos/desde-lima/" in cuerpo
     assert "/vuelos/LIM-CUZ/" in cuerpo
+
+
+def test_una_ciudad_con_un_solo_destino_no_va_al_sitemap(client, peru_airports):
+    """Su hub muestra una fila, y esa ficha ya existe con más información.
+
+    Trece de las dieciocho ciudades estaban así: publicarlos era pedirle a
+    Google que indexara duplicados empobrecidos de las fichas propias. La
+    página sigue existiendo para quien llegue desde el selector de la portada,
+    pero no compite en el índice.
+    """
+    _ruta_publicada("LIM", "CUZ")
+    cuerpo = client.get("/sitemap.xml").content.decode()
+    assert "/vuelos/desde-lima/" not in cuerpo
+    assert "/vuelos/LIM-CUZ/" in cuerpo, "la ficha sí tiene que seguir publicada"
+
+
+def test_el_hub_flaco_se_marca_noindex(client, peru_airports):
+    """No basta con sacarlo del sitemap: Google llega igual por los enlaces."""
+    _ruta_publicada("LIM", "CUZ")
+    flaco = client.get(reverse("web:hub", args=["lima"])).content.decode()
+    assert 'name="robots" content="noindex,follow"' in flaco
+
+    _ruta_publicada("LIM", "AQP")
+    gordo = client.get(reverse("web:hub", args=["lima"])).content.decode()
+    assert "noindex" not in gordo, "con dos destinos el hub vuelve a indexarse solo"
 
 
 def test_la_portada_enlaza_las_ciudades(client, peru_airports):
@@ -715,6 +741,8 @@ def test_las_paginas_que_cambian_con_el_barrido_declaran_lastmod(client, route, 
     Googlebot que volviera a diario sin darle con qué comprobarlo.
     """
     _snapshot(route, "179")
+    # El hub necesita dos destinos para entrar al sitemap; `route` aporta uno.
+    _ruta_publicada("LIM", "AQP")
     entradas = _sitemap_entradas(client)
     for camino in ("/", "/buscar/", "/cuando-comprar/", "/vuelos/desde-lima/"):
         url = next(u for u in entradas if u.endswith(camino))
@@ -749,6 +777,17 @@ def test_el_lastmod_de_una_ciudad_sale_de_sus_propias_rutas(client, peru_airport
                                       p25_30d=Decimal("200"), median_30d=Decimal("260"), samples_count=40)
     # `updated_at` es auto_now: se fuerza con update() para saltearlo.
     RouteStats.objects.filter(pk=vieja.pk).update(updated_at=timezone.now() - _td(days=9))
+
+    # Los dos hubs necesitan un segundo destino para entrar al sitemap. Sus
+    # estadísticas se dejan a la fecha de hoy: la del hub de Puerto Maldonado
+    # tiene que seguir siendo la más reciente de SUS rutas, no la global.
+    for origen, destino in (("LIM", "AQP"), ("PEM", "CUZ")):
+        extra = Route.objects.create(origin_id=origen, destination_id=destino, is_monitored=True)
+        _snapshot(extra, "179")
+        RouteStats.objects.create(route=extra, avg_30d=Decimal("270"), min_30d=Decimal("150"),
+                                  p25_30d=Decimal("200"), median_30d=Decimal("260"), samples_count=40)
+    RouteStats.objects.filter(route__origin_id="PEM").update(
+        updated_at=timezone.now() - _td(days=9))
 
     entradas = _sitemap_entradas(client)
     hub_lima = next(u for u in entradas if u.endswith("/vuelos/desde-lima/"))

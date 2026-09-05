@@ -201,6 +201,15 @@ def city_hub(request, ciudad: str):
         "foto": photos.foto_de(airport),
         "og_image": (f"web/og/desde-{airport.slug}.png"
                      if airport.slug in og_images.CIUDADES else None),
+        # Análisis de la ciudad, no del país: desde Cusco el mejor día para
+        # volar no tiene por qué ser el mismo que desde Lima, y es justo ese
+        # contraste el que hace que el hub diga algo que la portada no dice.
+        # Los mínimos de muestras de `insights` deciden si hay algo que decir;
+        # si no lo hay, el bloque no se dibuja.
+        "insight_dia": insights.weekday_prices(origen=airport.iata_code),
+        "insight_ventana": insights.booking_windows(origen=airport.iata_code),
+        "insight_aerolineas": insights.cheapest_airlines(origen=airport.iata_code),
+        "indexable": queries.hub_indexable(routes),
         "updated_at": timezone.now(),
     })
 

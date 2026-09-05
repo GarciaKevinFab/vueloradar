@@ -264,3 +264,23 @@ def cobertura() -> Cobertura:
         desde=timezone.localtime(desde).date() if desde else None,
         hasta=timezone.localtime(hasta).date() if hasta else None,
     )
+
+
+#: Un hub con un solo destino no es un índice: es un enlace a una ficha que ya
+#: existe, con menos información que ella. De las 18 ciudades, 13 están así.
+MIN_DESTINOS_HUB = 2
+
+
+def hub_indexable(rutas) -> bool:
+    """Si la página de una ciudad merece competir en el índice por sí sola.
+
+    El criterio es dinámico a propósito: cuando una ciudad gane un segundo
+    destino, su hub vuelve a indexarse sin que nadie toque una lista. Y al
+    revés, si lo pierde, deja de hacerlo. Una lista de excepciones escrita a
+    mano habría envejecido con el primer cambio de rutas.
+
+    No se hace 404 ni redirección: la página sigue sirviendo para quien llegue
+    desde el selector de la portada. Lo que se evita es que compita en Google
+    contra la ficha que sí tiene el contenido.
+    """
+    return len(rutas) >= MIN_DESTINOS_HUB

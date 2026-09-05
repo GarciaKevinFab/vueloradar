@@ -187,3 +187,46 @@ def test_el_analisis_por_ruta_ignora_las_demas(peru_airports):
 
     assert insights.weekday_prices(cusco).mejor.etiqueta == "miércoles"
     assert insights.weekday_prices(arequipa).mejor.etiqueta == "lunes"
+
+
+# --- análisis por ciudad de origen -------------------------------------------
+
+def test_el_analisis_por_origen_no_repite_el_nacional(peru_airports):
+    """Es la razón de existir de los hubs: decir algo que la portada no dice.
+
+    Si el análisis saliera del histórico global, las 18 ciudades publicarían la
+    misma frase con otro nombre — que es exactamente el 95% de vocabulario
+    compartido por el que AdSense rechazó el sitio. Con dos ciudades cuyos
+    datos apuntan a días distintos, el filtro por origen tiene que separarlas.
+    """
+    lima = Route.objects.create(origin_id="LIM", destination_id="CUZ", is_monitored=True)
+    pem = Route.objects.create(origin_id="PEM", destination_id="LIM", is_monitored=True)
+
+    # Desde Lima el lunes es el barato; desde Puerto Maldonado, el miércoles.
+    _snaps(lima, cuantos=150, precio="200", dia_semana=0)
+    _snaps(lima, cuantos=150, precio="400", dia_semana=2)
+    _snaps(lima, cuantos=150, precio="300", dia_semana=4)
+    _snaps(pem, cuantos=150, precio="400", dia_semana=0)
+    _snaps(pem, cuantos=150, precio="200", dia_semana=2)
+    _snaps(pem, cuantos=150, precio="300", dia_semana=4)
+
+    desde_lima = insights.weekday_prices(origen="LIM")
+    desde_pem = insights.weekday_prices(origen="PEM")
+    assert desde_lima is not None and desde_pem is not None
+    assert desde_lima.mejor.etiqueta == "lunes"
+    assert desde_pem.mejor.etiqueta == "miércoles"
+
+
+def test_sin_origen_el_analisis_sigue_siendo_el_nacional(peru_airports):
+    """El filtro es opcional: la portada y `cuando-comprar` no deben cambiar."""
+    lima = Route.objects.create(origin_id="LIM", destination_id="CUZ", is_monitored=True)
+    pem = Route.objects.create(origin_id="PEM", destination_id="LIM", is_monitored=True)
+    _snaps(lima, cuantos=150, precio="200", dia_semana=0)
+    _snaps(pem, cuantos=150, precio="200", dia_semana=0)
+    _snaps(lima, cuantos=150, precio="400", dia_semana=2)
+    _snaps(lima, cuantos=150, precio="300", dia_semana=4)
+
+    nacional = insights.weekday_prices()
+    assert nacional is not None
+    # 600 observaciones contra las 450 de Lima sola: está mirando ambas rutas.
+    assert sum(b.muestras for b in nacional.barras) > 450

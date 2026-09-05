@@ -54,7 +54,7 @@ def build_bot() -> Bot:
     token = settings.TELEGRAM_TOKEN
     if not token:
         raise ImproperlyConfigured(
-            "Falta TELEGRAM_TOKEN en el .env. Pedile uno a @BotFather en Telegram."
+            "Falta TELEGRAM_TOKEN en el .env. Pídele uno a @BotFather en Telegram."
         )
     return Bot(
         token=token,

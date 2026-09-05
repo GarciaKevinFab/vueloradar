@@ -36,10 +36,35 @@ VOSEO = re.compile(
     r"andá|mirá|dejá|buscá|elegí|comprá|poné|hacé|decí|tocá|esperá|mandá|"
     r"revisá|volvé|sumá|probá|entrá|vení|abrí|cerrá|guardá|pensá|creá|"
     r"descartá|devolvé|resolvé|respondé|confirmá|activá|desactivá|usá|"
-    r"fijate|quedate|llevate|acordate|sumale|contame|decime|avisame|mandale"
+    r"fijate|quedate|llevate|acordate|sumale|contame|decime|avisame|mandale|"
+    r"notificame|preguntale|decile|contale|escribile|mostrame|pedile|ponele"
     r")\b",
     re.IGNORECASE,
 )
+
+#: Segunda red, estructural. La lista de arriba nunca va a estar completa: se
+#: escribió creyéndola exhaustiva y aun así dejó pasar «Pregúntale al bot» y
+#: «Notifícame cuando baje» —los dos CTA más visibles del sitio, uno en todas
+#: las páginas y el otro en 58.
+#:
+#: El imperativo voseante con pronombre pegado se reconoce por la forma: en
+#: tuteo la palabra sería esdrújula y llevaría tilde (`notifícame`), y en
+#: voseo no la lleva (`notificame`). Así que cualquier palabra larga sin
+#: tilde terminada en pronombre es sospechosa, la conozca yo o no.
+ENCLITICO = re.compile(r"\b[a-z]{6,}(?:ame|ale|alo|ala|ile|ilo|arme|arte)\b")
+
+#: Palabras que la regla de arriba marca y son correctas. Se declaran una a una
+#: a propósito: si aparece una nueva, el test falla y obliga a mirarla en vez
+#: de ensanchar la regla hasta que no detecte nada.
+ENCLITICO_LEGITIMO = {
+    # Infinitivo + pronombre: correcto en cualquier variante del español.
+    "identificarte",
+    # Término técnico, y encima en inglés.
+    "percentile",
+    # Palabras llanas que la regla marca por su terminación.
+    "instale", "peruanos", "username", "señale", "detalle", "traslado",
+    "regalo", "intervalo", "escala", "señala", "sigilo", "estilo",
+}
 
 
 def _archivos_de_texto():
@@ -93,3 +118,32 @@ def test_el_detector_no_marca_lo_que_es_correcto(frase, esperado):
     a reescribir copy que está bien.
     """
     assert bool(VOSEO.search(frase)) is esperado
+
+
+def test_no_hay_encliticos_voseantes_sin_declarar():
+    """Cubre lo que la lista explícita no conoce, que es donde falló.
+
+    La lista de formas se escribió creyéndola completa y aun así dejó pasar
+    «Pregúntale al bot» y «Notifícame cuando baje». Esta regla no depende de
+    conocer la palabra: marca cualquier candidato por su forma y obliga a
+    declararlo correcto una vez. Un hallazgo nuevo es una decisión, no un fallo
+    automático — pero tiene que ser una decisión de alguien.
+    """
+    sospechosos = {}
+    for ruta in _archivos_de_texto():
+        for numero, linea in enumerate(
+            ruta.read_text(encoding="utf-8").splitlines(), start=1
+        ):
+            for encontrado in ENCLITICO.finditer(linea.lower()):
+                palabra = encontrado.group(0)
+                if palabra in ENCLITICO_LEGITIMO:
+                    continue
+                sospechosos.setdefault(palabra, []).append(
+                    f"{ruta.relative_to(RAIZ)}:{numero}"
+                )
+
+    assert not sospechosos, (
+        "Posible imperativo voseante con pronombre pegado. Si es tuteo correcto, "
+        "agrégalo a ENCLITICO_LEGITIMO; si no, ponle la tilde:\n"
+        + "\n".join(f"  {w}: {', '.join(d)}" for w, d in sorted(sospechosos.items()))
+    )
