@@ -178,6 +178,15 @@ header .wrap{display:flex;align-items:center;gap:.65rem;height:3.75rem}
 .routes .right{margin-left:auto;text-align:right;display:flex;flex-direction:column;
   align-items:flex-end;gap:.3rem}
 .routes .amount{font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+/* Escala de precios del hub. La lista venia ordenada por precio y aun asi eran
+   diecisiete filas iguales: el salto de S/ 146 a S/ 260 no se veia. Sin
+   animacion propia a proposito -- cada fila ya entra con .reveal, y repetir
+   una segunda entrada identica diecisiete veces es ruido, no jerarquia. */
+.routes .escala{display:block;height:2px;margin-top:.55rem;max-width:11rem;
+  background:var(--line);border-radius:2px}
+.routes .escala i{display:block;height:100%;background:var(--ink-3);border-radius:2px}
+.routes .barato .escala i{background:var(--accent)}
+.routes .barato .amount{color:var(--accent)}
 
 /* --- Tablas ------------------------------------------------------------*/
 .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;

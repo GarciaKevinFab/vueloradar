@@ -162,6 +162,37 @@ def route_detail(request, origin: str, destination: str):
     })
 
 
+def _marcar_escala(destinos: list[dict], con_precio: list[dict]) -> None:
+    """Ancho de la barra de precio de cada destino, en porcentaje.
+
+    La lista ya venía ordenada por precio y aun así eran diecisiete filas
+    idénticas: el salto de S/ 146 a S/ 260 no se veía por ningún lado y había
+    que restar mentalmente para notarlo.
+
+    El ancho se calcula sobre el RANGO de la ciudad, no sobre el precio, por lo
+    mismo que las barras de `insights`: entre 146 y 260 hay un 78%, y dibujar
+    barras al 56% y al 100% no deja comparar nada. Y lleva piso, porque una
+    barra de ancho cero en el destino más barato se lee como un fallo de
+    renderizado, no como "este es el mínimo".
+    """
+    if not con_precio:
+        return
+    barato = min(d["desde"] for d in con_precio)
+    caro = max(d["desde"] for d in con_precio)
+    rango = caro - barato
+    for d in destinos:
+        if d["desde"] is None:
+            d["ancho_pct"] = None
+            continue
+        proporcion = float((d["desde"] - barato) / rango) if rango else 0.0
+        d["ancho_pct"] = round(PISO_ESCALA + proporcion * (100 - PISO_ESCALA))
+        d["es_mas_barato"] = d["desde"] == barato
+
+
+#: Ancho mínimo de la barra, en porcentaje. Ver `_marcar_escala`.
+PISO_ESCALA = 12
+
+
 @cache_control(public=True, max_age=300, s_maxage=EDGE_TTL)
 def city_hub(request, ciudad: str):
     """Todas las rutas que salen de una ciudad.
@@ -192,6 +223,7 @@ def city_hub(request, ciudad: str):
 
     con_precio = [d for d in destinos if d["desde"] is not None]
     destinos.sort(key=lambda d: (d["desde"] is None, d["desde"] or 0))
+    _marcar_escala(destinos, con_precio)
 
     return render(request, "web/hub.html", {
         "airport": airport,
