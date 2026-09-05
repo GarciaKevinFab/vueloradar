@@ -148,3 +148,12 @@ def test_nunca_mas_de_tres_observaciones():
 def test_sin_nada_notable_devuelve_lista_vacia_y_no_inventa():
     """Una ruta sin particularidades no necesita que le fabriquemos una."""
     assert leer_ruta(_ruta(), [], [], None) == []
+
+
+def test_cero_fechas_baratas_no_dice_solo_cero():
+    """«Solo 0 de 45 fechas» salió publicado en LIM-HUU. El cero es otra frase."""
+    obs = leer_ruta(_ruta(), [], _fechas(baratas=0, total=45), _stats())
+    assert claves(obs) == ["momento-malo"]
+    assert "Solo 0" not in obs[0].detalle
+    assert "Ninguna de las 45" in obs[0].detalle
+    assert obs[0].titular == "Hoy ninguna fecha está a buen precio"

@@ -385,6 +385,30 @@ ignora (el kernel protege al PID 1 de su propio namespace). La prueba válida es
 `kill -TERM 1`, que Celery sí maneja: el contenedor salió, se reinició solo
 (`RestartCount: 1`) y volvió a `healthy`.
 
+### La lectura de cada ruta (2026-09-05)
+
+- **Las 40 fichas compartían el 79% del vocabulario y no era por falta de
+  datos**: ya traían los tres bloques de análisis. Era que todas decían lo mismo
+  con otros números. `apps/web/lectura.py` no añade otro hueco: mira el perfil
+  de la ruta y **elige qué contar** —precio quieto o movido, ida más cara que la
+  vuelta, buen o mal momento—, así que dos perfiles distintos publican párrafos
+  distintos en estructura. Entre umbrales calla: una observación tibia rellena
+  sin informar. Sobre las 40 rutas da 12 combinaciones y 8 sin observación.
+- **Los tres ejes se midieron antes de escribir una línea**, para comprobar que
+  discriminan: volatilidad de 0% (LIM-JAU, IQT-LIM, LIM-HUU) a 40% (LIM-CUZ);
+  asimetría con la inversa de 12% a 68% (volver desde Juliaca cuesta un 63%
+  más que ir); fechas baratas de 10/25 a 35/45.
+- **La métrica de vocabulario compartido apenas se mueve (79% → 77%) y es
+  honesto decirlo**: ese porcentaje lo dominan cabecera, pie, calendario y
+  etiquetas comunes a todas, y 80 palabras únicas en páginas de 950 no lo
+  cambian. Lo que cambió es que ahora hay prosa cierta solo para esa ruta, que
+  es lo que Google llama valor añadido; el número no lo captura y no hay que
+  perseguirlo.
+- **Dos cosas que la verificación en vivo cazó y la suite no**: la fixture
+  `_ruta_publicada` deja un snapshot a S/ 179 que convertía una serie plana en
+  un 47% de rango (la "quieta" salía "movida"); y LIM-HUU publicó «Solo 0 de 45
+  fechas» — el cero merece su propia frase. Ambas con test ahora.
+
 ### Los hubs de ciudad (2026-09-05)
 
 - **Trece de las dieciocho ciudades tienen un solo destino publicado.** Su hub

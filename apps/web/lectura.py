@@ -170,14 +170,22 @@ def _observacion_momento(route, fechas, stats) -> Observacion | None:
             ),
         )
     if proporcion <= MOMENTO_MALO:
+        # «Solo 0 de 45» es lo que salió publicado en LIM-HUU: el cero merece
+        # su propia frase, no un "solo" que lo trata como si fuera poco.
+        if baratas == 0:
+            cuantas = f"Ninguna de las {len(fechas)} fechas que seguimos está"
+            titular = "Hoy ninguna fecha está a buen precio"
+        else:
+            cuantas = f"Solo {baratas} de {len(fechas)} fechas están"
+            titular = "Hoy casi ninguna fecha está a buen precio"
         return Observacion(
             clave="momento-malo",
-            titular="Hoy casi ninguna fecha está a buen precio",
+            titular=titular,
             detalle=(
-                f"Solo {baratas} de {len(fechas)} fechas están por debajo del "
-                f"precio habitual de la ruta. Si el viaje puede esperar, esta no "
-                f"es la semana para comprarlo; si no puede, al menos ya sabes que "
-                f"estás pagando por encima de lo normal."
+                f"{cuantas} por debajo del precio habitual de la ruta. Si el "
+                f"viaje puede esperar, esta no es la semana para comprarlo; si "
+                f"no puede, al menos ya sabes que estás pagando por encima de "
+                f"lo normal."
             ),
         )
     return None
