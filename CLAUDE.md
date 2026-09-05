@@ -385,6 +385,34 @@ ignora (el kernel protege al PID 1 de su propio namespace). La prueba válida es
 `kill -TERM 1`, que Celery sí maneja: el contenedor salió, se reinició solo
 (`RestartCount: 1`) y volvió a `healthy`.
 
+### Los hubs de ciudad (2026-09-05)
+
+- **Trece de las dieciocho ciudades tienen un solo destino publicado.** Su hub
+  mostraba una fila y esa ficha ya existe con más información: era un enlace
+  disfrazado de página, y explicaba el 95% de vocabulario compartido entre
+  hubs, el peor dato del sitio. Ahora llevan `noindex,follow` y salen del
+  sitemap; siguen accesibles porque el selector de la portada lleva ahí.
+- **El criterio es dinámico** (`queries.hub_indexable`, 2+ destinos): cuando
+  una ciudad gane un segundo destino vuelve a indexarse sola. Una lista de
+  excepciones a mano habría envejecido con el primer cambio de rutas.
+- **`insights` acepta `origen` además de `route`.** Los cinco hubs que quedan
+  publican el análisis de SU ciudad, y con datos reales dan resultados
+  distintos: Arequipa sábados, Cusco miércoles, Juliaca jueves, Puerto
+  Maldonado domingos. Si fuera el nacional repetido, las dieciocho páginas
+  dirían lo mismo — que es exactamente el problema que se venía a resolver.
+- **La lista se parte en dos alrededor del análisis.** Con diecisiete destinos
+  quedaba a 2.178 px de scroll (2,7 pantallas de móvil); ahora a 1.141. Seis
+  destinos primero —lo que la persona vino a buscar—, después el análisis, y al
+  final el resto.
+- **Cada fila lleva una escala de precio de la ciudad**, sobre el RANGO y no
+  sobre el precio, con piso del 12%: es la misma lección que las barras de
+  `insights`. Entre S/ 146 y S/ 260 hay un 78%, y barras al 56% y al 100% no
+  dejan comparar nada. Sin animación propia: cada fila ya entra con `.reveal`.
+- **Partir la lista rompió el contador.** `destinos|length` pasó a valer 6 y
+  alimentaba tres sitios: el texto, la meta description y el Open Graph. Lima
+  llegó a anunciar «6 destinos» teniendo 17 — o sea que Google y WhatsApp leían
+  eso. Lo cazó una inspección en el navegador, no la suite; ahora hay test.
+
 ### Notas de la Fase 6
 
 - **Dos veredictos, no uno.** `evaluate()` juzga el precio de **una fecha**
