@@ -249,18 +249,32 @@ celery -A config beat                                # scheduler
   pantalla y hubo que rotarla. Para secretos, `nano` directo en el servidor, y
   **nunca volcar el `.env`** — verificar con booleanos (`bool(...)`, `len(...)`,
   `startswith(...)`), jamás con el valor.
-- **AdSense configurado (2026-08-27):** `ADSENSE_CLIENT=ca-pub-4805816769009138`
-  en el `.env` del VPS. El script carga en el `<head>` y `/ads.txt` responde.
-  **Ojo: esta nota tuvo el ID mal hasta el 2026-08-29** (decía
-  `...4805616769009135`, con dos dígitos cambiados). El bueno es el que sirve
-  producción, y se verifica sin entrar al panel: el `<script>` del `<head>` y
-  `/ads.txt` tienen que coincidir, porque `/ads.txt` se deriva de la misma
-  variable. Un ID equivocado en el `.env` no rompe nada visible — simplemente
-  declara que otro editor puede vender el inventario y no se cobra nunca.
-  Estado al 2026-08-29: `vueloradar.com` en «Preparando el sitio» con el
-  ads.txt «Autorizado». No hay slots todavía
-  (`ADSENSE_SLOT_HOME` / `ADSENSE_SLOT_ROUTE` vacíos), así que no se dibuja
-  ningún hueco: el script carga y paga latencia sin devolver un anuncio.
+- **AdSense RECHAZÓ el sitio el 2026-09-05: «contenido de bajo valor».**
+  `ADSENSE_CLIENT` quedó **vacía a propósito** en el `.env` del VPS; el ID bueno
+  es `ca-pub-4805816769009138` (la nota lo tuvo mal hasta el 2026-08-29, con dos
+  dígitos cambiados) y se restaura cuando haya algo nuevo que enseñar.
+
+  **No es un problema técnico y no tiene arreglo técnico.** Medido sobre las 63
+  páginas publicadas: las 40 fichas de ruta comparten el **79%** del vocabulario
+  entre sí y los 18 hubs de ciudad el **95%** — son la misma plantilla con otro
+  nombre de ciudad. Solo dos páginas tienen prosa escrita para ellas: la portada
+  y `cuando-comprar`. Las fichas sí traen los tres bloques de análisis propio
+  (40/40 «Cuándo comprar» y «Quién gana», 38/40 «Qué día volar»), así que no
+  están vacías: el problema es que todo el texto es plantilla más números.
+
+  Decisión del 2026-09-05: **posponer AdSense y perseguir tráfico primero.** El
+  trabajo que pide AdSense es el mismo que pide el SEO, pero con cero posiciones
+  el anuncio pagaría céntimos aunque aprobaran mañana. Con la cuenta rechazada,
+  el script solo costaba latencia contra las Core Web Vitals — que sí son factor
+  de ranking. Sin `ADSENSE_CLIENT` el sitio vuelve a **cero peticiones a
+  terceros**: verificado que era la única, `t.me` y `sisac.pe` son enlaces y
+  `schema.org`/`w3.org` son namespaces.
+
+  **Antes de volver a «Solicitar revisión» hay que tener contenido original que
+  no exista hoy.** Reintentar sin eso gasta el intento: el script tiene que
+  estar puesto para que Google lo detecte, así que hay que volver a poner la
+  variable, y cada ciclo de revisión son semanas.
+
 - ~~Los correos de aviso nunca salieron.~~ (Resuelto arriba.) El DNS de Resend está puesto y
   propagado en Cloudflare (DKIM en `resend._domainkey.vueloradar.com`, SPF y MX
   de rebotes en `send.vueloradar.com`, o sea el dominio verificado es la raíz
@@ -365,6 +379,16 @@ ignora (el kernel protege al PID 1 de su propio namespace). La prueba válida es
 - **Caché en el borde**: las vistas declaran `s-maxage=1800` y
   `compute_route_stats` purga la zona al terminar. Sin
   `CLOUDFLARE_API_TOKEN` la purga no corre y solo lo loguea. Ver `DEPLOY-WEB.md`.
+  **ROTO desde algún momento entre el 2026-08-29 y el 2026-09-05: el token da
+  `HTTP 401 Unauthorized`.** La variable está puesta y `CLOUDFLARE_ZONE_ID`
+  también, así que el chequeo de «configurada» pasa: falla la llamada, no la
+  configuración, y `purge_everything()` devuelve `False` sin que nadie mire.
+  El daño es acotado —con `s-maxage=1800` el borde revalida solo cada 30 min,
+  así que la purga acelera pero no es la única vía— pero hoy cada barrido
+  termina creyendo que refrescó el sitio y no lo hizo. Se arregla emitiendo un
+  token nuevo en Cloudflare con permiso *Zone → Cache Purge*. **Comprobarlo con
+  el resultado, no con `bool(...)`**: un token revocado sigue pareciendo
+  configurado.
 - **La portada usa consultas agregadas** (`bulk_upcoming_prices`,
   `bulk_price_history`). Pedir el histórico ruta por ruta costaba 121 consultas
   y 22 s con 40 rutas, y ese costo lo paga entero el primer visitante tras cada
