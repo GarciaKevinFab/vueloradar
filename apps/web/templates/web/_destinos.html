@@ -1,0 +1,37 @@
+{% load l10n %}{% comment %}
+Filas de destino del hub. Se extrajo para poder partir la lista en dos: los
+más baratos antes del análisis de la ciudad y el resto después. Espera
+`destinos` en el contexto.
+{% endcomment %}
+<ul class="routes">
+  {% for d in destinos %}
+  <li class="reveal{% if d.es_mas_barato %} barato{% endif %}">
+    <a href="{% url 'web:route' d.route.origin_id d.route.destination_id %}">
+      <span>
+        <span class="r">{{ d.route.destination.city }}</span>
+        <span class="meta">
+          {% if d.baratas %}{{ d.baratas }} de {{ d.fechas }} fechas a buen precio
+          {% elif d.fechas %}ninguna de {{ d.fechas }} fechas está barata hoy
+          {% else %}sin precios vigentes{% endif %}
+          {% if not d.route.has_direct_flights %} · vía Lima{% endif %}
+        </span>
+        {% comment %} Escala de precios de la ciudad. El precio ya está escrito
+           al lado, así que la barra es decorativa para un lector de pantalla;
+           lo que aporta es que el salto entre el destino más barato y el más
+           caro se vea sin restar. Va con {% templatetag openblock %} localize off {% templatetag closeblock %}: con
+           LANGUAGE_CODE="es" un decimal sale con coma y una coma es inválida
+           como valor CSS — el mismo bug que ya rompió el gráfico del histórico.
+        {% endcomment %}
+        {% if d.ancho_pct %}{% localize off %}
+        <span class="escala" aria-hidden="true"><i style="width:{{ d.ancho_pct }}%"></i></span>
+        {% endlocalize %}{% endif %}
+      </span>
+      <span class="right">
+        {% if d.desde %}<span class="amount">S/ {{ d.desde|floatformat:0 }}</span>{% endif %}
+      </span>
+    </a>
+  </li>
+  {% empty %}
+  <li style="padding:1.5rem .25rem" class="muted">Todavía no hay destinos con histórico desde acá.</li>
+  {% endfor %}
+</ul>

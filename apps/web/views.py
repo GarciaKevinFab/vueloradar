@@ -192,6 +192,11 @@ def _marcar_escala(destinos: list[dict], con_precio: list[dict]) -> None:
 #: Ancho mínimo de la barra, en porcentaje. Ver `_marcar_escala`.
 PISO_ESCALA = 12
 
+#: Cuántos destinos se muestran antes del análisis de la ciudad. Seis llenan
+#: una pantalla de móvil sin agotarla: bastantes para responder «¿a dónde puedo
+#: ir barato?» y pocos para que lo que sigue todavía se vea.
+DESTINOS_ANTES_DEL_ANALISIS = 6
+
 
 @cache_control(public=True, max_age=300, s_maxage=EDGE_TTL)
 def city_hub(request, ciudad: str):
@@ -227,7 +232,6 @@ def city_hub(request, ciudad: str):
 
     return render(request, "web/hub.html", {
         "airport": airport,
-        "destinos": destinos,
         "mas_barato": min((d["desde"] for d in con_precio), default=None),
         "otras_ciudades": [c for c in queries.cities_with_routes() if c.pk != airport.pk],
         "foto": photos.foto_de(airport),
@@ -241,6 +245,13 @@ def city_hub(request, ciudad: str):
         "insight_dia": insights.weekday_prices(origen=airport.iata_code),
         "insight_ventana": insights.booking_windows(origen=airport.iata_code),
         "insight_aerolineas": insights.cheapest_airlines(origen=airport.iata_code),
+        # La lista se parte para que el análisis de la ciudad no quede
+        # enterrado: con diecisiete destinos quedaba a 2.178 px de scroll, o
+        # sea cinco pantallas de móvil, y es lo único que esta página tiene y
+        # ninguna otra. Primero lo que la persona vino a buscar —los destinos
+        # más baratos—, después el análisis, y al final la lista completa.
+        "destinos": destinos[:DESTINOS_ANTES_DEL_ANALISIS],
+        "destinos_resto": destinos[DESTINOS_ANTES_DEL_ANALISIS:],
         "indexable": queries.hub_indexable(routes),
         "updated_at": timezone.now(),
     })

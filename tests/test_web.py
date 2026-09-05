@@ -1332,3 +1332,57 @@ def test_las_dos_paginas_estan_en_el_sitemap(client, route, stats):
     for nombre in ("web:como_medimos", "web:acerca"):
         camino = reverse(nombre)
         assert any(u.endswith(camino) for u in entradas), f"{camino} no está en el sitemap"
+
+
+def test_el_analisis_de_la_ciudad_va_antes_del_resto_de_destinos(client, peru_airports):
+    """Con 17 destinos el análisis quedaba a 2.178 px: cinco pantallas de móvil.
+
+    Es lo único que el hub tiene y ninguna otra página del sitio: enterrarlo
+    bajo la lista completa era publicarlo para nadie. La lista se parte, y este
+    test fija el orden — no que exista, que es lo que ya se cumplía antes.
+    """
+    from apps.flights.models import Airport
+
+    # `peru_airports` trae cuatro; hacen falta más para pasar del corte.
+    for iata, ciudad in (("IQT", "Iquitos"), ("TPP", "Tarapoto"),
+                         ("PIU", "Piura"), ("TRU", "Trujillo")):
+        Airport.objects.create(iata_code=iata, name=ciudad, city=ciudad, region=ciudad)
+
+    for destino in ("CUZ", "AQP", "PEM"):
+        _ruta_publicada("LIM", destino)
+    cuerpo = client.get(reverse("web:hub", args=["lima"])).content.decode()
+    assert "El resto de destinos" not in cuerpo, "con 3 destinos no hay que partir nada"
+
+    for destino in ("IQT", "TPP", "PIU", "TRU"):
+        _ruta_publicada("LIM", destino)
+    cuerpo = client.get(reverse("web:hub", args=["lima"])).content.decode()
+    assert "El resto de destinos" in cuerpo, "con 7 destinos la lista se parte"
+    assert cuerpo.index("El resto de destinos") > cuerpo.index('class="routes"'), (
+        "el resto tiene que ir DESPUÉS de los primeros destinos"
+    )
+
+
+def test_la_escala_de_precio_se_calcula_sobre_el_rango(client, peru_airports):
+    """Sobre el precio, entre S/ 146 y S/ 260 las barras irían del 56% al 100%.
+
+    Es la misma lección que las barras de `insights`: comprimidas contra el
+    tope no dejan comparar nada. Y el mínimo lleva piso, porque una barra de
+    ancho cero se lee como un fallo de render, no como «este es el más barato».
+    """
+    from apps.web.views import PISO_ESCALA, _marcar_escala
+
+    destinos = [{"desde": Decimal(p)} for p in ("146", "203", "260")]
+    _marcar_escala(destinos, destinos)
+    assert destinos[0]["ancho_pct"] == PISO_ESCALA
+    assert destinos[2]["ancho_pct"] == 100
+    assert destinos[1]["ancho_pct"] == pytest.approx((PISO_ESCALA + 100) / 2, abs=1)
+    assert destinos[0]["es_mas_barato"] and not destinos[2]["es_mas_barato"]
+
+
+def test_una_sola_ciudad_con_un_precio_no_rompe_la_escala(client, peru_airports):
+    """Rango cero: sin la guarda, la división reventaría la página entera."""
+    from apps.web.views import PISO_ESCALA, _marcar_escala
+
+    destinos = [{"desde": Decimal("200")}, {"desde": Decimal("200")}]
+    _marcar_escala(destinos, destinos)
+    assert all(d["ancho_pct"] == PISO_ESCALA for d in destinos)
