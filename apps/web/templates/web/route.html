@@ -136,6 +136,40 @@
      últimos {{ history_days }} días · rango S/ {{ chart.min_price|floatformat:0 }} – S/ {{ chart.max_price|floatformat:0 }}</p>
 {% endif %}
 
+{% comment %} El análisis va ANTES del CTA y del calendario, no después.
+   Medido en móvil: con el orden anterior «Lo que aprendimos» empezaba en
+   la pantalla 4,6 de 8,5, detrás de 45 fechas — lo único original de la
+   página, publicado para nadie. Y la secuencia importa: quien acaba de
+   leer «el precio se mueve, vale vigilarla» está listo para «avísame
+   cuando baje»; el argumento antes del botón, no al revés. El anuncio se
+   queda donde estaba, después del calendario: entre el argumento y el
+   botón sería justo el lugar que las notas prohíben. {% endcomment %}
+{% if observaciones or insight_ventana or insight_dia or insight_aerolineas %}
+<h2>Lo que aprendimos de esta ruta</h2>
+<p class="muted mt-0 mb-2">Sale del histórico propio de
+   {{ route.origin.city }}&nbsp;→&nbsp;{{ route.destination.city }}, no de un promedio
+   nacional: el mejor día para volar a un destino no tiene por qué serlo para otro.</p>
+
+{% comment %} Lo que solo es cierto para ESTA ruta, como prosa y no como
+   tarjetas: `lectura` elige qué contar según el perfil —precio quieto o
+   movido, ida más cara que la vuelta, buen o mal momento—, así que dos rutas
+   con perfiles distintos publican párrafos distintos en estructura, no solo
+   en cifras. Va antes de las barras porque es lo más particular; y sin
+   etiqueta encima del titular: el titular ya dice de qué va. {% endcomment %}
+{% if observaciones %}
+<div class="lectura reveal">
+  {% for o in observaciones %}
+  <article class="observacion observacion-{{ o.clave }}">
+    <h3 class="titular">{{ o.titular }}</h3>
+    <p>{{ o.detalle }}</p>
+  </article>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% include "web/_hallazgos.html" with ambito="en esta ruta" %}
+{% endif %}
+
 {% if bot_url %}
 <div class="cta reveal">
   <h3>Notifícame cuando baje</h3>
@@ -203,31 +237,6 @@
 </div>
 {% endif %}
 
-{% if observaciones or insight_ventana or insight_dia or insight_aerolineas %}
-<h2>Lo que aprendimos de esta ruta</h2>
-<p class="muted mt-0 mb-2">Sale del histórico propio de
-   {{ route.origin.city }}&nbsp;→&nbsp;{{ route.destination.city }}, no de un promedio
-   nacional: el mejor día para volar a un destino no tiene por qué serlo para otro.</p>
-
-{% comment %} Lo que solo es cierto para ESTA ruta, como prosa y no como
-   tarjetas: `lectura` elige qué contar según el perfil —precio quieto o
-   movido, ida más cara que la vuelta, buen o mal momento—, así que dos rutas
-   con perfiles distintos publican párrafos distintos en estructura, no solo
-   en cifras. Va antes de las barras porque es lo más particular; y sin
-   etiqueta encima del titular: el titular ya dice de qué va. {% endcomment %}
-{% if observaciones %}
-<div class="lectura reveal">
-  {% for o in observaciones %}
-  <article class="observacion observacion-{{ o.clave }}">
-    <h3 class="titular">{{ o.titular }}</h3>
-    <p>{{ o.detalle }}</p>
-  </article>
-  {% endfor %}
-</div>
-{% endif %}
-
-{% include "web/_hallazgos.html" with ambito="en esta ruta" %}
-{% endif %}
 
 {% comment %} El anuncio va acá y no arriba: quien llegó buscando un precio ya
    lo tiene, y el bloque no se interpone entre la pregunta y la respuesta. {% endcomment %}

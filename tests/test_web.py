@@ -1452,3 +1452,32 @@ def test_la_ficha_dice_cuando_se_observo_el_precio_y_no_cuando_se_abrio(client, 
     assert "Último precio observado hace 6" + chr(160) + "horas" in cuerpo
     assert " a las " in cuerpo, "la fecha exacta también, sin caracteres de control"
     assert "Actualizado " not in cuerpo
+
+
+def test_el_analisis_de_la_ruta_va_antes_del_cta_y_del_calendario(client, route, stats, settings):
+    """Medido en móvil: «Lo que aprendimos» empezaba en la pantalla 4,6 de 8,5.
+
+    Detrás de 45 fechas quedaba lo único original de la página. El orden nuevo
+    es argumento → botón → herramienta: quien lee «vale vigilarla» está listo
+    para «avísame cuando baje», y el calendario es consulta, no lectura.
+    """
+    settings.TELEGRAM_BOT_USERNAME = "Vuelosradar_bot"
+    _snapshot(route, "179")
+    cuerpo = client.get("/vuelos/LIM-CUZ/").content.decode()
+    aprendimos = cuerpo.index("Lo que aprendimos de esta ruta")
+    assert aprendimos < cuerpo.index('class="cta reveal"'), "el análisis va antes del CTA"
+    assert aprendimos < cuerpo.index("Calendario de precios"), "y antes del calendario"
+
+
+def test_la_entrada_del_precio_no_arranca_invisible(client, route, stats):
+    """Un hero con opacity:0 no es LCP hasta que aparece: 210 ms regalados.
+
+    La animación de entrada se conserva (translateY); lo que no puede haber es
+    un estado inicial invisible en la página cuya razón de ser es ese número.
+    """
+    _snapshot(route, "179")
+    cuerpo = client.get("/vuelos/LIM-CUZ/").content.decode()
+    i = cuerpo.index("@keyframes rise{")
+    regla = cuerpo[i:cuerpo.index("}}", i) + 2]
+    assert "opacity" not in regla, regla
+    assert "translateY" in regla, "el movimiento se mantiene"
