@@ -252,6 +252,10 @@ def city_hub(request, ciudad: str):
         # más baratos—, después el análisis, y al final la lista completa.
         "destinos": destinos[:DESTINOS_ANTES_DEL_ANALISIS],
         "destinos_resto": destinos[DESTINOS_ANTES_DEL_ANALISIS:],
+        # El total, aparte: partir la lista dejó `destinos|length` valiendo 6, y
+        # con eso la portada de Lima llegó a anunciar «6 destinos» teniendo 17
+        # —en el texto, en la meta description y en el Open Graph.
+        "total_destinos": len(destinos),
         "indexable": queries.hub_indexable(routes),
         "updated_at": timezone.now(),
     })

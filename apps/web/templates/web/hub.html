@@ -2,9 +2,9 @@
 {% load l10n %}
 
 {% block title %}Vuelos desde {{ airport.city }}: precios reales — {{ site_name }}{% endblock %}
-{% block description %}Precios de vuelos desde {{ airport.city }} ({{ airport.iata_code }}){% if mas_barato %} desde S/ {{ mas_barato|floatformat:0 }}{% endif %}. Histórico real de {{ destinos|length }} destino{{ destinos|length|pluralize }}, con veredicto por fecha.{% endblock %}
+{% block description %}Precios de vuelos desde {{ airport.city }} ({{ airport.iata_code }}){% if mas_barato %} desde S/ {{ mas_barato|floatformat:0 }}{% endif %}. Histórico real de {{ total_destinos }} destino{{ total_destinos|pluralize }}, con veredicto por fecha.{% endblock %}
 {% block og_title %}Vuelos desde {{ airport.city }}{% if mas_barato %} desde S/ {{ mas_barato|floatformat:0 }}{% endif %}{% endblock %}
-{% block og_description %}{{ destinos|length }} destino{{ destinos|length|pluralize }} con histórico real de precios. Te decimos qué fechas valen la pena y cuáles dejar pasar.{% endblock %}
+{% block og_description %}{{ total_destinos }} destino{{ total_destinos|pluralize }} con histórico real de precios. Te decimos qué fechas valen la pena y cuáles dejar pasar.{% endblock %}
 
 {% block head_extra %}
 {% if not indexable %}
@@ -31,7 +31,7 @@
 
 <h1 class="rise d1">Vuelos desde<br>{{ airport.city }}</h1>
 <p class="lede rise d2">{{ airport.name }} ({{ airport.iata_code }}). Seguimos
-  {{ destinos|length }} destino{{ destinos|length|pluralize }} dos veces al día
+  {{ total_destinos }} destino{{ total_destinos|pluralize }} dos veces al día
   {% if mas_barato %}— el más barato hoy arranca en <strong>S/ {{ mas_barato|floatformat:0 }}</strong>{% endif %}.</p>
 
 {% include "web/_foto.html" %}

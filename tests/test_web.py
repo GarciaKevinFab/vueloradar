@@ -1386,3 +1386,23 @@ def test_una_sola_ciudad_con_un_precio_no_rompe_la_escala(client, peru_airports)
     destinos = [{"desde": Decimal("200")}, {"desde": Decimal("200")}]
     _marcar_escala(destinos, destinos)
     assert all(d["ancho_pct"] == PISO_ESCALA for d in destinos)
+
+
+def test_el_hub_cuenta_todos_sus_destinos_aunque_parta_la_lista(client, peru_airports):
+    """Partir la lista dejó `destinos|length` valiendo 6 en una ciudad de 17.
+
+    No era solo el texto: la meta description y el Open Graph anunciaban «6
+    destinos», que es lo que Google y WhatsApp leen. Lo cazó una inspección en
+    el navegador, no la suite — de ahí este test.
+    """
+    from apps.flights.models import Airport
+
+    for iata, ciudad in (("IQT", "Iquitos"), ("TPP", "Tarapoto"),
+                         ("PIU", "Piura"), ("TRU", "Trujillo")):
+        Airport.objects.create(iata_code=iata, name=ciudad, city=ciudad, region=ciudad)
+    for destino in ("CUZ", "AQP", "PEM", "IQT", "TPP", "PIU", "TRU"):
+        _ruta_publicada("LIM", destino)
+
+    cuerpo = client.get(reverse("web:hub", args=["lima"])).content.decode()
+    assert "7 destinos" in cuerpo
+    assert "6 destinos" not in cuerpo

@@ -171,8 +171,11 @@ header .wrap{display:flex;align-items:center;gap:.65rem;height:3.75rem}
 .routes{list-style:none;padding:0;margin:0;border-top:1px solid var(--line)}
 .routes li{border-bottom:1px solid var(--line)}
 .routes a{display:flex;align-items:center;gap:1rem;padding:1.05rem .25rem;
-  transition:background .25s ease,padding-left .25s ease}
-.routes a:hover{background:var(--bg-elev);padding-left:.75rem}
+  /* El desplazamiento va por transform y no por padding-left: animar padding
+     recalcula el layout en cada fotograma, y con diecisiete filas eso es
+     trabajo del hilo principal a cambio de nada. transform lo compone la GPU. */
+  transition:background .25s ease,transform .25s ease}
+.routes a:hover{background:var(--bg-elev);transform:translateX(.4rem)}
 .routes .r{display:block;font-weight:600;letter-spacing:-.015em}
 .routes .meta{display:block;color:var(--ink-3);font-size:.8125rem;margin-top:.15rem}
 .routes .right{margin-left:auto;text-align:right;display:flex;flex-direction:column;
