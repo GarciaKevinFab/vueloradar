@@ -379,16 +379,24 @@ ignora (el kernel protege al PID 1 de su propio namespace). La prueba válida es
 - **Caché en el borde**: las vistas declaran `s-maxage=1800` y
   `compute_route_stats` purga la zona al terminar. Sin
   `CLOUDFLARE_API_TOKEN` la purga no corre y solo lo loguea. Ver `DEPLOY-WEB.md`.
-  **ROTO desde algún momento entre el 2026-08-29 y el 2026-09-05: el token da
-  `HTTP 401 Unauthorized`.** La variable está puesta y `CLOUDFLARE_ZONE_ID`
-  también, así que el chequeo de «configurada» pasa: falla la llamada, no la
-  configuración, y `purge_everything()` devuelve `False` sin que nadie mire.
-  El daño es acotado —con `s-maxage=1800` el borde revalida solo cada 30 min,
-  así que la purga acelera pero no es la única vía— pero hoy cada barrido
-  termina creyendo que refrescó el sitio y no lo hizo. Se arregla emitiendo un
-  token nuevo en Cloudflare con permiso *Zone → Cache Purge*. **Comprobarlo con
-  el resultado, no con `bool(...)`**: un token revocado sigue pareciendo
-  configurado.
+  **Estuvo roto (401) hasta el 2026-09-05; token renovado y purga verificada.**
+  La variable seguía puesta, así que todo chequeo con `bool(...)` decía que
+  estaba bien: fallaba la llamada, no la configuración, y `purge_everything()`
+  devolvía `False` sin que nadie mirara. **Comprobarlo siempre con el resultado
+  de una purga real, nunca con `bool(...)`**: un token revocado sigue pareciendo
+  configurado. El daño mientras tanto fue acotado —con `s-maxage=1800` el borde
+  revalida solo cada 30 min— pero cada barrido terminaba creyendo que había
+  refrescado el sitio.
+  Dos cosas aprendidas renovándolo:
+  1. `/client/v4/user/tokens/verify` **solo conoce los tokens de usuario**. A un
+     token *de cuenta* le responde `code 1000, Invalid API Token` aunque sea
+     válido, así que no sirve para diagnosticar. La única prueba concluyente es
+     lanzar la purga contra la zona.
+  2. Para pasar el token al servidor sin que aparezca en el chat, el historial
+     ni la lista de procesos: `read -rsp` en Git Bash y `printf | ssh`, todo en
+     **un solo comando** que además imprima `sha256` truncado del valor enviado.
+     Partirlo en dos comandos significa dos pegados distintos del portapapeles,
+     y así se escribió tres veces el token viejo creyendo que era el nuevo.
 - **La portada usa consultas agregadas** (`bulk_upcoming_prices`,
   `bulk_price_history`). Pedir el histórico ruta por ruta costaba 121 consultas
   y 22 s con 40 rutas, y ese costo lo paga entero el primer visitante tras cada
@@ -468,10 +476,15 @@ ignora (el kernel protege al PID 1 de su propio namespace). La prueba válida es
 ### Contacto, analítica e imágenes (2026-08-28)
 
 - **`docker compose up -d` NO recreó el contenedor al cambiar solo el `.env`.**
-  Gunicorn siguió con el entorno viejo mientras `exec … python` —proceso
-  nuevo— ya veía la variable nueva, así que el sitio y la consola decían cosas
-  distintas. Ante un cambio de variable que «no se aplica»:
-  `up -d --force-recreate web`.
+  Ante un cambio de variable que «no se aplica»: `up -d --force-recreate web`.
+  **Corrección del 2026-09-05: esta nota decía que `exec … python` sí veía la
+  variable nueva. Es falso, y medirlo costó una hora.** `docker compose exec`
+  lanza el proceso DENTRO del contenedor vivo, así que hereda el entorno
+  congelado en su arranque: ve el valor VIEJO, igual que gunicorn. Medido con
+  las dos huellas a la vez —`.env` en disco `7eae35ceea`, contenedor
+  `31ee88e65d`— mientras se cambiaba el token de Cloudflare. Comprobar una
+  variable con `exec` justo después de editar el `.env` da el valor anterior y
+  hace creer que la edición no se guardó.
 - **Cloudflare reescribe los `mailto:`.** Con Scrape Shield → *Email Address
   Obfuscation* (activo por defecto) el HTML servido trae
   `/cdn-cgi/l/email-protection#…` y un `[email protected]`, y un script propio
