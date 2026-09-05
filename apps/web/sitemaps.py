@@ -52,7 +52,8 @@ class StaticSitemap(Sitemap):
     priority = 1.0
 
     def items(self):
-        return ["web:home", "web:buscar", "web:cuando_comprar"]
+        return ["web:home", "web:buscar", "web:cuando_comprar",
+                "web:como_medimos", "web:acerca"]
 
     def location(self, name):
         return reverse(name)

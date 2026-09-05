@@ -26,7 +26,7 @@ from django.views.decorators.cache import cache_control, never_cache
 from apps.flights.models import Route
 
 from . import calendar_grid, chart, insights, og_images, photos, queries, search
-from .verdict import evaluate, evaluate_trend
+from .verdict import MIN_TREND_DAYS, evaluate, evaluate_trend
 
 #: El barrido corre 06:00 y 18:00; media hora de caché en el borde es seguro
 #: y descarga por completo al VPS. Cloudflare respeta `s-maxage`.
@@ -424,6 +424,47 @@ def legal(request, pagina: str):
     if pagina not in ("terminos", "privacidad", "reclamaciones"):
         raise Http404("Página legal desconocida")
     return render(request, f"web/{pagina}.html", {"updated_at": timezone.now()})
+
+
+@cache_control(public=True, max_age=300, s_maxage=EDGE_TTL)
+def como_medimos(request):
+    """Cómo se obtiene cada precio, qué incluye y qué NO sabemos.
+
+    Es la página que un sitio de precios tiene que poder escribir y casi
+    ninguno escribe. No es relleno para SEO: el resto del sitio afirma cosas
+    —«está barato», «compra con tres semanas»— y sin explicar de dónde salen,
+    esas afirmaciones no se distinguen de las de cualquier comparador.
+
+    Cita números en vivo a propósito. «Medimos muchas rutas a diario» lo
+    escribe cualquiera; «llevamos N precios guardados desde tal fecha» se puede
+    contrastar contra el propio sitio, y es lo que la convierte en contenido.
+
+    Los límites conocidos van dentro, no en letra chica. Decir qué no sabemos
+    es lo que separa una metodología de un folleto, y es justo lo que un
+    visitante necesita para saber cuánto confiar en el veredicto.
+    """
+    return render(request, "web/como_medimos.html", {
+        "cobertura": queries.cobertura(),
+        "horizonte": insights.SEMANAS[-1][1],
+        "min_muestras": settings.VERDICT_MIN_SAMPLES,
+        "dias_tendencia": MIN_TREND_DAYS,
+        "updated_at": timezone.now(),
+    })
+
+
+@cache_control(public=True, max_age=300, s_maxage=EDGE_TTL)
+def acerca(request):
+    """Quién está detrás, para qué existe el sitio y cómo se sostiene.
+
+    Un sitio que opina sobre precios sin decir quién lo hace ni de qué vive
+    obliga al visitante a suponerlo, y lo que se supone es lo peor: que cobra
+    comisión de alguna aerolínea. Decirlo explícitamente es más barato que
+    parecerlo.
+    """
+    return render(request, "web/acerca.html", {
+        "cobertura": queries.cobertura(),
+        "updated_at": timezone.now(),
+    })
 
 
 @cache_control(public=True, max_age=300, s_maxage=EDGE_TTL)

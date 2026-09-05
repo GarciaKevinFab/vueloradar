@@ -689,6 +689,11 @@ h1,h2,h3{text-wrap:balance}
         <li><a href="{% url 'web:home' %}">Todas las rutas</a></li>
         <li><a href="{% url 'web:buscar' %}">Buscar mi vuelo</a></li>
         <li><a href="{% url 'web:cuando_comprar' %}">Cuándo comprar</a></li>
+        {% comment %} Las dos que explican el sitio. Van en el pie y no en la
+           cabecera a propósito: quien llega por SEO viene a ver un precio, no a
+           leer quiénes somos; pero quien duda del veredicto las busca acá. {% endcomment %}
+        <li><a href="{% url 'web:como_medimos' %}">Cómo medimos</a></li>
+        <li><a href="{% url 'web:acerca' %}">Qué es VueloRadar</a></li>
         <li><a href="{% url 'web:nuevo_aviso' %}">Avisarme por correo</a></li>
         {% if bot_url %}<li><a href="{{ bot_url }}" rel="noopener">Bot de Telegram</a></li>{% endif %}
         {% comment %} Un contacto real y visible: AdSense revisa que se sepa

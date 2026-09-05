@@ -1,0 +1,129 @@
+{% extends "web/base.html" %}
+{% load l10n humanize %}
+
+{% comment %}
+Un sitio que opina sobre precios sin decir quién lo hace ni de qué vive obliga
+al visitante a suponerlo, y lo que se supone es lo peor: que cobra comisión de
+alguna aerolínea. Decirlo explícitamente es más barato que parecerlo.
+
+Ojo con la sección de sostenimiento: afirma cosas sobre publicidad que tienen
+que seguir siendo ciertas. Si algún día se activa AdSense, esta página y la de
+privacidad se revisan juntas — ya se cayó tres veces en publicar una promesa
+que la propia página contradecía.
+{% endcomment %}
+
+{% block title %}Qué es VueloRadar — {{ site_name }}{% endblock %}
+{% block description %}Quién está detrás de VueloRadar, para qué existe, cómo se sostiene y qué no hace. Sin venta de pasajes ni comisiones.{% endblock %}
+{% block og_title %}Qué es VueloRadar{% endblock %}
+{% block og_description %}Medimos los precios de los vuelos domésticos peruanos dos veces al día y guardamos el histórico. No vendemos pasajes.{% endblock %}
+
+{% block head_extra %}
+<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+{% endblock %}
+
+{% block content %}
+<ol class="crumbs">
+  <li><a href="{% url 'web:home' %}">Inicio</a></li>
+  <li aria-current="page">Qué es VueloRadar</li>
+</ol>
+
+<h1 class="rise d1">Qué es<br>VueloRadar</h1>
+
+<p class="lede rise d2">
+  Un buscador de vuelos te dice cuánto cuesta hoy. Ninguno te dice si eso es
+  caro. VueloRadar existe para responder esa segunda pregunta, y para
+  responderla hay que llevar tiempo mirando.
+</p>
+
+<h2>El problema que resuelve</h2>
+<p>
+  Cuando ves un Lima–Cusco a S/&nbsp;220 no tienes forma de saber si es una
+  ganga o un atraco. Puede que la semana pasada estuviera a 150 y puede que la
+  que viene esté a 300. Los comparadores muestran el precio de hoy; ninguno
+  guarda el de ayer, porque su negocio es que compres ahora.
+</p>
+<p>
+  Nosotros guardamos todos. Desde
+  {% if cobertura.desde %}el {{ cobertura.desde|date:"j \d\e F \d\e Y" }}{% endif %}
+  medimos los precios de {{ cobertura.rutas }} rutas domésticas peruanas dos
+  veces al día{% if cobertura.snapshots %} y llevamos
+  {{ cobertura.snapshots|intcomma }} precios guardados{% endif %}. Con eso se
+  puede decir algo que sin histórico es imposible: si el precio de hoy está
+  alto o bajo <em>para esta ruta en concreto</em>.
+</p>
+<p>
+  El detalle del procedimiento está en
+  <a class="link" href="{% url 'web:como_medimos' %}">cómo medimos los
+  precios</a>, incluida la lista de cosas que todavía no sabemos.
+</p>
+
+<h2>Por qué el análisis es por ruta y no nacional</h2>
+<p>
+  Porque las rutas no se parecen entre sí. En el conjunto del país una
+  aerolínea puede ser la más barata tres de cada cuatro veces, y perder en una
+  ruta concreta contra otra que domina ahí. El mejor día para volar a un
+  destino tampoco tiene por qué serlo para otro.
+</p>
+<p>
+  Un consejo genérico —«compra los martes», «reserva con dos meses»— es fácil
+  de escribir y casi siempre inútil. Lo que publicamos sale del histórico de
+  cada ruta, y por eso a veces contradice al consejo popular.
+</p>
+
+<h2>Cómo se sostiene</h2>
+<p>
+  <strong>No vendemos pasajes y no cobramos comisión.</strong> No tenemos
+  acuerdo con ninguna aerolínea ni con ninguna agencia, y no ganamos nada si
+  compras. Esa es la condición para que el veredicto pueda decir «espera»,
+  que es exactamente lo que un vendedor nunca te va a decir.
+</p>
+<p>
+  El proyecto no genera ingresos hoy. La intención es sostenerlo con
+  publicidad claramente rotulada y separada del contenido, y con funciones
+  premium para quien quiera alertas ilimitadas. Mientras eso no exista, lo
+  paga quien lo construye. Preferimos decirlo así antes que insinuar un modelo
+  de negocio que todavía no tenemos.
+</p>
+
+<h2>Quién lo hace</h2>
+<p>
+  VueloRadar lo construye y lo mantiene
+  <a class="link" href="https://sisac.pe/" rel="noopener external">Star Insights
+  IT by SISAC</a>, un estudio de desarrollo peruano. No somos una agencia de
+  viajes ni un intermediario: somos quienes escribieron el sistema que mide.
+</p>
+{% if contact_email %}
+<p>
+  Para dudas, correcciones o errores en los datos:
+  <a class="link" href="mailto:{{ contact_email }}">{{ contact_email }}</a>. Si
+  algo que publicamos no cuadra con lo que ves, queremos saberlo.
+</p>
+{% endif %}
+
+<h2>Qué no es VueloRadar</h2>
+<ul>
+  <li>
+    <b>No es una agencia ni un buscador de reservas.</b> No emitimos billetes,
+    no gestionamos cambios ni devoluciones, y no intervenimos en tu compra. Esa
+    relación es entre tú y la aerolínea.
+  </li>
+  <li>
+    <b>No es una garantía de precio.</b> Publicamos lo que observamos; el
+    precio de un vuelo cambia con la disponibilidad y puede haber cambiado
+    entre nuestra medición y tu compra.
+  </li>
+  <li>
+    <b>No es un ranking de aerolíneas.</b> Comparamos precios, no puntualidad,
+    servicio ni seguridad.
+  </li>
+</ul>
+
+{% if bot_url %}
+<p class="mt-4">
+  También puedes consultar precios y crear alertas desde
+  <a class="link" href="{{ bot_url }}" rel="noopener">nuestro bot de
+  Telegram</a>, que responde en lenguaje normal: le escribes «Lima a Cusco en
+  octubre» y te contesta.
+</p>
+{% endif %}
+{% endblock %}

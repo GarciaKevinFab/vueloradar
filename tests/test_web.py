@@ -1229,3 +1229,67 @@ def test_un_anuncio_sin_relleno_no_deja_una_caja_vacia(client, route, stats, set
     _snapshot(route, "179")
     cuerpo = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
     assert '.ad:has(> .adsbygoogle[data-ad-status="unfilled"]){display:none}' in cuerpo
+
+
+# --- páginas que explican el sitio -------------------------------------------
+# AdSense rechazó el sitio por «contenido de bajo valor»: 40 fichas con el 79%
+# del vocabulario en común y 18 hubs con el 95%. Estas dos son las únicas del
+# sitio cuyo texto no puede salir de una plantilla, y por eso importan.
+
+def test_como_medimos_responde_y_cita_datos_reales(client, route, stats):
+    """Una metodología sin cifras propias la escribe cualquiera.
+
+    Lo que la distingue de un folleto es que los números se puedan contrastar
+    contra el propio sitio, así que salen del histórico en vivo y no del HTML.
+    """
+    _snapshot(route, "179")
+    resp = client.get(reverse("web:como_medimos"))
+    assert resp.status_code == 200
+    cuerpo = resp.content.decode()
+    assert "precios guardados" in cuerpo
+    assert "IGV" in cuerpo and "TUUA" in cuerpo
+
+
+def test_como_medimos_publica_lo_que_no_sabe(client, route, stats):
+    """La sección de límites es la que separa metodología de publicidad.
+
+    Si desaparece, la página pasa a contar solo los aciertos y deja al lector
+    sin forma de calibrar cuánto confiar en el veredicto.
+    """
+    _snapshot(route, "179")
+    cuerpo = client.get(reverse("web:como_medimos")).content.decode()
+    assert "Lo que todavía no sabemos" in cuerpo
+    assert "equipaje" in cuerpo.lower()
+
+
+def test_acerca_dice_que_no_se_cobra_comision(client, route, stats):
+    """Es la promesa que sostiene la marca: sin ella el veredicto no vale nada.
+
+    Un sitio que cobrara por venta nunca diría «espera». Que esté escrito y
+    testeado evita que se caiga en un rediseño.
+    """
+    _snapshot(route, "179")
+    resp = client.get(reverse("web:acerca"))
+    assert resp.status_code == 200
+    cuerpo = resp.content.decode()
+    assert "no cobramos comisión" in cuerpo.lower()
+    assert "Star Insights IT by SISAC" in cuerpo
+
+
+def test_las_dos_paginas_se_alcanzan_desde_el_pie(client, route, stats):
+    """Una página sin enlace interno es una página que Google indexa flojo.
+
+    Ya pasó con el Libro de Reclamaciones: existía y no había forma de llegar.
+    """
+    _snapshot(route, "179")
+    cuerpo = client.get(reverse("web:home")).content.decode()
+    assert reverse("web:como_medimos") in cuerpo
+    assert reverse("web:acerca") in cuerpo
+
+
+def test_las_dos_paginas_estan_en_el_sitemap(client, route, stats):
+    _snapshot(route, "179")
+    entradas = _sitemap_entradas(client)
+    for nombre in ("web:como_medimos", "web:acerca"):
+        camino = reverse(nombre)
+        assert any(u.endswith(camino) for u in entradas), f"{camino} no está en el sitemap"

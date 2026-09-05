@@ -12,11 +12,11 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
 
-from django.db.models import Min
+from django.db.models import Count, Max, Min
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 
-from apps.flights.models import PriceSnapshot, Route, RouteStats
+from apps.flights.models import Airport, PriceSnapshot, Route, RouteStats
 
 #: Un snapshot más viejo que esto ya no representa "el precio de hoy".
 FRESH_WINDOW = timedelta(hours=36)
@@ -223,3 +223,44 @@ def total_snapshots() -> int:
     ahora no aparecía en ningún lado.
     """
     return PriceSnapshot.objects.count()
+
+
+@dataclass(frozen=True)
+class Cobertura:
+    """Los números que sostienen lo que el sitio afirma."""
+
+    snapshots: int
+    rutas: int
+    aeropuertos: int
+    desde: date | None
+    hasta: date | None
+
+    @property
+    def dias_midiendo(self) -> int:
+        if not self.desde or not self.hasta:
+            return 0
+        return (self.hasta - self.desde).days + 1
+
+
+def cobertura() -> Cobertura:
+    """Alcance real de la medición, para poder citarlo en vez de prometerlo.
+
+    Una página de metodología que dice «medimos a diario muchas rutas» no vale
+    nada: cualquiera lo escribe. La que dice cuántos precios lleva guardados y
+    desde cuándo se puede comprobar contra el propio sitio, y eso es lo que la
+    vuelve contenido y no publicidad.
+
+    Va en una sola consulta agregada: son tres números que aparecen juntos y
+    pedirlos por separado costaría tres viajes a Supabase por visita.
+    """
+    agregado = PriceSnapshot.objects.aggregate(
+        snapshots=Count("id"), desde=Min("snapshot_at"), hasta=Max("snapshot_at")
+    )
+    desde, hasta = agregado["desde"], agregado["hasta"]
+    return Cobertura(
+        snapshots=agregado["snapshots"] or 0,
+        rutas=len(published_routes()),
+        aeropuertos=Airport.objects.count(),
+        desde=timezone.localtime(desde).date() if desde else None,
+        hasta=timezone.localtime(hasta).date() if hasta else None,
+    )

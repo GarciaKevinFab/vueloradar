@@ -1,0 +1,167 @@
+{% extends "web/base.html" %}
+{% load l10n humanize %}
+
+{% comment %}
+La página que justifica todas las demás. El sitio afirma cosas —«está barato»,
+«compra con tres semanas»— y sin explicar de dónde salen esas afirmaciones son
+indistinguibles de las de cualquier comparador.
+
+Los números van en vivo, no escritos a mano: «medimos muchas rutas a diario» lo
+escribe cualquiera, «llevamos N precios desde tal fecha» se contrasta contra el
+propio sitio. Y los límites van dentro, no en letra chica: decir qué NO sabemos
+es lo que separa una metodología de un folleto.
+{% endcomment %}
+
+{% block title %}Cómo medimos los precios — {{ site_name }}{% endblock %}
+{% block description %}De dónde sale cada precio, qué incluye, cada cuánto lo medimos y qué cosas todavía no podemos saber. La metodología completa de VueloRadar.{% endblock %}
+{% block og_title %}Cómo medimos los precios{% endblock %}
+{% block og_description %}{{ cobertura.snapshots|intcomma }} precios guardados de {{ cobertura.rutas }} rutas peruanas. Así se obtienen, y esto es lo que todavía no sabemos.{% endblock %}
+
+{% block head_extra %}
+<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+{% endblock %}
+
+{% block content %}
+<ol class="crumbs">
+  <li><a href="{% url 'web:home' %}">Inicio</a></li>
+  <li aria-current="page">Cómo medimos</li>
+</ol>
+
+<h1 class="rise d1">Cómo medimos<br>los precios</h1>
+
+<p class="lede rise d2">
+  Este sitio afirma que un precio está barato o caro. Esa afirmación solo vale
+  si se puede comprobar de dónde sale, así que acá está el procedimiento
+  entero —incluido lo que todavía no podemos saber.
+</p>
+
+{% if cobertura.snapshots %}
+<div class="pulso rise d3">
+  <div class="destacado"><b>{{ cobertura.snapshots|intcomma }}</b><span>precios guardados</span></div>
+  <div><b>{{ cobertura.rutas }}</b><span>rutas medidas</span></div>
+  <div><b>{{ cobertura.dias_midiendo }}</b><span>días midiendo</span></div>
+</div>
+<p class="muted small">
+  Desde el {{ cobertura.desde|date:"j \d\e F \d\e Y" }} hasta hoy. Cada número de
+  esta página sale de esa base y cambia con ella.
+</p>
+{% endif %}
+
+<h2>Qué medimos, y cada cuánto</h2>
+<p>
+  Dos veces al día, a las 6 de la mañana y a las 6 de la tarde hora de Perú,
+  recorremos las {{ cobertura.rutas }} rutas domésticas que seguimos y
+  consultamos el precio más barato de cada fecha. No es una muestra al azar:
+  son siempre las mismas rutas y las mismas fechas, que es lo que permite
+  comparar hoy contra la semana pasada.
+</p>
+<p>
+  De cada ruta miramos <strong>30 fechas de salida</strong>: todos los días de
+  los próximos catorce, y después uno de cada tres hasta el día
+  {{ horizonte }}. La rejilla se abre a medida que se aleja porque los precios
+  lejanos se mueven despacio y consultarlos todos los días no añadiría
+  información, solo carga sobre la fuente.
+</p>
+<p>
+  Cada consulta guarda una foto con fecha y hora. Esas fotos no se borran
+  nunca: son lo único que no se puede reconstruir hacia atrás, y son lo que
+  hace posible decir si el precio de hoy es bueno <em>para esta ruta</em>.
+</p>
+
+<h2>Qué precio guardamos exactamente</h2>
+<p>
+  El <strong>precio final por adulto, con impuestos incluidos</strong>. Nunca la
+  tarifa base. La distinción no es menor en Perú: sobre la tarifa se aplica el
+  IGV del 18% y se suma la TUUA, la tasa del aeropuerto, que en vuelos
+  nacionales ronda los 30 soles.
+</p>
+<p>
+  Lo comprobamos con un caso concreto: un Lima–Cusco cuya aerolínea publicaba
+  S/&nbsp;144,52 en su propia web. Esa cifra es la tarifa base. El precio real
+  de venta era S/&nbsp;201,00, y la diferencia se descompone exacta:
+  144,52&nbsp;×&nbsp;1,18 = 170,53, más 30,47 de TUUA. Un sitio que publicara
+  los 144,52 estaría mostrando un precio que nadie puede pagar.
+</p>
+<p>
+  Los precios se guardan en soles. Cuando la fuente devuelve dólares, se
+  convierten con el tipo de cambio del día, consultado en vivo. Si esa consulta
+  falla y no tenemos una tasa reciente, <strong>la oferta se descarta</strong>:
+  preferimos perder un dato a meter un precio inventado en el histórico, porque
+  un dato perdido se recupera en el siguiente barrido y un histórico
+  contaminado no se limpia.
+</p>
+
+<h2>Cómo se decide si un precio es bueno</h2>
+<p>
+  No comparamos contra un promedio nacional ni contra lo que cuesta la misma
+  ruta en otra aerolínea. Comparamos <strong>cada precio contra la propia
+  historia de su ruta</strong> en los últimos 30 días.
+</p>
+<p>
+  Ordenamos todos los precios observados de esa ruta y miramos dónde cae el de
+  hoy. Si está por debajo del percentil 25 —es decir, más barato que tres de
+  cada cuatro precios que hemos visto— y además por debajo de la mediana, lo
+  llamamos buen precio. Ese segundo requisito existe por una razón concreta:
+  cuando una ruta lleva semanas sin moverse, el percentil 25 y la mediana
+  coinciden, y sin él el precio de siempre aparecería como oferta todos los
+  días.
+</p>
+<p>
+  Hace falta un mínimo de <strong>{{ min_muestras }} observaciones</strong> de
+  esa ruta para opinar. Con menos, la página lo dice y no muestra veredicto.
+  Un promedio de tres mediciones no es histórico: es ruido con decimales.
+</p>
+
+<h2>Lo que todavía no sabemos</h2>
+<p>
+  Esta sección existe porque un sitio que solo publica sus aciertos no da forma
+  de saber cuánto confiar en él.
+</p>
+<ul>
+  <li>
+    <b>La tendencia necesita más historia que el veredicto.</b> Decir si una
+    ruta está subiendo o bajando exige al menos {{ dias_tendencia }} días de
+    serie. Cuando no los hay, la ficha dice cuántos faltan en vez de inventar
+    una respuesta.
+  </li>
+  <li>
+    <b>Medimos el precio más barato publicado, no el que tú vas a pagar.</b>
+    Entre nuestra consulta y tu compra pueden pasar horas, y el precio de un
+    vuelo cambia con los asientos que quedan. Lo que decimos es si el nivel de
+    precios de esa ruta está alto o bajo, no que ese número siga disponible.
+  </li>
+  <li>
+    <b>El equipaje no está incluido.</b> Las tarifas más baratas de varias
+    aerolíneas peruanas solo cubren equipaje de mano. Si viajas con maleta, el
+    precio real es mayor y la diferencia no la medimos.
+  </li>
+  <li>
+    <b>Hay rutas sin datos, y es correcto que no los tengan.</b> Algunos
+    aeropuertos del país no tienen servicio comercial regular. Preferimos no
+    publicar esas rutas antes que publicar una página vacía.
+  </li>
+  <li>
+    <b>Solo vuelos domésticos, solo ida.</b> No medimos rutas internacionales
+    ni precios de ida y vuelta como paquete.
+  </li>
+</ul>
+
+<h2>Qué no hacemos</h2>
+<p>
+  <strong>No vendemos pasajes y no cobramos comisión por ninguna venta.</strong>
+  Nadie nos paga por recomendar una aerolínea sobre otra, y por eso el veredicto
+  puede decir «espera» —que es justo lo que un vendedor nunca diría.
+</p>
+<p>
+  Tampoco republicamos las tarifas de la fuente en crudo. Lo que se publica acá
+  son estadísticas derivadas de nuestro propio histórico: mínimos, medianas,
+  percentiles y la comparación de un precio contra su ruta. Ese cálculo es lo
+  que aportamos; el dato suelto no es nuestro para revenderlo.
+</p>
+
+<p class="muted small mt-4">
+  Si algo de esta página no coincide con lo que ves en el sitio, es un error y
+  queremos saberlo{% if contact_email %}: escríbenos a
+  <a class="link" href="mailto:{{ contact_email }}">{{ contact_email }}</a>{% endif %}.
+</p>
+{% endblock %}
