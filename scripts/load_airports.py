@@ -66,6 +66,15 @@ AIRPORTS: list[tuple[str, str, str, str]] = [
 ]
 
 
+#: Nombre con el que se busca el destino cuando no coincide con la ciudad del
+#: aeropuerto. Sale de las consultas reales de Search Console («vuelos lima
+#: puno»), no de la región: «Madre de Dios» o «La Libertad» no los busca nadie.
+ALIASES: dict[str, str] = {
+    "JUL": "Puno",
+    "JAU": "Huancayo",
+}
+
+
 def load_airports() -> tuple[int, int]:
     """Crea o actualiza los aeropuertos. Devuelve `(creados, actualizados)`."""
     from apps.flights.models import Airport
@@ -74,7 +83,13 @@ def load_airports() -> tuple[int, int]:
     for iata, name, city, region in AIRPORTS:
         _, was_created = Airport.objects.update_or_create(
             iata_code=iata,
-            defaults={"name": name, "city": city, "region": region, "is_active": True},
+            defaults={
+                "name": name,
+                "city": city,
+                "region": region,
+                "alias": ALIASES.get(iata, ""),
+                "is_active": True,
+            },
         )
         if was_created:
             created += 1

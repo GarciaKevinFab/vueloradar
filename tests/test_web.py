@@ -7,7 +7,7 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.flights.models import PriceSnapshot, Route, RouteStats
+from apps.flights.models import Airport, PriceSnapshot, Route, RouteStats
 from apps.web import chart, context_processors, queries
 from apps.web.verdict import (ALTO, BUENO, CARO, EXCELENTE, MIN_TREND_DAYS, NORMAL,
                               SIN_DATOS, evaluate, evaluate_trend)
@@ -815,8 +815,15 @@ def test_los_titulos_no_se_truncan_en_los_resultados(client, peru_airports):
         r = Route.objects.create(origin_id=origen, destination_id=destino, is_monitored=True)
         _snapshot(r, "179")
 
+    # El alias alarga el título: «Jauja (Huancayo) a Lima» es el peor caso real.
+    Airport.objects.create(iata_code="JAU", name="Francisco Carlé", city="Jauja",
+                           region="Junín", alias="Huancayo")
+    for origen, destino in (("JAU", "LIM"), ("LIM", "JAU")):
+        _snapshot(Route.objects.create(origin_id=origen, destination_id=destino, is_monitored=True), "179")
+
     for camino in ("/", "/cuando-comprar/", "/vuelos/desde-puerto-maldonado/",
-                   "/vuelos/LIM-PEM/", "/vuelos/PEM-CUZ/", "/vuelos/CUZ-PEM/"):
+                   "/vuelos/LIM-PEM/", "/vuelos/PEM-CUZ/", "/vuelos/CUZ-PEM/",
+                   "/vuelos/JAU-LIM/", "/vuelos/LIM-JAU/"):
         cuerpo = client.get(camino).content.decode()
         titulo = re.search(r"<title>(.*?)</title>", cuerpo, re.S).group(1).strip()
         assert len(titulo) <= 63, f"{camino}: {len(titulo)} caracteres — {titulo}"
@@ -1481,3 +1488,60 @@ def test_la_entrada_del_precio_no_arranca_invisible(client, route, stats):
     regla = cuerpo[i:cuerpo.index("}}", i) + 2]
     assert "opacity" not in regla, regla
     assert "translateY" in regla, "el movimiento se mantiene"
+
+
+def test_la_ficha_lleva_el_nombre_con_el_que_la_gente_busca(client, peru_airports):
+    """Search Console (2026-09-05): «vuelos lima puno» y la ficha decía solo «Juliaca».
+
+    El alias es dato del aeropuerto, no una regla sobre la región: «Madre de
+    Dios» no lo busca nadie, y una ficha sin alias no debe inventar paréntesis.
+    """
+    Airport.objects.create(iata_code="JUL", name="Inca Manco Cápac", city="Juliaca",
+                           region="Puno", alias="Puno")
+    _ruta_publicada("LIM", "JUL")
+    _ruta_publicada("LIM", "CUZ")
+
+    con_alias = client.get("/vuelos/LIM-JUL/").content.decode()
+    assert "<title>Vuelos Lima a Juliaca (Puno): ¿buen precio hoy?" in con_alias
+    assert 'name="description" content="Pasajes en avión de Lima a Juliaca (Puno) desde S/ 179' in con_alias
+    assert "Juliaca (Puno)</h1>" in con_alias
+
+    sin_alias = client.get("/vuelos/LIM-CUZ/").content.decode()
+    assert "<title>Vuelos Lima a Cusco: ¿buen precio hoy?" in sin_alias
+    assert "Cusco (" not in sin_alias
+    assert "Pasajes en avión del Jorge Chávez (LIM) al Velasco Astete (CUZ)" in sin_alias
+
+
+def test_el_bloque_de_aerolineas_se_titula_como_la_pregunta_que_la_gente_escribe():
+    """«qué aerolíneas van a huánuco», «aerolíneas de chiclayo a lima»: el
+    encabezado sigue esa forma en la ficha y en el hub; la portada, sin tramo,
+    habla del país entero."""
+    from django.template.loader import render_to_string
+
+    aerolineas = [{"nombre": "LATAM", "cuota_pct": 73, "ancho_pct": 100, "victorias": 10}]
+    ficha = render_to_string("web/_hallazgos.html", {
+        "insight_aerolineas": aerolineas, "ambito": "en esta ruta", "tramo": "de Lima a Huánuco",
+    })
+    assert "<h3>Qué aerolíneas vuelan de Lima a Huánuco y cuál es más barata</h3>" in ficha
+
+    hub = render_to_string("web/_hallazgos.html", {
+        "insight_aerolineas": aerolineas, "ambito": "saliendo de Cusco", "tramo": "desde Cusco",
+    })
+    assert "<h3>Qué aerolíneas vuelan desde Cusco y cuál es más barata</h3>" in hub
+
+    nacional = render_to_string("web/_hallazgos.html", {
+        "insight_aerolineas": aerolineas, "ambito": "en todo el Perú",
+    })
+    assert "<h3>Qué aerolínea es la más barata en el Perú</h3>" in nacional
+
+
+def test_el_seed_carga_los_alias_de_busqueda(db):
+    """Volver a correr el seed en producción tiene que dejar el alias puesto
+    sin tocar nada más: es la única forma de que llegue a las 20 filas reales."""
+    from scripts.load_airports import load_airports
+
+    load_airports()
+    assert Airport.objects.get(iata_code="JUL").alias == "Puno"
+    assert Airport.objects.get(iata_code="JAU").alias == "Huancayo"
+    assert Airport.objects.get(iata_code="PEM").alias == ""
+    assert Airport.objects.get(iata_code="JUL").label == "Juliaca (Puno)"

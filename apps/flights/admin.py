@@ -5,9 +5,9 @@ from .models import Airport, FlightOffer, PriceSnapshot, Route, RouteStats
 
 @admin.register(Airport)
 class AirportAdmin(admin.ModelAdmin):
-    list_display = ("iata_code", "name", "city", "region", "is_active")
+    list_display = ("iata_code", "name", "city", "alias", "region", "is_active")
     list_filter = ("is_active", "region")
-    search_fields = ("iata_code", "name", "city")
+    search_fields = ("iata_code", "name", "city", "alias")
 
 
 @admin.register(Route)

@@ -1,8 +1,8 @@
 {% extends "web/base.html" %}
 {% load l10n %}
 
-{% block title %}Vuelos {{ route.origin.city }} a {{ route.destination.city }}: ¿buen precio hoy? — {{ site_name }}{% endblock %}
-{% block description %}Vuelos {{ route.origin.city }} a {{ route.destination.city }}{% if desde %} desde S/ {{ desde|floatformat:0 }}{% endif %}: qué fechas están a buen precio y cuáles no, según el histórico real de los últimos 30 días.{% endblock %}
+{% block title %}Vuelos {{ route.origin.label }} a {{ route.destination.label }}: ¿buen precio hoy? — {{ site_name }}{% endblock %}
+{% block description %}Pasajes en avión de {{ route.origin.label }} a {{ route.destination.label }}{% if desde %} desde S/ {{ desde|floatformat:0 }}{% endif %}: qué fechas están a buen precio y cuáles no, según el histórico real de los últimos 30 días.{% endblock %}
 {% block og_title %}{{ route.origin.city }} → {{ route.destination.city }}{% if desde %} desde S/ {{ desde|floatformat:0 }}{% endif %}{% endblock %}
 {% block og_description %}{% if baratas %}{{ baratas|length }} de {{ fechas|length }} fechas están a buen precio hoy.{% else %}Ninguna fecha está barata hoy en esta ruta.{% endif %} Según el histórico real de los últimos 30 días.{% endblock %}
 
@@ -31,8 +31,13 @@
   <li aria-current="page">{{ route.destination.city }}</li>
 </ol>
 
-<h1 class="rise d1">{{ route.origin.city }} <span class="dim">→</span> {{ route.destination.city }}</h1>
-<p class="lede rise d2">{{ route.origin.name }} ({{ route.origin_id }}) a {{ route.destination.name }} ({{ route.destination_id }}){% if not route.has_direct_flights %} · sin vuelo directo, se arma vía Lima{% endif %}</p>
+{% comment %} «Pasajes en avión», «Puno», «Huancayo»: son las palabras con las
+   que la gente busca (Search Console, 2026-09-05: 40 consultas con «pasaje»,
+   cero apariciones en el sitio; «vuelos lima puno» y la ficha decía solo
+   «Juliaca»). El título conserva el molde «Vuelos A a B», que es el que ya
+   calza con el 60% de las consultas. {% endcomment %}
+<h1 class="rise d1">{{ route.origin.label }} <span class="dim">→</span> {{ route.destination.label }}</h1>
+<p class="lede rise d2">Pasajes en avión del {{ route.origin.name }} ({{ route.origin_id }}) al {{ route.destination.name }} ({{ route.destination_id }}){% if not route.has_direct_flights %} · sin vuelo directo, se arma vía Lima{% endif %}</p>
 
 <div class="card card-hero rise d3">
   {% if desde %}
@@ -167,7 +172,7 @@
 </div>
 {% endif %}
 
-{% include "web/_hallazgos.html" with ambito="en esta ruta" %}
+{% include "web/_hallazgos.html" with ambito="en esta ruta" tramo="de "|add:route.origin.label|add:" a "|add:route.destination.label %}
 {% endif %}
 
 {% if bot_url %}

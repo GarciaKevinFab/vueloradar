@@ -10,6 +10,11 @@ class Airport(models.Model):
     name = models.CharField("nombre", max_length=200)
     city = models.CharField("ciudad", max_length=100)
     region = models.CharField("región", max_length=100, blank=True)
+    #: Nombre con el que la gente BUSCA el destino cuando no es la ciudad del
+    #: aeropuerto. Search Console (2026-09-05) mostró «vuelos lima puno» y la
+    #: ficha decía solo «Juliaca»; Jauja es el aeropuerto de Huancayo. Es dato,
+    #: no regla: la región no sirve («Madre de Dios» no lo busca nadie).
+    alias = models.CharField("también buscado como", max_length=100, blank=True)
     is_active = models.BooleanField("activo", default=True)
 
     class Meta:
@@ -30,6 +35,11 @@ class Airport(models.Model):
         from django.utils.text import slugify
 
         return slugify(self.city)
+
+    @property
+    def label(self) -> str:
+        """Ciudad con el nombre de búsqueda entre paréntesis: «Juliaca (Puno)»."""
+        return f"{self.city} ({self.alias})" if self.alias else self.city
 
 
 class Route(models.Model):

@@ -431,6 +431,40 @@ ignora (el kernel protege al PID 1 de su propio namespace). La prueba válida es
   texto con barras: `chr(92)`, o la herramienta Edit. Y en `re.sub`, el
   reemplazo va como funcion (`lambda m: texto`), nunca como cadena con barras.
 
+### Primera lectura de Search Console (2026-09-05)
+
+Diez días en línea, 961 impresiones, 3 clics, posición media 35. Export
+completo analizado; lo que cambia decisiones:
+
+- **Google nos prueba en las rutas chicas, no en Cusco.** Las diez fichas con
+  más impresiones son Ayacucho, Talara, Juliaca, Cajamarca, Pucallpa, Tarapoto,
+  Tumbes… LIM-CUZ tiene 14. Donde no está Skyscanner hay hueco; ahí se empuja.
+- **Podar los hubs fue correcto y hay número**: 18 hubs, 247 impresiones (una
+  de cada cuatro), posición ponderada **55** contra 29 de las fichas. El hub
+  de Tarapoto era el más visto y estaba en la 66.
+- **Lo que mejor rankea es el análisis**: `/cuando-comprar/` en la 7,9 y las
+  interprovinciales (AQP-CUZ 17,8; JUL-CUZ 15) mejor que las de Lima.
+- **«Baratos» NO es la palanca** (24 consultas, 27 impresiones). El volumen es
+  «vuelos X» (243) y «vuelos desde lima a X» (75), que ya calzan con el título.
+  Lo que faltaba y se midió contra el código: **«pasaje/s»** (40 consultas,
+  cero apariciones en fichas, hubs y portada), **«Puno»** (la gente busca
+  Puno y la ficha decía solo Juliaca) y la pregunta «qué aerolíneas van a X».
+- **Cambios hechos ese día**: `Airport.alias` («también buscado como»; JUL
+  → Puno, JAU → Huancayo, cargado por el seed, migración 0006) y
+  `Airport.label` («Juliaca (Puno)») en título, descripción y H1 de la ficha;
+  «Pasajes en avión» en descripción y entradilla; el bloque de aerolíneas se
+  titula «Qué aerolíneas vuelan de Lima a Huánuco y cuál es más barata»
+  (`tramo` en `_hallazgos.html`). **Nada más durante dos semanas**: con 8
+  impresiones por consulta no se distingue qué funcionó. Medida: volver a
+  exportar el 2026-09-19 y comparar las nueve fichas chicas (24–45 impresiones
+  hoy), no la posición global.
+- **Ruido a ignorar**: 37% de impresiones desde fuera del Perú (España 144);
+  «tiquetes» es colombiano; el 82% de impresiones es de escritorio pero en
+  móvil la posición es diez puestos mejor.
+- **AdSense**: la revisión se pide hacia fines de septiembre, no antes; el
+  contenido ya cambió pero un dominio de diez días con tres clics se rechaza
+  por edad. Ese día se restaura `ADSENSE_CLIENT` y se recrea `web`.
+
 ### La lectura de cada ruta (2026-09-05)
 
 - **Las 40 fichas compartían el 79% del vocabulario y no era por falta de

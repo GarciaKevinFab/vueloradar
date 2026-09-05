@@ -48,7 +48,7 @@
    móvil— y nadie llegaba. Primero lo que la persona vino a buscar, después
    lo que solo nosotros podemos contarle. Si no hay muestras suficientes no se
    dibuja nada, igual que en la ficha. {% endcomment %}
-{% include "web/_hallazgos.html" with ambito="saliendo de "|add:airport.city %}
+{% include "web/_hallazgos.html" with ambito="saliendo de "|add:airport.city tramo="desde "|add:airport.label %}
 
 {% if destinos_resto %}
 <h2>El resto de destinos desde {{ airport.city }}</h2>
