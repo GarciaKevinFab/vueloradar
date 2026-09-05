@@ -408,7 +408,20 @@ ignora (el kernel protege al PID 1 de su propio namespace). La prueba válida es
   `checked_bags=1` Google devolvio exactamente el mismo minimo (S/ 205) que sin
   maleta para LIM-CUZ: para tarifas domesticas peruanas no la cotiza. Queda
   como limitacion, pero con las condiciones de cada aerolinea y fecha.
-- **Internacional queda como decision de producto, no hecha.** Es factible
+- **Internacional: decision tomada el 2026-09-05, se queda como limite declarado.**
+  Es factible (Google devuelve PEN, el proveedor no cambia), pero toca seeds,
+  la regla de aerolineas, el conversor USD->PEN y todo el copy «domesticas».
+  Se retoma cuando haya trafico y el historico domestico sea un activo. Si se
+  abre, empezar por un piloto de 4-6 rutas desde LIM con hub propio.
+- **La ficha se reordeno tras medirla en movil (2026-09-05).** 8,5 pantallas y
+  «Lo que aprendimos» empezaba en la 4,6, detras de 45 fechas. Ahora: precio,
+  estadisticas, grafico, ANALISIS (pantalla 2,1), CTA (3,8), fechas,
+  calendario (5,4). Argumento -> boton -> herramienta. El CTA bajo de 1,8 a
+  3,8 a proposito; el boton flotante con enlace profundo sigue a un toque.
+- **`.rise` ya no arranca en opacity:0.** El hero del precio llevaba `.rise.d3`:
+  invisible 210 ms y 700 de fundido, y un elemento invisible no cuenta como LCP
+  hasta que aparece. Los keyframes son solo translateY. Hay test.
+- **Viejo:** Es factible
   (Google devuelve PEN), pero toca seeds, reglas de aerolineas, todo el copy
   «domesticas» y suma carga al barrido.
 - **La herramienta de Bash de esta sesion se come UNA barra invertida en los
