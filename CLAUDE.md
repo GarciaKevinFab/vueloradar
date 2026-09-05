@@ -288,6 +288,18 @@ celery -A config beat                                # scheduler
   estar puesto para que Google lo detecte, así que hay que volver a poner la
   variable, y cada ciclo de revisión son semanas.
 
+  Primer paso dado el 2026-09-05: `/como-medimos/` (1.253 palabras) y
+  `/acerca/` (902). Son las dos únicas páginas cuyo texto no puede salir de una
+  plantilla, y comparten con las fichas y los hubs el 49% y el 59% del
+  vocabulario —contra el 63% que comparten ficha y hub entre sí, y ese resto es
+  cabecera y pie comunes—. Las cifras que citan salen de `queries.cobertura()`
+  en vivo: una metodología con números escritos a mano no se puede contrastar y
+  vale lo mismo que un folleto.
+  **No alcanza por sí solo**: siguen siendo 2 páginas de 65, y las otras 58 no
+  han cambiado. Lo que falta es reducir la superficie plantillada —los 18 hubs
+  al 95% son el peor caso— o darle a cada ficha texto que solo sea cierto para
+  esa ruta.
+
 - ~~Los correos de aviso nunca salieron.~~ (Resuelto arriba.) El DNS de Resend está puesto y
   propagado en Cloudflare (DKIM en `resend._domainkey.vueloradar.com`, SPF y MX
   de rebotes en `send.vueloradar.com`, o sea el dominio verificado es la raíz
