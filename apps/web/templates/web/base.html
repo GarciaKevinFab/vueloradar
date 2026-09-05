@@ -542,6 +542,20 @@ body::after{content:'';position:fixed;inset:0;z-index:2;pointer-events:none;
 .titular b{font-weight:400;color:var(--good)}
 .hallazgo .sub{font-size:.8125rem;color:var(--ink-3);margin:0 0 1.15rem}
 
+/* --- Lectura de la ruta ---------------------------------------------------
+   Prosa, no tarjetas: es lo que le faltaba a la ficha. Cada observacion es un
+   titular en serif y un parrafo, separados por una regla fina; sin marco, sin
+   etiqueta encima y sin altura fija, porque tres observaciones de largo
+   distinto en tres cajas iguales se leen como relleno. La regla izquierda de
+   1px es el unico apoyo visual: marca que es una voz propia, no una lista. */
+.lectura{margin:0 0 1.75rem;padding-left:1rem;border-left:1px solid var(--line-2);
+  display:grid;gap:1.35rem}
+.observacion .titular{font-size:clamp(1.25rem,3.4vw,1.55rem);line-height:1.2;
+  margin:0 0 .4rem;letter-spacing:-.01em}
+.observacion p{margin:0;color:var(--ink-2);max-width:62ch;line-height:1.55}
+.observacion-quieto .titular,.observacion-momento-bueno .titular{color:var(--good)}
+.observacion-momento-malo .titular{color:var(--bad)}
+
 /* Las barras crecen desde abajo al entrar en pantalla. El alto sale de
    Python (`alto_pct`) porque depende del maximo del grupo, y una plantilla
    no puede mirar hacia adelante dentro de un bucle. */

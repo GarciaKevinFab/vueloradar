@@ -1406,3 +1406,31 @@ def test_el_hub_cuenta_todos_sus_destinos_aunque_parta_la_lista(client, peru_air
     cuerpo = client.get(reverse("web:hub", args=["lima"])).content.decode()
     assert "7 destinos" in cuerpo
     assert "6 destinos" not in cuerpo
+
+
+def test_la_ficha_publica_lo_que_solo_es_cierto_para_esa_ruta(client, peru_airports):
+    """Dos rutas con perfil distinto tienen que decir cosas distintas.
+
+    Es el remedio al 79% de vocabulario compartido: no otro hueco de plantilla
+    sino un módulo que ELIGE qué contar. Se comprueba de punta a punta —vista,
+    contexto, plantilla— con una ruta plana y una que se mueve.
+    """
+    plana = _ruta_publicada("LIM", "PEM")
+    movida = _ruta_publicada("LIM", "CUZ")
+    for i in range(14):
+        _snapshot(plana, "300", flight_offset=i + 1)
+        _snapshot(movida, "150" if i % 2 else "280", flight_offset=i + 1)
+    # `_ruta_publicada` deja un snapshot a S/ 179 que rompería la serie plana:
+    # 14 días a 300 y uno a 179 es un 47% de rango, o sea «movido».
+    PriceSnapshot.objects.filter(route=plana).update(min_price_pen=Decimal("300"))
+    # `price_history` mira el día de OBSERVACIÓN, no el del vuelo: se reparten.
+    for r in (plana, movida):
+        for i, s in enumerate(PriceSnapshot.objects.filter(route=r).order_by("pk")):
+            PriceSnapshot.objects.filter(pk=s.pk).update(
+                snapshot_at=timezone.now() - timedelta(days=i))
+
+    cuerpo_plana = client.get(reverse("web:route", args=["LIM", "PEM"])).content.decode()
+    cuerpo_movida = client.get(reverse("web:route", args=["LIM", "CUZ"])).content.decode()
+    assert 'class="observacion observacion-quieto"' in cuerpo_plana
+    assert 'class="observacion observacion-movido"' in cuerpo_movida
+    assert "casi no se mueve" in cuerpo_plana and "casi no se mueve" not in cuerpo_movida

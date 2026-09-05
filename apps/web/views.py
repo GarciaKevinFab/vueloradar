@@ -25,7 +25,7 @@ from django.views.decorators.cache import cache_control, never_cache
 
 from apps.flights.models import Route
 
-from . import calendar_grid, chart, insights, og_images, photos, queries, search
+from . import calendar_grid, chart, insights, lectura, og_images, photos, queries, search
 from .verdict import MIN_TREND_DAYS, evaluate, evaluate_trend
 
 #: El barrido corre 06:00 y 18:00; media hora de caché en el borde es seguro
@@ -128,6 +128,7 @@ def route_detail(request, origin: str, destination: str):
     upcoming = queries.upcoming_prices(route)
     fechas = _fechas_con_veredicto(upcoming, stats)
     historia = queries.price_history(route)
+    related = queries.related_routes(route)
 
     return render(request, "web/route.html", {
         "route": route,
@@ -142,7 +143,14 @@ def route_detail(request, origin: str, destination: str):
         ),
         "semanas": calendar_grid.build(fechas),
         "dias_semana": calendar_grid.DIAS,
-        "related": queries.related_routes(route),
+        "related": related,
+        # Lo que solo se puede decir de ESTA ruta. No es otro hueco de
+        # plantilla: `lectura` mira el perfil y elige qué contar, así que una
+        # ruta cuyo precio no se mueve recibe el consejo contrario al de una
+        # que se mueve un 40%. Antes ambas recibían el mismo.
+        "observaciones": lectura.leer_ruta(
+            route, historia, fechas, stats, inversa=related.inverse
+        ),
         "chart": chart.build(historia, stats),
         "history_days": len(historia),
         "all_time_low": queries.all_time_low(route),
