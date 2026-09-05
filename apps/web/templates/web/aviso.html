@@ -1,6 +1,6 @@
 {% extends "web/base.html" %}
 
-{% block title %}Avisame si baja: {{ route.origin.city }} → {{ route.destination.city }} — {{ site_name }}{% endblock %}
+{% block title %}Avísame si baja: {{ route.origin.city }} → {{ route.destination.city }} — {{ site_name }}{% endblock %}
 {% block description %}Deja tu correo y te avisamos cuando el precio de esta ruta caiga de verdad.{% endblock %}
 
 {% block head_extra %}<meta name="robots" content="noindex,follow">{% endblock %}
@@ -21,13 +21,13 @@
   {% else %}
     <p class="lede rise d2">Te mandamos un correo a <strong>{{ email }}</strong> con un enlace para
        confirmar. <strong>Hasta que no lo toques no te vamos a escribir</strong> — cualquiera podría
-       haber puesto tu dirección acá, y no nos parece bien mandarte nada sin que lo pidas vos.</p>
+       haber puesto tu dirección acá, y no nos parece bien mandarte nada sin que lo pidas tú.</p>
   {% endif %}
   <p><a class="link" href="{% url 'web:route' route.origin_id route.destination_id %}">
      ← Volver al histórico de la ruta</a></p>
 
 {% else %}
-  <h1 class="rise d1">Avisame<br>si baja</h1>
+  <h1 class="rise d1">Avísame<br>si baja</h1>
   <p class="lede rise d2">Seguimos <strong>{{ route.origin.city }} → {{ route.destination.city }}</strong>
      {% if fecha %}para el <strong>{{ fecha|date:"j \d\e F \d\e Y" }}</strong>{% endif %}
      dos veces al día. Cuando aparezca un precio realmente bajo —no cuando una aerolínea lo llame
@@ -61,7 +61,7 @@
   </form>
 
   {% if bot_url %}
-  <p class="muted mt-2">¿Preferís Telegram?
+  <p class="muted mt-2">¿Prefieres Telegram?
      <a class="link" href="{{ bot_url }}?start={{ bot_deeplink }}" rel="noopener">
      Avisarme por Telegram →</a></p>
   {% endif %}

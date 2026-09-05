@@ -35,7 +35,7 @@ class SingleFlightMiddleware(BaseMiddleware):
         if user.id in self._busy:
             logger.info("bot: user=%s update descartado, ya tiene una búsqueda", user.id)
             if isinstance(event, Message):
-                await event.answer("⏳ Esperá, todavía estoy buscando lo anterior…")
+                await event.answer("⏳ Espera, todavía estoy buscando lo anterior…")
             return None
 
         self._busy.add(user.id)

@@ -67,7 +67,7 @@ def build_digest(user) -> str:
     return "\n".join(
         ["📊 <b>Tu semana en VueloRadar</b>", ""]
         + lineas
-        + ["", "Con /misalertas revisás lo que estoy vigilando."]
+        + ["", "Con /misalertas revisas lo que estoy vigilando."]
     )
 
 

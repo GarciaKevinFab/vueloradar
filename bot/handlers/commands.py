@@ -72,7 +72,7 @@ async def cmd_flight(message: Message, command: CommandObject) -> None:
         await message.answer(
             "Formato: <code>/vuelo ORIGEN DESTINO FECHA</code>\n"
             "Ejemplo: <code>/vuelo LIM CUZ 2026-09-15</code>\n\n"
-            "También podés escribirme en lenguaje natural: "
+            "También puedes escribirme en lenguaje natural: "
             "<i>«vuelo de Lima a Cusco el 15 de setiembre»</i>"
         )
         return
@@ -83,12 +83,12 @@ async def cmd_flight(message: Message, command: CommandObject) -> None:
     if fecha is None:
         await message.answer(
             f"No entendí la fecha <code>{formatting.escape(fecha_texto)}</code>. "
-            f"Usá el formato <code>AAAA-MM-DD</code>, por ejemplo <code>2026-09-15</code>."
+            f"Usa el formato <code>AAAA-MM-DD</code>, por ejemplo <code>2026-09-15</code>."
         )
         return
 
     if fecha < timezone.localdate():
-        await message.answer("Esa fecha ya pasó. Elegí una a futuro.")
+        await message.answer("Esa fecha ya pasó. Elige una a futuro.")
         return
 
     if origin == dest:
@@ -99,7 +99,7 @@ async def cmd_flight(message: Message, command: CommandObject) -> None:
         if not await db.airport_exists(code):
             await message.answer(
                 f"No conozco el aeropuerto <code>{formatting.escape(code)}</code>.\n"
-                f"Mirá los códigos disponibles con /rutas."
+                f"Mira los códigos disponibles con /rutas."
             )
             return
 

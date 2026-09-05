@@ -99,7 +99,7 @@ def usd_to_pen(*, force_refresh: bool = False) -> Decimal:
 def convert_to_pen(amount: Decimal, currency: str) -> Decimal | None:
     """Convierte a soles. Devuelve None si el precio no se puede convertir.
 
-    None significa "descartá esta oferta", no "usá el número igual".
+    None significa "descarta esta oferta", no "usa el número igual".
     """
     code = (currency or "PEN").upper()
     if code == "PEN":

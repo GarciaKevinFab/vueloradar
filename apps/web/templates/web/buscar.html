@@ -117,8 +117,8 @@
   <a class="btn" href="{{ enlace_compra }}" target="_blank" rel="noopener nofollow">Ver precios reales →</a>
   {% if publicada %}
   <p class="tiny" style="margin:1rem 0 0;opacity:.85;position:relative">
-    ¿Todavía no comprás? <a href="{% url 'web:nuevo_aviso' %}?ruta={{ route.origin_id }}-{{ route.destination_id }}&fecha={{ consulta.fecha|date:'Y-m-d' }}"
-    class="on-accent">Avisame si baja esta fecha</a>.
+    ¿Todavía no compras? <a href="{% url 'web:nuevo_aviso' %}?ruta={{ route.origin_id }}-{{ route.destination_id }}&fecha={{ consulta.fecha|date:'Y-m-d' }}"
+    class="on-accent">Avísame si baja esta fecha</a>.
   </p>
   {% endif %}
 </div>

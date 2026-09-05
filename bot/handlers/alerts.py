@@ -30,7 +30,7 @@ async def cmd_alert(message: Message, command: CommandObject) -> None:
             "<code>/alerta LIM CUZ</code> — te aviso de cualquier oferta\n"
             "<code>/alerta LIM CUZ 180</code> — te aviso si baja de S/ 180\n"
             "<code>/alerta LIM CUZ 180 2026-10-14</code> — solo esa fecha\n\n"
-            "Con /misalertas ves las que tenés activas."
+            "Con /misalertas ves las que tienes activas."
         )
         return
 
@@ -42,7 +42,7 @@ async def cmd_alert(message: Message, command: CommandObject) -> None:
         if precio is None:
             await message.answer(
                 f"No entendí el precio <code>{formatting.escape(args[2])}</code>. "
-                f"Poné solo el número, por ejemplo <code>180</code>."
+                f"Pon solo el número, por ejemplo <code>180</code>."
             )
             return
 
@@ -52,7 +52,7 @@ async def cmd_alert(message: Message, command: CommandObject) -> None:
         if fecha is None:
             await message.answer(
                 f"No entendí la fecha <code>{formatting.escape(args[3])}</code>. "
-                f"Usá <code>AAAA-MM-DD</code>."
+                f"Usa <code>AAAA-MM-DD</code>."
             )
             return
 
@@ -67,7 +67,7 @@ async def cmd_alert(message: Message, command: CommandObject) -> None:
     if resultado["status"] == "unknown_route":
         await message.answer(
             f"No conozco la ruta <code>{formatting.escape(origin)}→{formatting.escape(dest)}</code>. "
-            f"Mirá los códigos con /rutas."
+            f"Mira los códigos con /rutas."
         )
         return
 

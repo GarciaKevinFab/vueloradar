@@ -245,12 +245,12 @@ def send_confirmation_email(alerta, base_url: str) -> bool:
 
     contenido = (
         _parrafo(
-            f"Alguien —esperamos que vos— pidió que avisemos cuando baje el precio de "
+            f"Alguien —esperamos que tú— pidió que avisemos cuando baje el precio de "
             f"<strong>{ruta}</strong> ({cuando})."
         )
         + _boton(confirmar, "Confirmar el aviso")
         + _parrafo(
-            "Si no fuiste vos, ignora este correo: sin confirmar no te vamos a "
+            "Si no fuiste tú, ignora este correo: sin confirmar no te vamos a "
             "escribir nunca más.",
             tenue=True,
         )
@@ -263,7 +263,7 @@ def send_confirmation_email(alerta, base_url: str) -> bool:
         alerta.email,
         f"Confirma el aviso de {ruta}",
         contenido,
-        preheader=f"Un clic y quedás avisado de {ruta}.",
+        preheader=f"Un clic y quedas avisado de {ruta}.",
         pie=pie,
     )
 
@@ -280,7 +280,7 @@ def send_alert_email(alerta, texto_html: str) -> bool:
 
     contenido = texto_html + _boton(ficha, "Ver el histórico de la ruta")
     pie = (
-        f'Recibís esto porque pediste que te avisáramos de {ruta}. '
+        f'Recibes esto porque pediste que te avisáramos de {ruta}. '
         f'<a href="{baja}" style="color:{_TINTA_3};">Darme de baja</a>.'
     )
     return _enviar(
