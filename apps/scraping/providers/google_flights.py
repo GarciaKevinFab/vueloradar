@@ -141,6 +141,58 @@ class GoogleFlightsProvider(FlightProvider):
         return offers
 
     # ------------------------------------------------------------------ parsing
+    def search_round_trip(
+        self, origin: str, dest: str, outbound: date, inbound: date
+    ) -> list[RawFlightOffer]:
+        """Cotiza el viaje completo como PAQUETE, no como dos tramos sumados.
+
+        Google devuelve, por cada opción de ida, el precio del viaje entero con
+        la vuelta más barata compatible. Verificado en vivo el 2026-09-05:
+        LIM-CUZ 19/09 + CUZ-LIM 23/09 dio S/ 375 de paquete, con 28 itinerarios
+        con precio y el mismo parser de siempre.
+
+        Las ofertas que salen de acá llevan el precio TOTAL del viaje y los
+        datos del tramo de ida. **No se persisten nunca**: un precio de paquete
+        en el histórico de solo ida contaminaría la serie que sostiene los
+        veredictos. Solo se usan para responder al bot.
+        """
+        try:
+            query = create_query(
+                flights=[
+                    FlightQuery(
+                        date=outbound.strftime("%Y-%m-%d"), from_airport=origin, to_airport=dest
+                    ),
+                    FlightQuery(
+                        date=inbound.strftime("%Y-%m-%d"), from_airport=dest, to_airport=origin
+                    ),
+                ],
+                trip="round-trip",
+                seat="economy",
+                passengers=Passengers(adults=1),
+                currency=self.currency,
+                language=self.language,
+            )
+            deep_link = query.url()
+
+            self._throttle.wait()
+            html = fetch_flights_html(query)
+            payload = _extract_payload(html)
+            offers = self._build_offers(payload, origin, dest, outbound, deep_link)
+        except Exception:  # noqa: BLE001 - un scraper nunca propaga al caller
+            logger.error(
+                "google_flights: paquete fallido para %s<->%s %s/%s",
+                origin, dest, outbound.isoformat(), inbound.isoformat(), exc_info=True,
+            )
+            ratelimit.record_failure(self.source_name)
+            return []
+
+        ratelimit.record_success(self.source_name)
+        logger.info(
+            "google_flights: %d paquetes para %s<->%s %s/%s",
+            len(offers), origin, dest, outbound.isoformat(), inbound.isoformat(),
+        )
+        return offers
+
     def _build_offers(
         self,
         payload: list,

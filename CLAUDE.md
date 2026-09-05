@@ -385,6 +385,39 @@ ignora (el kernel protege al PID 1 de su propio namespace). La prueba válida es
 `kill -TERM 1`, que Celery sí maneja: el contenedor salió, se reinició solo
 (`RestartCount: 1`) y volvió a `healthy`.
 
+### Lo que dejo de ser «no sabemos» (2026-09-05)
+
+- **La tendencia ya opina.** Con 16 dias de serie `evaluate_trend` devuelve
+  nivel real (LIM-AQP «bueno», LIM-CUZ «normal»). La limitacion de los 14 dias
+  vale solo para una ruta nueva; el copy de `/como-medimos/` lo dice asi.
+- **La ficha muestra la hora de la OBSERVACION, no la del render.** «Actualizado»
+  imprimia `timezone.now()`: con el borde cacheando media hora y dos barridos al
+  dia podia mentir doce horas. Ahora `queries.last_seen(route)` y «Ultimo precio
+  observado hace 6 horas, el 4 de septiembre a las 20:26». Ojo: `timesince`
+  separa numero y unidad con **U+00A0**; un assert con espacio normal no lo
+  encuentra.
+- **El paquete de ida y vuelta se cotiza de verdad.** `fast-flights` acepta
+  `trip="round-trip"` y el parser de siempre entiende el payload: Google da,
+  por cada ida, el precio del viaje completo. Verificado en vivo: LIM-CUZ 19/09
+  + CUZ-LIM 23/09 = S/ 375 de paquete. `GoogleFlightsProvider.search_round_trip`
+  -> `services.search_round_trip` (**no persiste nada**: un paquete en la serie
+  de solo ida contaminaria los veredictos) -> `bot/db.search_round_trip` ->
+  tercera consulta en `_run_round_trip`. El formateador muestra la suma, el
+  paquete y la diferencia; si el paquete falla, cae a la suma de antes.
+- **La maleta NO se puede medir con esta fuente, y se intento.** Con
+  `checked_bags=1` Google devolvio exactamente el mismo minimo (S/ 205) que sin
+  maleta para LIM-CUZ: para tarifas domesticas peruanas no la cotiza. Queda
+  como limitacion, pero con las condiciones de cada aerolinea y fecha.
+- **Internacional queda como decision de producto, no hecha.** Es factible
+  (Google devuelve PEN), pero toca seeds, reglas de aerolineas, todo el copy
+  «domesticas» y suma carga al barrido.
+- **La herramienta de Bash de esta sesion se come UNA barra invertida en los
+  heredocs `python - <<'PY'`.** Lo probo el `SyntaxWarning '\d'` y un
+  caracter BELL (0x07) que quedo en `route.html` donde iba `\a`, y asi se
+  rompio un `"\n".join` en un parche de `formatting.py`. Para cualquier
+  texto con barras: `chr(92)`, o la herramienta Edit. Y en `re.sub`, el
+  reemplazo va como funcion (`lambda m: texto`), nunca como cadena con barras.
+
 ### La lectura de cada ruta (2026-09-05)
 
 - **Las 40 fichas compartían el 79% del vocabulario y no era por falta de

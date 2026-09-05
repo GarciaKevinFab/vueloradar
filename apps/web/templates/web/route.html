@@ -258,5 +258,10 @@
 </div>
 {% endif %}
 
-<p class="tiny dim mt-3">Actualizado {{ updated_at|date:"j \d\e F, H:i" }} (hora de Perú).</p>
+{% comment %} La hora que importa es la de la OBSERVACIÓN, no la del render:
+   con el borde cacheando media hora y dos barridos al día, «Actualizado» con
+   timezone.now() podía mentir doce horas. `timesince` lo dice en lenguaje
+   natural, que es como se lee: «hace 6 horas». {% endcomment %}
+<p class="tiny dim mt-3">{% if observado %}Último precio observado hace {{ observado|timesince }},
+   el {{ observado|date:"j \d\e F \a \l\a\s H:i" }} (hora de Perú).{% else %}Sin observaciones todavía.{% endif %}</p>
 {% endblock %}

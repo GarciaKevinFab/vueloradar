@@ -74,6 +74,32 @@ async def search_flights(origin: str, dest: str, flight_date: date) -> list | No
     return await loop.run_in_executor(_SEARCH_POOL, _search_sync, origin, dest, flight_date)
 
 
+async def search_round_trip(origin: str, dest: str, outbound: date, inbound: date) -> list | None:
+    """El paquete de ida y vuelta, en un thread aparte como toda búsqueda.
+
+    Mismo contrato que `search_flights`: lista (vacía si no hay paquete) o
+    `None` si algo se rompió de nuestro lado. El bot lo trata como opcional:
+    sin paquete sigue mostrando la suma de los dos tramos.
+    """
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(_SEARCH_POOL, _round_trip_sync, origin, dest, outbound, inbound)
+
+
+def _round_trip_sync(origin: str, dest: str, outbound: date, inbound: date) -> list | None:
+    from django.db import close_old_connections
+
+    from apps.scraping.services import search_round_trip
+
+    try:
+        close_old_connections()
+        return search_round_trip(origin, dest, outbound, inbound)
+    except Exception:  # noqa: BLE001 - el bot responde, no se cae
+        logger.exception("bot: paquete fallido %s<->%s %s/%s", origin, dest, outbound, inbound)
+        return None
+    finally:
+        close_old_connections()
+
+
 def _search_sync(origin: str, dest: str, flight_date: date) -> list | None:
     from django.db import close_old_connections
 

@@ -176,9 +176,14 @@ async def _run_round_trip(message, user, origin, dest, outbound_date, return_dat
 
     # Los dos tramos en paralelo: el lock de la fuente ya los serializa donde
     # importa, y así el usuario espera una vez y no dos.
-    ida, vuelta = await asyncio.gather(
+    # ...y el paquete como tercera consulta. Los tramos sueltos siguen haciendo
+    # falta: dan horarios, escalas y alimentan el histórico. El paquete es lo
+    # que da el precio REAL del viaje, que hasta hoy se estimaba sumando y se
+    # llamaba «techo».
+    ida, vuelta, paquete = await asyncio.gather(
         db.search_flights(origin, dest, outbound_date),
         db.search_flights(dest, origin, return_date),
+        db.search_round_trip(origin, dest, outbound_date, return_date),
     )
 
     if ida is None or vuelta is None:
@@ -193,6 +198,9 @@ async def _run_round_trip(message, user, origin, dest, outbound_date, return_dat
             return_date=return_date,
             outbound=ida,
             inbound=vuelta,
+            # `None` es «falló el paquete», y eso no tumba la respuesta: se cae
+            # a la suma, que es lo que había hasta hoy.
+            paquete=paquete or [],
         )
     )
     await db.consume_search(user)

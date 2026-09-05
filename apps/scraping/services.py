@@ -64,6 +64,30 @@ def search_and_store(origin: str, dest: str, date: Date) -> list[FlightOffer]:
     return _search_via_hub(route, origin, dest, date, hub)
 
 
+def search_round_trip(origin: str, dest: str, outbound: Date, inbound: Date) -> list[RawFlightOffer]:
+    """Precio del viaje completo como paquete. **No se guarda nada.**
+
+    Existe para que el bot deje de sumar dos pasajes sueltos y llame a eso
+    «total»: el paquete de ida y vuelta suele costar distinto, y a veces mucho.
+    Solo lo cotiza Google Flights —los scrapers directos no arman paquetes— y
+    las ofertas vuelven sin persistirse: un precio de paquete dentro del
+    histórico de solo ida rompería la serie contra la que se juzga cada precio.
+
+    Raises:
+        UnknownAirportError: si algún IATA no existe en la base.
+    """
+    from .providers.registry import get_active_providers
+
+    origin, dest = origin.strip().upper(), dest.strip().upper()
+    _get_airport(origin)
+    _get_airport(dest)
+    for provider in get_active_providers():
+        cotizar = getattr(provider, "search_round_trip", None)
+        if cotizar is not None:
+            return dedupe_offers(cotizar(origin, dest, outbound, inbound))
+    return []
+
+
 # --------------------------------------------------------------------- lógica pura
 def dedupe_offers(offers: list[RawFlightOffer]) -> list[RawFlightOffer]:
     """Colapsa el mismo vuelo físico en una sola oferta: la más barata.

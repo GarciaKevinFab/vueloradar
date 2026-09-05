@@ -154,6 +154,7 @@ def route_detail(request, origin: str, destination: str):
         "chart": chart.build(historia, stats),
         "history_days": len(historia),
         "all_time_low": queries.all_time_low(route),
+        "observado": queries.last_seen(route),
         # Los mismos análisis, pero de esta ruta: el mejor día para volar a
         # Cusco no tiene por qué ser el mejor para volar a Iquitos.
         # La foto es del DESTINO: es a donde va quien mira esta página.

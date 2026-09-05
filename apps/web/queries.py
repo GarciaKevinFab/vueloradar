@@ -284,3 +284,16 @@ def hub_indexable(rutas) -> bool:
     contra la ficha que sí tiene el contenido.
     """
     return len(rutas) >= MIN_DESTINOS_HUB
+
+
+def last_seen(route: Route):
+    """Cuándo se observó por última vez un precio de esta ruta.
+
+    La ficha decía «Actualizado» con la hora de render, que es la hora en que
+    alguien la miró, no la hora en que se midió el precio. Con el borde
+    cacheando media hora y el barrido dos veces al día, la diferencia podía
+    ser de doce horas y el lector no tenía forma de saberlo. Esto es lo que
+    convierte «no es el precio que vas a pagar» en un dato: hace cuánto se
+    observó, para que cada uno juzgue.
+    """
+    return PriceSnapshot.objects.filter(route=route).aggregate(m=Max("snapshot_at"))["m"]

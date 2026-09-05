@@ -1434,3 +1434,21 @@ def test_la_ficha_publica_lo_que_solo_es_cierto_para_esa_ruta(client, peru_airpo
     assert 'class="observacion observacion-quieto"' in cuerpo_plana
     assert 'class="observacion observacion-movido"' in cuerpo_movida
     assert "casi no se mueve" in cuerpo_plana and "casi no se mueve" not in cuerpo_movida
+
+
+def test_la_ficha_dice_cuando_se_observo_el_precio_y_no_cuando_se_abrio(client, route, stats):
+    """«Actualizado» imprimía timezone.now(): la hora del render, no de la medición.
+
+    Con el borde cacheando media hora y dos barridos al día, podía mentir doce
+    horas. Ahora sale la última observación real, y si no hay, lo dice.
+    """
+    s = _snapshot(route, "179")
+    # Treinta segundos de margen: `timesince` trunca, y exactamente seis horas
+    # menos los milisegundos hasta el render da «5 horas, 59 minutos».
+    PriceSnapshot.objects.filter(pk=s.pk).update(
+        snapshot_at=timezone.now() - timedelta(hours=6, seconds=30))
+    cuerpo = client.get("/vuelos/LIM-CUZ/").content.decode()
+    # `timesince` separa número y unidad con un espacio duro (U+00A0).
+    assert "Último precio observado hace 6" + chr(160) + "horas" in cuerpo
+    assert " a las " in cuerpo, "la fecha exacta también, sin caracteres de control"
+    assert "Actualizado " not in cuerpo

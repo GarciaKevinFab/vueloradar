@@ -198,3 +198,95 @@ def test_un_link_roto_no_tumba_el_mensaje():
     with patch("apps.scraping.providers.google_flights.create_query",
                side_effect=RuntimeError("boom")):
         assert formatting.buy_link([("LIM", "CUZ", date(2026, 10, 15))]) == ""
+
+
+# ------------------------------------------------------------ el paquete real
+
+def test_el_paquete_manda_sobre_la_suma_cuando_es_mas_barato():
+    """Sumar dos pasajes era un techo; el paquete es lo que se paga."""
+    t = formatting.format_round_trip(
+        origin="PEM", dest="LIM",
+        outbound_date=date(2026, 10, 16), return_date=date(2026, 10, 18),
+        outbound=IDA, inbound=VUELTA, paquete=[FakeOffer("850"), FakeOffer("910")],
+    )
+    assert "Total del viaje: S/ 973" in t, "la suma se sigue mostrando"
+    assert "Como paquete de ida y vuelta: S/ 850" in t
+    assert "S/ 123 menos que comprar los dos pasajes sueltos" in t
+    assert "techo" not in t, "con paquete real ya no hay que hablar de techo"
+
+
+def test_si_el_paquete_sale_mas_caro_recomienda_los_tramos_sueltos():
+    t = formatting.format_round_trip(
+        origin="PEM", dest="LIM",
+        outbound_date=date(2026, 10, 16), return_date=date(2026, 10, 18),
+        outbound=IDA, inbound=VUELTA, paquete=[FakeOffer("1020")],
+    )
+    assert "Como paquete de ida y vuelta: S/ 1,020" in t
+    assert "comprar los dos tramos por separado" in t
+    assert "S/ 47 más" in t
+
+
+def test_sin_paquete_se_conserva_la_suma_como_techo():
+    """Si la cotización del paquete falla, la respuesta no empeora: vuelve a lo de antes."""
+    t = formatting.format_round_trip(
+        origin="PEM", dest="LIM",
+        outbound_date=date(2026, 10, 16), return_date=date(2026, 10, 18),
+        outbound=IDA, inbound=VUELTA, paquete=[],
+    )
+    assert "Total del viaje: S/ 973" in t
+    assert "Como paquete" not in t and "techo" in t
+
+
+def test_el_proveedor_pide_el_paquete_como_round_trip_de_dos_tramos():
+    """Lo que distingue un paquete de dos búsquedas: un solo query round-trip."""
+    from unittest.mock import patch
+
+    from apps.scraping.providers import google_flights as gf
+
+    capturado = {}
+
+    def falso_create_query(**kw):
+        capturado.update(kw)
+
+        class Q:
+            def url(self):
+                return "https://google/flights?paquete"
+        return Q()
+
+    with (
+        patch.object(gf, "create_query", falso_create_query),
+        patch.object(gf, "fetch_flights_html", lambda q: ""),
+        patch.object(gf, "_extract_payload", lambda html: []),
+        patch.object(gf._SourceThrottle, "wait", lambda self: None),
+    ):
+        ofertas = gf.GoogleFlightsProvider().search_round_trip(
+            "LIM", "CUZ", date(2026, 9, 19), date(2026, 9, 23)
+        )
+
+    assert ofertas == []
+    assert capturado["trip"] == "round-trip"
+    ida, vuelta = capturado["flights"]
+    assert (ida.from_airport, ida.to_airport, ida.date) == ("LIM", "CUZ", "2026-09-19")
+    assert (vuelta.from_airport, vuelta.to_airport, vuelta.date) == ("CUZ", "LIM", "2026-09-23")
+
+
+def test_el_paquete_nunca_entra_al_historico(peru_airports):
+    """Un precio de paquete en la serie de solo ida contaminaría los veredictos."""
+    from decimal import Decimal
+    from unittest.mock import patch
+
+    from apps.flights.models import FlightOffer, PriceSnapshot
+    from apps.scraping import services
+    from apps.scraping.providers.base import RawFlightOffer
+    from apps.scraping.providers.google_flights import GoogleFlightsProvider
+
+    paquete = RawFlightOffer(
+        origin="LIM", destination="CUZ", search_date=date(2026, 9, 19),
+        price_pen=Decimal("375"), source="google_flights", airline="LATAM",
+    )
+    with patch.object(GoogleFlightsProvider, "search_round_trip", lambda self, *a: [paquete]):
+        ofertas = services.search_round_trip("LIM", "CUZ", date(2026, 9, 19), date(2026, 9, 23))
+
+    assert [o.price_pen for o in ofertas] == [Decimal("375")]
+    assert PriceSnapshot.objects.count() == 0
+    assert FlightOffer.objects.count() == 0

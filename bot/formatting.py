@@ -440,8 +440,14 @@ def format_round_trip(
     return_date: date,
     outbound: list,
     inbound: list,
+    paquete: list | None = None,
 ) -> str:
-    """Cotización de ida y vuelta: los dos tramos y el total del viaje."""
+    """Cotización de ida y vuelta: los dos tramos, la suma y el paquete real.
+
+    `paquete` son las ofertas del viaje completo cotizado como uno solo. Cuando
+    llega, manda sobre la suma: es el precio que de verdad se paga. Sin él se
+    conserva lo de siempre — la suma como techo — que es honesto pero peor.
+    """
     if not outbound or not inbound:
         return _incomplete_round_trip(
             origin, dest, outbound_date, return_date, outbound, inbound
@@ -483,6 +489,22 @@ def format_round_trip(
                 f"(S/ {_money(extra)} más, sin escalas)"
             )
 
+    mejor_paquete = min(paquete, key=lambda o: o.price_pen) if paquete else None
+    if mejor_paquete is not None:
+        pq = Decimal(mejor_paquete.price_pen)
+        lineas += ["", f"🎫 <b>Como paquete de ida y vuelta: S/ {_money(pq)}</b>"]
+        if pq < total:
+            lineas.append(
+                f"   S/ {_money(total - pq)} menos que comprar los dos pasajes sueltos."
+            )
+        elif pq > total:
+            lineas.append(
+                f"   Acá conviene comprar los dos tramos por separado: "
+                f"el paquete sale S/ {_money(pq - total)} más."
+            )
+        else:
+            lineas.append("   Lo mismo que sumar los dos pasajes.")
+
     enlace = buy_link(
         [(origin, dest, outbound_date), (dest, origin, return_date)],
         etiqueta="Comprar el ida y vuelta",
@@ -490,11 +512,18 @@ def format_round_trip(
     if enlace:
         lineas += ["", enlace]
 
-    lineas += [
-        "",
-        "<i>Ese link ya busca el paquete completo, que suele salir menos que "
-        "sumar dos pasajes sueltos. Los S/ de arriba son tu techo.</i>",
-    ]
+    if mejor_paquete is not None:
+        lineas += [
+            "",
+            "<i>El paquete lo cotizamos en la misma búsqueda; el link lleva a "
+            "ese precio.</i>",
+        ]
+    else:
+        lineas += [
+            "",
+            "<i>Ese link ya busca el paquete completo, que suele salir menos que "
+            "sumar dos pasajes sueltos. Los S/ de arriba son tu techo.</i>",
+        ]
     return "\n".join(lineas)
 
 

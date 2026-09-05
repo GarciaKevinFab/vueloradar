@@ -119,21 +119,31 @@ es lo que separa una metodología de un folleto.
 </p>
 <ul>
   <li>
-    <b>La tendencia necesita más historia que el veredicto.</b> Decir si una
-    ruta está subiendo o bajando exige al menos {{ dias_tendencia }} días de
-    serie. Cuando no los hay, la ficha dice cuántos faltan en vez de inventar
-    una respuesta.
+    <b>Una ruta recién incorporada tarda {{ dias_tendencia }} días en tener
+    tendencia.</b> Decir si sube o baja exige comparar contra dos semanas de
+    mínimos diarios; hasta entonces la ficha dice cuántos días faltan en vez
+    de inventar una respuesta. Las {{ cobertura.rutas }} rutas actuales ya
+    pasaron ese umbral.
   </li>
   <li>
-    <b>Medimos el precio más barato publicado, no el que tú vas a pagar.</b>
-    Entre nuestra consulta y tu compra pueden pasar horas, y el precio de un
-    vuelo cambia con los asientos que quedan. Lo que decimos es si el nivel de
-    precios de esa ruta está alto o bajo, no que ese número siga disponible.
+    <b>El precio que ves es el observado, y te decimos hace cuánto.</b> Entre
+    nuestra consulta y tu compra pueden pasar horas, y el precio de un vuelo
+    cambia con los asientos que quedan. Por eso cada ficha muestra la hora
+    exacta de la última observación —no la hora en que la abriste—, para que
+    tú decidas cuánto fiarte de un número de hace seis horas o de hace diez
+    minutos.
   </li>
   <li>
-    <b>El equipaje no está incluido.</b> Las tarifas más baratas de varias
-    aerolíneas peruanas solo cubren equipaje de mano. Si viajas con maleta, el
-    precio real es mayor y la diferencia no la medimos.
+    <b>El equipaje en bodega no lo podemos medir, y lo intentamos.</b> Le
+    pedimos a la fuente el precio con una maleta facturada y devolvió
+    exactamente el mismo que sin ella: para tarifas domésticas peruanas no lo
+    cotiza. Lo que sí sabemos, según las condiciones publicadas por las
+    aerolíneas al 5 de septiembre de 2026: las tarifas más baratas de LATAM
+    (Basic y Light) incluyen solo un artículo personal; en Sky la tarifa Zero
+    no trae equipaje de mano de 10 kg ni bodega y la Full trae ambos; y
+    JetSMART empieza en SMART, solo el asiento, con la maleta de bodega recién
+    en su nivel más alto. Si viajas con maleta, el precio real es mayor y
+    cuánto depende de la aerolínea.
   </li>
   <li>
     <b>Hay rutas sin datos, y es correcto que no los tengan.</b> Algunos
@@ -141,11 +151,12 @@ es lo que separa una metodología de un folleto.
     publicar esas rutas antes que publicar una página vacía.
   </li>
   <li>
-    <b>Medimos tramos de ida, no tarifas de ida y vuelta.</b> Cuando pides un
-    viaje de ida y vuelta, sumamos los dos tramos por separado. Varias
-    aerolíneas venden la ida y vuelta más barata que dos billetes sueltos, y
-    esa diferencia no la vemos: nuestra suma es un techo, no el precio exacto
-    del paquete.
+    <b>El histórico es de tramos de ida; el paquete de ida y vuelta se cotiza
+    aparte, y lo tenemos.</b> Cuando pides ida y vuelta al bot, además de los
+    dos tramos consultamos el precio del viaje completo como un solo paquete,
+    que en varias aerolíneas sale distinto de la suma —y te decimos cuánto—.
+    Ese precio no entra en el histórico de esta web a propósito: un paquete
+    metido en la serie de solo ida la contaminaría.
   </li>
   <li>
     <b>Solo vuelos domésticos.</b> No medimos rutas internacionales, ni
