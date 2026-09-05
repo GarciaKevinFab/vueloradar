@@ -161,14 +161,6 @@ EMAIL_ALERTS_PER_IP_PER_HOUR = env_int("EMAIL_ALERTS_PER_IP_PER_HOUR", 5)
 CLOUDFLARE_API_TOKEN = os.getenv("CLOUDFLARE_API_TOKEN", "")
 CLOUDFLARE_ZONE_ID = os.getenv("CLOUDFLARE_ZONE_ID", "")
 
-# Credito del estudio que construyo el sitio. Va por entorno para que el pie no
-# haya que tocarlo si cambia el nombre o el dominio.
-BUILDER_NAME = os.getenv("BUILDER_NAME", "Star Insights IT by SISAC")
-BUILDER_URL = os.getenv("BUILDER_URL", "https://sisac.pe/")
-# Ruta del logotipo DENTRO de los estaticos. El archivo esta versionado en el
-# repo, asi que viene activado. Si se apunta a otro, tiene que existir en disco:
-# `{% static %}` con manifiesto revienta en produccion si falta.
-BUILDER_LOGO = os.getenv("BUILDER_LOGO", "web/sisac-logo.png")
 
 # --------------------------------------------------------------------- ads
 # Los huecos publicitarios estan maquetados siempre, pero el script de Google

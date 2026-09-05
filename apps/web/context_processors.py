@@ -4,19 +4,19 @@ from django.conf import settings
 
 
 def site(request):
-    """Marca, enlace al bot, crédito del constructor y publicidad.
+    """Marca, enlace al bot y publicidad.
 
     Todo sale de settings: la plantilla no decide nada, solo pinta lo que hay.
+
+    El crédito del constructor ya NO pasa por acá: el distintivo se volvió un
+    componente portable con el nombre, el enlace y el logo dentro del marcado,
+    para poder pegarlo en otro sitio sin arrastrar settings. Las tres variables
+    `BUILDER_*` que lo alimentaban quedaron sin usar y se eliminaron.
     """
     usuario = getattr(settings, "TELEGRAM_BOT_USERNAME", "")
     return {
         "site_name": getattr(settings, "SITE_NAME", "VueloRadar"),
         "bot_url": f"https://t.me/{usuario}" if usuario else "",
-        "builder_name": getattr(settings, "BUILDER_NAME", ""),
-        "builder_url": getattr(settings, "BUILDER_URL", ""),
-        # Vacío = crédito en texto. Ver la nota en settings: `{% static %}` con
-        # manifiesto revienta si el archivo no está en disco.
-        "builder_logo": getattr(settings, "BUILDER_LOGO", ""),
         # Sin ID de editor no se renderiza ni el hueco ni el script: un
         # contenedor vacío reservando alto desplaza el contenido para nada.
         "adsense_client": getattr(settings, "ADSENSE_CLIENT", ""),

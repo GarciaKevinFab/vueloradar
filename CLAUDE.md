@@ -150,7 +150,20 @@ vueloradar/
 
 ## 6. Convenciones de código
 
-- Español para strings de usuario y docstrings de negocio; inglés para nombres de variables/funciones.
+- Español **peruano** para strings de usuario y docstrings de negocio; inglés
+  para nombres de variables/funciones. **Nada de voseo** (`podés`, `mirá`,
+  `tenés`): el usuario final es peruano y suena extranjero. Se corrigió en dos
+  tandas —la web el 2026-08-29, el bot y el prompt de la IA el 2026-09-05— y
+  entre medias pasó una semana con la mitad sin tocar. Ahora lo fija
+  `tests/test_voseo.py`, que barre `apps/`, `bot/` y `templates/`.
+  El prompt del `nl_parser` entra en el barrido a propósito: si las
+  instrucciones al modelo van en voseo, el modelo contesta en voseo y ahí no
+  hay plantilla que lo arregle.
+- **El crédito del pie no pasa por settings.** El distintivo es un componente
+  portable con el nombre, el enlace y el logo (data URI) dentro del marcado.
+  Las variables `BUILDER_NAME` / `BUILDER_URL` / `BUILDER_LOGO` quedaron sin
+  usar tras ese cambio y se eliminaron el 2026-09-05, junto con sus tres
+  claves en el context processor.
 - Todo scraper devuelve `FlightOffer` (dataclass): `airline, flight_number, origin, destination, departure_dt, arrival_dt, stops, price_pen, price_currency_original, source, scraped_at, deep_link`.
 - Manejo de errores en scrapers: nunca lanzar excepción al caller; devolver lista vacía + log estructurado + métrica de fallo en Redis.
 - Tests con pytest para: normalización de ofertas, motor de alertas, cálculo de estadísticas de ruta.

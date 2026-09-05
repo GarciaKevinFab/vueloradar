@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.flights.models import PriceSnapshot, Route, RouteStats
-from apps.web import chart, queries
+from apps.web import chart, context_processors, queries
 from apps.web.verdict import (ALTO, BUENO, CARO, EXCELENTE, MIN_TREND_DAYS, NORMAL,
                               SIN_DATOS, evaluate, evaluate_trend)
 
@@ -879,23 +879,24 @@ def test_el_pie_acredita_a_quien_construyo_el_sitio(client, route, stats):
     assert "https://sisac.pe/" in cuerpo
 
 
-def test_el_credito_del_pie_ya_no_depende_de_la_configuracion(client, route, stats, settings):
-    """El distintivo pasó a ser un componente portable: dejó de leer BUILDER_*.
+def test_el_credito_del_pie_ya_no_pasa_por_configuracion(client, route, stats):
+    """El distintivo se volvió portable: nombre, enlace y logo van en el marcado.
 
-    Antes el crédito salía de `BUILDER_NAME` / `BUILDER_URL` / `BUILDER_LOGO` y
-    vaciar la primera lo ocultaba. Ahora el nombre, el enlace y el logo están en
-    el marcado, para poder pegar el bloque en otro sitio sin arrastrar settings.
+    Antes salía de `BUILDER_NAME` / `BUILDER_URL` / `BUILDER_LOGO`, y vaciar la
+    primera lo ocultaba. Esas tres settings quedaron sin usar y se eliminaron,
+    así que lo que hay que impedir es que alguien reintroduzca media dependencia:
+    un `builder_*` en el contexto que la plantilla ya no lee sólo sirve para que
+    el siguiente pierda una tarde descubriendo que no hace nada.
 
     Este test afirmaba `'class="foot-by"' not in cuerpo`. Esa clase desapareció
     con el rediseño, así que pasaba SIEMPRE: verificaba la ausencia de algo que
-    ya no podía existir. Ahora fija el contrato de verdad — el crédito aparece
-    aunque las tres variables estén vacías — y de paso deja constancia de que
-    esas settings quedaron sin usar.
+    ya no podía existir.
     """
-    settings.BUILDER_NAME = ""
-    settings.BUILDER_URL = ""
-    settings.BUILDER_LOGO = ""
-    cuerpo = client.get(reverse("web:home")).content.decode()
+    resp = client.get(reverse("web:home"))
+    contexto = context_processors.site(resp.wsgi_request)
+    assert not [k for k in contexto if k.startswith("builder_")], contexto
+
+    cuerpo = resp.content.decode()
     assert "Star Insights IT by SISAC" in cuerpo
     assert 'href="https://sisac.pe/"' in cuerpo
 
