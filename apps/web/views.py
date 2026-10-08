@@ -80,7 +80,11 @@ def home(request):
     mas_barata = min(con_precio, key=lambda r: r["desde"]) if con_precio else None
 
     return render(request, "web/home.html", {
-        "ciudades": queries.cities_with_routes(),
+        # Las dos listas salen de las rutas ya cargadas: sin esto cada una
+        # costaba una consulta más, y el presupuesto de la portada está fijado
+        # por un test.
+        "ciudades": queries.cities_with_routes(routes),
+        "destinos_ciudad": queries.cities_with_arrivals(routes),
         "rutas": rutas,
         "total_rutas": len(rutas),
         "total_baratas": sum(r["baratas"] for r in rutas),
@@ -243,6 +247,7 @@ def city_hub(request, ciudad: str):
         "airport": airport,
         "mas_barato": min((d["desde"] for d in con_precio), default=None),
         "otras_ciudades": [c for c in queries.cities_with_routes() if c.pk != airport.pk],
+        "tiene_llegadas": queries.destination_by_slug(airport.slug) is not None,
         "foto": photos.foto_de(airport),
         "og_image": (f"web/og/desde-{airport.slug}.png"
                      if airport.slug in og_images.CIUDADES else None),
@@ -266,6 +271,96 @@ def city_hub(request, ciudad: str):
         # —en el texto, en la meta description y en el Open Graph.
         "total_destinos": len(destinos),
         "indexable": queries.hub_indexable(routes),
+        "updated_at": timezone.now(),
+    })
+
+
+def _resumen_de_tramo(route, upcoming_por_ruta) -> dict:
+    """Precio desde, fechas seguidas y fechas baratas de un tramo."""
+    fechas = _fechas_con_veredicto(
+        upcoming_por_ruta.get(route.pk, []), getattr(route, "stats", None)
+    )
+    return {
+        "desde": min((f["price"] for f in fechas), default=None),
+        "fechas": len(fechas),
+        "baratas": len([f for f in fechas if f["verdict"].should_buy]),
+    }
+
+
+#: Cuántas diferencias entre ida y vuelta se cuentan en prosa. Con Lima como
+#: destino son diecisiete orígenes; más de tres frases seguidas con la misma
+#: forma se leen como plantilla, y la tabla ya tiene todas las cifras.
+MAX_ASIMETRIAS = 3
+
+
+@cache_control(public=True, max_age=300, s_maxage=EDGE_TTL)
+def city_destination(request, ciudad: str):
+    """Todo lo que llega a una ciudad: «Vuelos a Talara».
+
+    La familia de consultas más grande del sitio es una sola ciudad, «vuelos
+    talara», y la estábamos perdiendo en la posición 48 porque ninguna página
+    trataba de volar HACIA un lugar. Pero 13 de las 18 ciudades reciben vuelos
+    solo desde Lima, así que una lista de orígenes sería la ficha LIM-TYL con
+    otro título. Lo que esta página tiene y ninguna ficha tiene sola es el
+    viaje completo: cuánto cuesta ir, cuánto volver y cuál de los dos tramos
+    es el caro, desde cada origen.
+    """
+    publicadas = list(queries.published_routes())
+    airport = queries.destination_by_slug(ciudad, publicadas)
+    if airport is None:
+        raise Http404("Ciudad sin vuelos publicados hacia ella")
+
+    llegadas = [r for r in publicadas if r.destination_id == airport.iata_code]
+    salidas = [r for r in publicadas if r.origin_id == airport.iata_code]
+    vuelta_hacia = {r.destination_id: r for r in salidas}
+
+    ids = [r.pk for r in llegadas] + [r.pk for r in salidas]
+    upcoming_por_ruta = queries.bulk_upcoming_prices(ids)
+
+    origenes = []
+    for ida in llegadas:
+        vuelta = vuelta_hacia.get(ida.origin_id)
+        tramo = _resumen_de_tramo(ida, upcoming_por_ruta)
+        origenes.append({
+            "route": ida,
+            "vuelta": vuelta,
+            "vuelta_desde": (
+                _resumen_de_tramo(vuelta, upcoming_por_ruta)["desde"] if vuelta else None
+            ),
+            "viaje": lectura.viaje_completo(ida, vuelta),
+            **tramo,
+        })
+
+    con_precio = [o for o in origenes if o["desde"] is not None]
+    origenes.sort(key=lambda o: (o["desde"] is None, o["desde"] or 0))
+    _marcar_escala(origenes, con_precio)
+
+    viajes = [o["viaje"] for o in origenes if o["viaje"]]
+    asimetrias = sorted(
+        (v for v in viajes if v.tramo_caro),
+        key=lambda v: -v.diferencia_pct,
+    )[:MAX_ASIMETRIAS]
+
+    return render(request, "web/destino.html", {
+        "airport": airport,
+        "origenes": origenes,
+        "total_origenes": len(origenes),
+        "mas_barato": con_precio[0] if con_precio else None,
+        "viajes": viajes,
+        "asimetrias": asimetrias,
+        "indexable": queries.destino_indexable(llegadas, salidas),
+        "tiene_hub": bool(salidas),
+        "otros_destinos": [
+            c for c in queries.cities_with_arrivals(publicadas) if c.pk != airport.pk
+        ],
+        "foto": photos.foto_de(airport),
+        # Lo que pasa con los vuelos que LLEGAN acá. Con un solo origen coincide
+        # con el de esa ficha, y es lo esperable: la página no promete otro
+        # análisis, promete el viaje completo. Con varios orígenes sí dice algo
+        # nuevo, y en Lima son diecisiete.
+        "insight_dia": insights.weekday_prices(destino=airport.iata_code),
+        "insight_ventana": insights.booking_windows(destino=airport.iata_code),
+        "insight_aerolineas": insights.cheapest_airlines(destino=airport.iata_code),
         "updated_at": timezone.now(),
     })
 

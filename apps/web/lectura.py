@@ -207,3 +207,61 @@ def leer_ruta(route, historia, fechas, stats, inversa=None) -> list[Observacion]
         _observacion_momento(route, fechas, stats),
     ]
     return [o for o in candidatas if o is not None][:MAX_OBSERVACIONES]
+
+
+@dataclass(frozen=True)
+class Viaje:
+    """Lo que cuesta ir y volver entre dos ciudades, en precios típicos.
+
+    Usa la MEDIANA de 30 días de cada sentido, no el mínimo vigente. Sumar el
+    mínimo de la ida y el de la vuelta daría un viaje que no existe: el día más
+    barato para volver puede caer antes que el día más barato para ir. La
+    mediana sí se puede sumar con honestidad, porque es lo que suele costar
+    cada tramo.
+    """
+
+    origen: str
+    destino: str
+    ida: Decimal
+    vuelta: Decimal
+
+    @property
+    def total(self) -> Decimal:
+        return self.ida + self.vuelta
+
+    @property
+    def diferencia_pct(self) -> int:
+        return _pct(abs(self.vuelta - self.ida), min(self.ida, self.vuelta))
+
+    @property
+    def tramo_caro(self) -> str | None:
+        """'ida' o 'vuelta' si la diferencia merece decirse; None si no.
+
+        Mismo umbral que la observación de la ficha: por debajo de un 15% la
+        diferencia cambia sola según el día de la semana en que se mire.
+        """
+        if self.diferencia_pct < ASIMETRIA_PCT:
+            return None
+        return "vuelta" if self.vuelta > self.ida else "ida"
+
+
+def viaje_completo(ida, vuelta) -> Viaje | None:
+    """El viaje de ida y vuelta entre las dos rutas, o None si falta un sentido.
+
+    Sin estadísticas de alguno de los dos tramos no se inventa nada: la página
+    simplemente no muestra esa fila del viaje completo.
+    """
+    if ida is None or vuelta is None:
+        return None
+    stats_ida = getattr(ida, "stats", None)
+    stats_vuelta = getattr(vuelta, "stats", None)
+    if not stats_ida or not stats_vuelta:
+        return None
+    if not stats_ida.median_30d or not stats_vuelta.median_30d:
+        return None
+    return Viaje(
+        origen=ida.origin.city,
+        destino=ida.destination.city,
+        ida=stats_ida.median_30d,
+        vuelta=stats_vuelta.median_30d,
+    )

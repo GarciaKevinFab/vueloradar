@@ -64,6 +64,12 @@
 </div>
 {% endif %}
 
+{% if tiene_llegadas %}
+<p class="mt-3">¿Vas a {{ airport.city }} en vez de salir? Mira
+   <a class="link" href="{% url 'web:destino' airport.slug %}">los vuelos a {{ airport.city }}</a>,
+   con lo que cuesta el viaje completo.</p>
+{% endif %}
+
 {% if otras_ciudades %}
 <h2>Salir desde otra ciudad</h2>
 <ul class="chips reveal">

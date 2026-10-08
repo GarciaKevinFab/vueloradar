@@ -22,6 +22,7 @@ def site(request):
         "adsense_client": getattr(settings, "ADSENSE_CLIENT", ""),
         "adsense_slot_home": getattr(settings, "ADSENSE_SLOT_HOME", ""),
         "adsense_slot_route": getattr(settings, "ADSENSE_SLOT_ROUTE", ""),
+        "adsense_slot_destino": getattr(settings, "ADSENSE_SLOT_DESTINO", ""),
         # Verificación de Search Console. Público, no es un secreto.
         "google_site_verification": getattr(settings, "GOOGLE_SITE_VERIFICATION", ""),
         # Vacío mientras el buzón no exista: una dirección que rebota es peor

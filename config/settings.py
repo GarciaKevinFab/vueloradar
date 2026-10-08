@@ -172,6 +172,7 @@ ADSENSE_CLIENT = os.getenv("ADSENSE_CLIENT", "")
 # sitio hace imposible saber que espacio rinde.
 ADSENSE_SLOT_HOME = os.getenv("ADSENSE_SLOT_HOME", "")
 ADSENSE_SLOT_ROUTE = os.getenv("ADSENSE_SLOT_ROUTE", "")
+ADSENSE_SLOT_DESTINO = os.getenv("ADSENSE_SLOT_DESTINO", "")
 
 # Codigo de verificacion de Google Search Console (el `content` de la meta que
 # da el panel). No es un secreto: identifica al dueno del sitio, no autoriza

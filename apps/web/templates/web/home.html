@@ -63,6 +63,17 @@
 </div>
 {% endif %}
 
+{% if destinos_ciudad %}
+<div class="rise d5">
+  <p class="eyebrow">Volar a</p>
+  <ul class="chips">
+    {% for c in destinos_ciudad %}
+    <li><a href="{% url 'web:destino' c.slug %}">{{ c.city }}</a></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
 <h2>Lo que sabemos por haber estado midiendo</h2>
 <p class="muted mt-0 mb-2">Ninguna de estas tres cosas se puede saber mirando el precio
    de hoy. Salen de {{ snapshots|intcomma }} observaciones acumuladas —

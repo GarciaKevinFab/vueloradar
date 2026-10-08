@@ -488,6 +488,37 @@ completo analizado; lo que cambia decisiones:
   (`ADSENSE_SLOT_HOME`, `ADSENSE_SLOT_ROUTE`) y se revisan juntas `acerca` y
   `privacidad`, que afirman cosas sobre la publicidad.
 
+### Páginas «Vuelos a X» y espacios de anuncio (2026-10-07)
+
+- **`/vuelos/a-<ciudad>/`, una por ciudad a la que llega al menos una ruta
+  publicada** (18 hoy). Responde la familia de consultas más grande, «vuelos
+  talara» (403 impresiones en la posición 48), que ninguna página atendía:
+  los hubs son por origen y las fichas por par.
+- **El riesgo era repetir la ficha**: 13 de las 18 ciudades reciben vuelos
+  solo desde Lima. Lo que la página tiene y ninguna ficha tiene sola es el
+  VIAJE COMPLETO: ida, vuelta y cuál de los dos tramos es el caro, desde cada
+  origen. Se suman MEDIANAS de 30 días, no mínimos vigentes: el día más barato
+  para volver puede caer antes que el más barato para ir, y esa suma sería un
+  viaje imposible. `lectura.Viaje` / `lectura.viaje_completo`, mismo umbral de
+  asimetría (15%) que la ficha; como mucho `MAX_ASIMETRIAS = 3` frases.
+- **Indexación con la misma regla en página y sitemap**
+  (`queries.destino_indexable`): dos orígenes o más, o uno solo con la vuelta
+  publicada. Sin vuelta y con un origen sería la ficha repetida: noindex.
+- **Enlazada desde la portada («Volar a»), cada ficha y cada hub.** La portada
+  saca las dos listas de ciudades de las rutas que ya carga
+  (`cities_with_routes(rutas)`, `cities_with_arrivals(rutas)`), para no sumar
+  consultas al presupuesto fijado por test.
+- **`insights` acepta `destino=`** además de `route` y `origen`.
+- **Tres bloques de anuncio creados en AdSense el 2026-10-07**, todos gráficos
+  responsivos, uno por ubicación porque Google reporta por bloque:
+  `ADSENSE_SLOT_HOME=9657901071` (vueloradar-portada),
+  `ADSENSE_SLOT_ROUTE=8444146891` (vueloradar-ficha-ruta) y
+  `ADSENSE_SLOT_DESTINO=5817983552` (vueloradar-ciudad-destino). En el panel,
+  el ID de la URL del bloque es el `data-ad-slot`. Mientras el sitio no esté
+  aprobado los anuncios vuelven `unfilled` y la regla `.ad:has(...)` esconde
+  el hueco. **Los anuncios automáticos siguen DESACTIVADOS**; el panel muestra
+  un aviso promocional para activarlos que se cierra sin aceptar.
+
 ### La lectura de cada ruta (2026-09-05)
 
 - **Las 40 fichas compartían el 79% del vocabulario y no era por falta de

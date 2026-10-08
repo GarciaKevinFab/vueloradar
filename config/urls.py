@@ -4,7 +4,13 @@ from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
 
-from apps.web.sitemaps import CitySitemap, LegalSitemap, RouteSitemap, StaticSitemap
+from apps.web.sitemaps import (
+    CitySitemap,
+    DestinationSitemap,
+    LegalSitemap,
+    RouteSitemap,
+    StaticSitemap,
+)
 from apps.web.views import ads_txt, robots_txt
 
 from .health import healthz
@@ -16,6 +22,7 @@ SITEMAPS = {
     "static": StaticSitemap,
     "legal": LegalSitemap,
     "cities": CitySitemap,
+    "destinations": DestinationSitemap,
     "routes": RouteSitemap,
 }
 

@@ -111,3 +111,42 @@ class CitySitemap(Sitemap):
 
     def lastmod(self, airport):
         return self._ultimo_por_ciudad.get(airport.iata_code)
+
+
+class DestinationSitemap(Sitemap):
+    """Páginas «Vuelos a X», salvo las que serían una ficha repetida.
+
+    El criterio vive en `queries.destino_indexable`, el mismo que decide la
+    etiqueta noindex de la página: si el sitemap y la página discreparan, le
+    estaríamos pidiendo a Google que indexe algo que la propia página prohíbe.
+    """
+
+    changefreq = "daily"
+    priority = 0.9
+
+    def items(self):
+        rutas = list(queries.published_routes())
+        self._ultimo = {}
+        for r in rutas:
+            stats = getattr(r, "stats", None)
+            if stats is None or stats.updated_at is None:
+                continue
+            # La página muestra la ida (llega a X) y la vuelta (sale de X):
+            # cambia cuando cambia cualquiera de las dos.
+            for iata in (r.destination_id, r.origin_id):
+                previo = self._ultimo.get(iata)
+                if previo is None or stats.updated_at > previo:
+                    self._ultimo[iata] = stats.updated_at
+        destinos = []
+        for a in queries.cities_with_arrivals(rutas):
+            llegadas = [r for r in rutas if r.destination_id == a.iata_code]
+            salidas = [r for r in rutas if r.origin_id == a.iata_code]
+            if queries.destino_indexable(llegadas, salidas):
+                destinos.append(a)
+        return destinos
+
+    def location(self, airport):
+        return reverse("web:destino", args=[airport.slug])
+
+    def lastmod(self, airport):
+        return self._ultimo.get(airport.iata_code)

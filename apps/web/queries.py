@@ -192,17 +192,37 @@ def related_routes(route, limit: int = 4) -> Related:
     )
 
 
-def cities_with_routes() -> list:
+def cities_with_routes(rutas=None) -> list:
     """Aeropuertos que son origen de al menos una ruta publicada.
 
     Es la lista que alimenta las páginas por ciudad y los enlaces de la
     portada: sin rutas publicadas, la página quedaría vacía.
+
+    Acepta las rutas ya cargadas para que la portada, que las trae de todos
+    modos, no pague una consulta más por cada lista de ciudades.
     """
     vistos, ciudades = set(), []
-    for r in published_routes():
+    for r in (published_routes() if rutas is None else rutas):
         if r.origin_id not in vistos:
             vistos.add(r.origin_id)
             ciudades.append(r.origin)
+    return sorted(ciudades, key=lambda a: a.city)
+
+
+def cities_with_arrivals(rutas=None) -> list:
+    """Aeropuertos a los que llega al menos una ruta publicada.
+
+    Es el espejo de `cities_with_routes`. Search Console mostró que la familia
+    de consultas más grande es «vuelos Talara», una sola ciudad: 403
+    impresiones en la posición 48 al 2026-10-07, y el sitio no tenía ninguna
+    página cuyo tema fuera volar HACIA un lugar. Los hubs son por origen y las
+    fichas por par.
+    """
+    vistos, ciudades = set(), []
+    for r in (published_routes() if rutas is None else rutas):
+        if r.destination_id not in vistos:
+            vistos.add(r.destination_id)
+            ciudades.append(r.destination)
     return sorted(ciudades, key=lambda a: a.city)
 
 
@@ -284,6 +304,25 @@ def hub_indexable(rutas) -> bool:
     contra la ficha que sí tiene el contenido.
     """
     return len(rutas) >= MIN_DESTINOS_HUB
+
+
+def destination_by_slug(slug: str, rutas=None):
+    """Aeropuerto de destino cuyo slug de ciudad coincide. None si no hay."""
+    return next((a for a in cities_with_arrivals(rutas) if a.slug == slug), None)
+
+
+def destino_indexable(llegadas, salidas) -> bool:
+    """Si la página «Vuelos a X» dice algo que ninguna ficha dice sola.
+
+    Con dos orígenes o más, es una comparación que no existe en otro lado:
+    desde dónde sale más barato llegar. Con uno solo, lo que la separa de la
+    ficha es el viaje completo, ida más vuelta, y eso exige que la vuelta
+    también esté publicada. Sin vuelta y con un solo origen sería la ficha
+    repetida, que es exactamente lo que se podó de los hubs el 2026-09-05.
+    """
+    origenes = {r.origin_id for r in llegadas}
+    vuelven_a = {r.destination_id for r in salidas}
+    return len(origenes) >= 2 or bool(origenes & vuelven_a)
 
 
 def last_seen(route: Route):

@@ -25,6 +25,9 @@ urlpatterns = [
     # restricción, /vuelos/desde-lima/ entraría como origen "desde" y
     # destino "lima".
     path("vuelos/desde-<slug:ciudad>/", views.city_hub, name="hub"),
+    # «a-» tiene una sola letra antes del guion, así que nunca calza con el
+    # patrón de la ficha (tres letras por lado). Va antes igual, por claridad.
+    path("vuelos/a-<slug:ciudad>/", views.city_destination, name="destino"),
     re_path(
         r"^vuelos/(?P<origin>[A-Za-z]{3})-(?P<destination>[A-Za-z]{3})/$",
         views.route_detail,
