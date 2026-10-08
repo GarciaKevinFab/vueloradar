@@ -57,7 +57,7 @@ separa es el viaje completo, ida más vuelta, y qué tramo es el caro.
           {% if o.baratas %}{{ o.baratas }} de {{ o.fechas }} fechas a buen precio
           {% elif o.fechas %}ninguna de {{ o.fechas }} fechas está barata hoy
           {% else %}sin precios vigentes{% endif %}
-          {% if o.vuelta_desde %} · la vuelta desde S/ {{ o.vuelta_desde|floatformat:0 }}{% endif %}
+          {% if o.vuelta_desde %} · la vuelta desde S/&nbsp;{{ o.vuelta_desde|floatformat:0 }}{% endif %}
           {% if not o.route.has_direct_flights %} · vía Lima{% endif %}
         </span>
         {% if o.ancho_pct and total_origenes > 1 %}{% localize off %}
@@ -85,9 +85,9 @@ separa es el viaje completo, ida más vuelta, y qué tramo es el caro.
     {% for o in origenes %}{% if o.viaje %}
     <tr>
       <td>{{ o.route.origin.city }}</td>
-      <td class="num"><a class="link" href="{% url 'web:route' o.route.origin_id o.route.destination_id %}">S/ {{ o.viaje.ida|floatformat:0 }}</a></td>
-      <td class="num"><a class="link" href="{% url 'web:route' o.vuelta.origin_id o.vuelta.destination_id %}">S/ {{ o.viaje.vuelta|floatformat:0 }}</a></td>
-      <td class="num"><strong>S/ {{ o.viaje.total|floatformat:0 }}</strong></td>
+      <td class="num"><a class="link" href="{% url 'web:route' o.route.origin_id o.route.destination_id %}">S/&nbsp;{{ o.viaje.ida|floatformat:0 }}</a></td>
+      <td class="num"><a class="link" href="{% url 'web:route' o.vuelta.origin_id o.vuelta.destination_id %}">S/&nbsp;{{ o.viaje.vuelta|floatformat:0 }}</a></td>
+      <td class="num"><strong>S/&nbsp;{{ o.viaje.total|floatformat:0 }}</strong></td>
     </tr>
     {% endif %}{% endfor %}
   </tbody>
@@ -99,18 +99,18 @@ separa es el viaje completo, ida más vuelta, y qué tramo es el caro.
    semana en que se mire, y decirla sería rellenar. Como mucho tres frases:
    con Lima son diecisiete orígenes y más frases iguales se leen como
    plantilla, que es lo que esta página viene a no ser. {% endcomment %}
-<div class="lectura reveal">
+<div class="lectura reveal" style="margin-top:1.75rem">
   {% for v in asimetrias %}
   <article class="observacion observacion-{{ v.tramo_caro }}-cara">
     {% if v.tramo_caro == "vuelta" %}
     <h3 class="titular">Volver de {{ v.destino }} a {{ v.origen }} cuesta un {{ v.diferencia_pct }}% más que ir</h3>
-    <p>La mediana de la ida está en S/ {{ v.ida|floatformat:0 }} y la de la vuelta en
-       S/ {{ v.vuelta|floatformat:0 }}. Si el viaje tiene regreso, ese es el tramo que
+    <p>La mediana de la ida está en S/&nbsp;{{ v.ida|floatformat:0 }} y la de la vuelta en
+       S/&nbsp;{{ v.vuelta|floatformat:0 }}. Si el viaje tiene regreso, ese es el tramo que
        conviene mirar primero: es donde se va la diferencia.</p>
     {% else %}
     <h3 class="titular">Ir de {{ v.origen }} a {{ v.destino }} cuesta un {{ v.diferencia_pct }}% más que volver</h3>
-    <p>La mediana de la ida está en S/ {{ v.ida|floatformat:0 }} y la de la vuelta en
-       S/ {{ v.vuelta|floatformat:0 }}. Al revés de lo que uno esperaría, el pasaje que
+    <p>La mediana de la ida está en S/&nbsp;{{ v.ida|floatformat:0 }} y la de la vuelta en
+       S/&nbsp;{{ v.vuelta|floatformat:0 }}. Al revés de lo que uno esperaría, el pasaje que
        hay que cazar barato es el de ida.</p>
     {% endif %}
   </article>

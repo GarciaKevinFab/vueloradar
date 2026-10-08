@@ -74,7 +74,7 @@ def test_el_viaje_completo_dice_cual_tramo_es_el_caro(client, peru_airports):
     cuerpo = _pagina(client, "puerto-maldonado")
     assert "Cuánto cuesta el viaje completo" in cuerpo
     assert "Volver de Puerto Maldonado a Lima cuesta un 50% más que ir" in cuerpo
-    assert "S/ 500" in cuerpo  # 200 + 300, las medianas
+    assert "S/&nbsp;500" in cuerpo  # 200 + 300, las medianas
 
 
 def test_si_ida_y_vuelta_cuestan_parecido_lo_dice_y_no_inventa_un_tramo_caro(client, peru_airports):
@@ -194,3 +194,13 @@ def test_el_analisis_de_la_pagina_cuenta_solo_lo_que_llega(peru_airports):
     )
     base = insights._base(destino="CUZ")
     assert set(base.values_list("route_id", flat=True)) == {llega.pk}
+
+
+def test_los_precios_del_viaje_no_se_parten_en_dos_lineas(client, peru_airports):
+    """En 375 px la tabla dejaba «S/» en una línea y la cifra en la otra."""
+    _publicar("LIM", "PEM", mediana="200")
+    _publicar("PEM", "LIM", mediana="300")
+    cuerpo = _pagina(client, "puerto-maldonado")
+    tabla = cuerpo.split("<table>")[1].split("</table>")[0]
+    assert "S/&nbsp;200" in tabla and "S/&nbsp;300" in tabla and "S/&nbsp;500" in tabla
+    assert "S/ 2" not in tabla and "S/ 3" not in tabla and "S/ 5" not in tabla
