@@ -201,6 +201,6 @@ def test_los_precios_del_viaje_no_se_parten_en_dos_lineas(client, peru_airports)
     _publicar("LIM", "PEM", mediana="200")
     _publicar("PEM", "LIM", mediana="300")
     cuerpo = _pagina(client, "puerto-maldonado")
-    tabla = cuerpo.split("<table>")[1].split("</table>")[0]
+    tabla = cuerpo.split('<table class="compacta">')[1].split("</table>")[0]
     assert "S/&nbsp;200" in tabla and "S/&nbsp;300" in tabla and "S/&nbsp;500" in tabla
     assert "S/ 2" not in tabla and "S/ 3" not in tabla and "S/ 5" not in tabla

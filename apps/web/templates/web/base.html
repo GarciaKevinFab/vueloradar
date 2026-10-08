@@ -200,6 +200,12 @@ tr:last-child td{border-bottom:none}
 th{color:var(--ink-3);font-weight:600;font-size:.6875rem;text-transform:uppercase;letter-spacing:.08em;
   background:var(--bg-sunk)}
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+/* Tabla de cuatro columnas de cifras (viaje completo): con el relleno de un rem
+   por lado, en 375 px Lima quedaba 37 px más ancha que la pantalla. */
+table.compacta{font-size:.875rem}
+table.compacta th,table.compacta td{padding:.75rem .45rem}
+table.compacta th:first-child,table.compacta td:first-child{padding-left:1rem}
+table.compacta th:last-child,table.compacta td:last-child{padding-right:1rem}
 tbody tr{transition:background .2s ease}
 tbody tr:hover{background:var(--bg-sunk)}
 
