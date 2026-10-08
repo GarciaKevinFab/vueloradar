@@ -465,6 +465,29 @@ completo analizado; lo que cambia decisiones:
   contenido ya cambió pero un dominio de diez días con tres clics se rechaza
   por edad. Ese día se restaura `ADSENSE_CLIENT` y se recrea `web`.
 
+### AdSense: segunda revisión solicitada (2026-10-07)
+
+- **`ADSENSE_CLIENT` vuelve a estar puesta en el VPS** (`ca-pub-4805816769009138`)
+  y el contenedor `web` se recreó con `--force-recreate`. Verificado en vivo:
+  el script está en portada, fichas, `como-medimos` y `privacidad`; `/ads.txt`
+  responde con el `pub-` y la privacidad declara AdSense. Respaldo del `.env`
+  anterior en el servidor: `.env.bak-adsense-20261008`, permisos 600, ignorado
+  por git. Los slots siguen vacíos: sin aprobación no hay anuncio que mostrar.
+- **Revisión solicitada desde el panel el 2026-10-07**; el sitio pasó a
+  «Preparando el sitio». El panel seguía marcando `ads.txt` «No encontrado»
+  porque lo comprobó cuando la variable estaba vacía; se actualiza solo.
+- **Por qué ahora y no antes**: la condición era que Google tuviera indexado
+  el texto nuevo. Al 2026-10-07 las indexadas son 52 y coinciden exactamente
+  con las 52 URL del sitemap; los 13 hubs podados ya salieron del índice.
+- **Si vuelve a rechazar por bajo valor**, el patrón medido en Search Console
+  apunta a la causa: las páginas editoriales rankean en el top 10
+  (`cuando-comprar` 6,5; `como-medimos` 7) y las fichas de plantilla en la
+  35-48. El siguiente hueco con datos es «vuelos a X»: 403 impresiones en la
+  posición 48 y ninguna página cuyo tema sea volar HACIA una ciudad.
+- **Auto ads sigue DESACTIVADA.** Si se aprueba, se crean slots por ubicación
+  (`ADSENSE_SLOT_HOME`, `ADSENSE_SLOT_ROUTE`) y se revisan juntas `acerca` y
+  `privacidad`, que afirman cosas sobre la publicidad.
+
 ### La lectura de cada ruta (2026-09-05)
 
 - **Las 40 fichas compartían el 79% del vocabulario y no era por falta de
