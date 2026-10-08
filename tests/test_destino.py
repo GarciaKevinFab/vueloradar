@@ -77,13 +77,57 @@ def test_el_viaje_completo_dice_cual_tramo_es_el_caro(client, peru_airports):
     assert "S/&nbsp;500" in cuerpo  # 200 + 300, las medianas
 
 
-def test_si_ida_y_vuelta_cuestan_parecido_lo_dice_y_no_inventa_un_tramo_caro(client, peru_airports):
+def test_un_viaje_parejo_no_inventa_un_tramo_caro_y_dice_algo_propio(client, peru_airports):
     _publicar("LIM", "PEM", mediana="200")
     _publicar("PEM", "LIM", mediana="210")  # 5%: dentro del ruido
 
     cuerpo = _pagina(client, "puerto-maldonado")
-    assert "Ir y volver cuestan parecido" in cuerpo
     assert "más que ir" not in cuerpo and "más que volver" not in cuerpo
+    # Con un solo precio vigente por tramo, y bajo el p25, los dos están baratos.
+    assert "Los dos tramos están baratos a la vez" in cuerpo
+    assert "Ir y volver cuestan parecido" not in cuerpo
+
+
+def _caro(route, precio="400", dias=11):
+    PriceSnapshot.objects.create(
+        route=route, flight_date=timezone.localdate() + timedelta(days=dias),
+        min_price_pen=Decimal(precio), avg_price_pen=Decimal(precio), offers_count=2,
+    )
+
+
+def test_sin_nada_propio_que_decir_cae_a_la_frase_generica(client, peru_airports):
+    """La mitad de las fechas baratas en cada tramo, rebaja normal y un solo
+    destino: no hay momento, ni rigidez, ni puesto. Callar sería dejar la
+    tabla sin explicación."""
+    ida = _publicar("LIM", "PEM", mediana="200")
+    vuelta = _publicar("PEM", "LIM", mediana="210")
+    _caro(ida)
+    _caro(vuelta)
+
+    cuerpo = _pagina(client, "puerto-maldonado")
+    assert "Ir y volver cuestan parecido" in cuerpo
+
+
+def test_cinco_ciudades_parejas_publican_textos_distintos(client, peru_airports):
+    """El defecto que se corrige: la misma frase en trece páginas."""
+    Airport.objects.create(iata_code="JUL", name="Inca Manco Cápac", city="Juliaca", region="Puno")
+    Airport.objects.create(iata_code="IQT", name="Secada", city="Iquitos", region="Loreto")
+    medianas = {"CUZ": "220", "AQP": "250", "PEM": "280", "JUL": "310", "IQT": "340"}
+    for destino, mediana in medianas.items():
+        _publicar("LIM", destino, mediana=mediana)
+        _publicar(destino, "LIM", mediana=mediana)
+
+    slugs = {"CUZ": "cusco", "AQP": "arequipa", "PEM": "puerto-maldonado",
+             "JUL": "juliaca", "IQT": "iquitos"}
+    lecturas = []
+    for slug in slugs.values():
+        cuerpo = _pagina(client, slug)
+        bloque = cuerpo.split('<div class="lectura')[1].split("</div>")[0]
+        assert "Ir y volver cuestan parecido" not in bloque
+        lecturas.append(bloque)
+    assert len(set(lecturas)) == len(lecturas)
+    assert "El viaje completo más barato desde Lima" in _pagina(client, "cusco")
+    assert "El viaje completo más caro desde Lima" in _pagina(client, "iquitos")
 
 
 def test_la_prosa_de_asimetrias_no_pasa_del_tope(client, peru_airports):
@@ -204,3 +248,82 @@ def test_los_precios_del_viaje_no_se_parten_en_dos_lineas(client, peru_airports)
     tabla = cuerpo.split('<table class="compacta">')[1].split("</table>")[0]
     assert "S/&nbsp;200" in tabla and "S/&nbsp;300" in tabla and "S/&nbsp;500" in tabla
     assert "S/ 2" not in tabla and "S/ 3" not in tabla and "S/ 5" not in tabla
+
+
+# --- lectura de viajes parejos (lógica pura) ------------------------------------
+
+def _viaje(ida="250", vuelta="250"):
+    return lectura.Viaje("Lima", "Talara", Decimal(ida), Decimal(vuelta))
+
+
+def _tramo(mediana="250", minimo="150", baratas=10, fechas=40):
+    return lectura.Tramo(Decimal(mediana), Decimal(minimo), baratas, fechas)
+
+
+def _claves(obs):
+    return [o.clave for o in obs]
+
+
+def test_dice_que_tramo_cerrar_cuando_uno_tiene_mas_fechas_baratas():
+    obs = lectura.leer_viaje_parejo(_viaje(), _tramo(baratas=20), _tramo(baratas=8), None)
+    assert _claves(obs) == ["cerrar-ida"]
+    assert obs[0].titular == "Hoy conviene cerrar primero la ida"
+    obs = lectura.leer_viaje_parejo(_viaje(), _tramo(baratas=8), _tramo(baratas=20), None)
+    assert _claves(obs) == ["cerrar-vuelta"]
+
+
+def test_una_diferencia_chica_de_fechas_baratas_no_se_cuenta():
+    # 25% contra 35%: 10 puntos, bajo el umbral de 15.
+    obs = lectura.leer_viaje_parejo(_viaje(), _tramo(baratas=10), _tramo(baratas=14), None)
+    assert obs == []
+
+
+def test_los_dos_tramos_baratos_y_los_dos_caros():
+    assert _claves(lectura.leer_viaje_parejo(
+        _viaje(), _tramo(baratas=30), _tramo(baratas=31), None)) == ["ambos-baratos"]
+    caros = lectura.leer_viaje_parejo(_viaje(), _tramo(baratas=0), _tramo(baratas=0), None)
+    assert _claves(caros) == ["ambos-caros"]
+    # «Solo 0 de 45» salió publicado una vez en las fichas: el cero tiene su frase.
+    assert caros[0].detalle.startswith("Ninguna de las 40 fechas de ida")
+
+
+def test_un_viaje_que_casi_no_baja_lo_dice():
+    """Huánuco: el mínimo de 30 días quedó a 3% y 9% de la mediana."""
+    obs = lectura.leer_viaje_parejo(
+        _viaje(), _tramo(minimo="243", baratas=10), _tramo(minimo="230", baratas=12), None)
+    assert _claves(obs) == ["rigido"]
+
+
+def test_una_rebaja_grande_dice_que_tramo_la_dio():
+    """Puerto Maldonado: la vuelta tocó un 62% bajo su mediana."""
+    obs = lectura.leer_viaje_parejo(
+        _viaje(), _tramo(minimo="150", baratas=10), _tramo(minimo="95", baratas=12), None)
+    assert _claves(obs) == ["rebaja-vuelta"]
+    assert "de Talara a Lima" in obs[0].detalle
+
+
+@pytest.mark.parametrize("n,de,titular", [
+    (1, 17, "El viaje completo más barato desde Lima"),
+    (17, 17, "El viaje completo más caro desde Lima"),
+    (3, 17, "El 3.º viaje completo más barato desde Lima"),
+    (16, 17, "El 2.º viaje completo más caro desde Lima"),
+])
+def test_el_puesto_se_dice_desde_el_extremo_mas_cercano(n, de, titular):
+    obs = lectura.leer_viaje_parejo(_viaje(), None, None, lectura.Puesto(n, de, "Lima"))
+    assert obs[0].titular == titular
+
+
+def test_el_puesto_concuerda_en_singular():
+    obs = lectura.leer_viaje_parejo(_viaje(), None, None, lectura.Puesto(2, 17, "Lima"))
+    assert "solo 1 destino sale más barato" in obs[0].detalle
+    obs = lectura.leer_viaje_parejo(_viaje(), None, None, lectura.Puesto(16, 17, "Lima"))
+    assert "solo 1 destino cuesta más" in obs[0].detalle
+
+
+def test_sin_suficientes_destinos_no_hay_puesto(peru_airports):
+    rutas = [_publicar("LIM", "CUZ"), _publicar("CUZ", "LIM"),
+             _publicar("LIM", "AQP"), _publicar("AQP", "LIM")]
+    assert lectura.puesto_del_viaje(rutas, "LIM", "CUZ") is None
+    rutas += [_publicar("LIM", "PEM", mediana="900"), _publicar("PEM", "LIM", mediana="900")]
+    puesto = lectura.puesto_del_viaje(rutas, "LIM", "PEM")
+    assert (puesto.n, puesto.de, puesto.origen) == (3, 3, "Lima")

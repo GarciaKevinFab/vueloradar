@@ -114,14 +114,23 @@ separa es el viaje completo, ida más vuelta, y qué tramo es el caro.
        hay que cazar barato es el de ida.</p>
     {% endif %}
   </article>
-  {% empty %}
-  <article class="observacion observacion-pareja">
-    <h3 class="titular">Ir y volver cuestan parecido</h3>
-    <p>La diferencia entre la ida y la vuelta está por debajo del 15%{% if viajes|length > 1 %} desde
-       todos los orígenes{% endif %}. No hay un tramo caro que vigilar: compra primero el que
-       tenga la fecha más firme.</p>
+  {% endfor %}
+  {% comment %} Viaje parejo: la lectura elige qué contar según el perfil de
+     la ciudad, para que trece páginas no publiquen la misma frase. La
+     genérica queda solo para cuando no hay nada propio que decir. {% endcomment %}
+  {% for o in observaciones_viaje %}
+  <article class="observacion observacion-{{ o.clave }}">
+    <h3 class="titular">{{ o.titular }}</h3>
+    <p>{{ o.detalle }}</p>
   </article>
   {% endfor %}
+  {% if not asimetrias and not observaciones_viaje %}
+  <article class="observacion observacion-pareja">
+    <h3 class="titular">Ir y volver cuestan parecido</h3>
+    <p>La diferencia entre la ida y la vuelta está por debajo del 15%. No hay un
+       tramo caro que vigilar: compra primero el que tenga la fecha más firme.</p>
+  </article>
+  {% endif %}
 </div>
 {% if bot_url %}
 <p class="small muted">Si compras los dos tramos juntos,

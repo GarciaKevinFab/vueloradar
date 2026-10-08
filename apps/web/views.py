@@ -321,13 +321,14 @@ def city_destination(request, ciudad: str):
     for ida in llegadas:
         vuelta = vuelta_hacia.get(ida.origin_id)
         tramo = _resumen_de_tramo(ida, upcoming_por_ruta)
+        resumen_vuelta = _resumen_de_tramo(vuelta, upcoming_por_ruta) if vuelta else {}
         origenes.append({
             "route": ida,
             "vuelta": vuelta,
-            "vuelta_desde": (
-                _resumen_de_tramo(vuelta, upcoming_por_ruta)["desde"] if vuelta else None
-            ),
+            "vuelta_desde": resumen_vuelta.get("desde"),
             "viaje": lectura.viaje_completo(ida, vuelta),
+            "tramo_ida": lectura.tramo_de(ida, tramo),
+            "tramo_vuelta": lectura.tramo_de(vuelta, resumen_vuelta),
             **tramo,
         })
 
@@ -341,6 +342,23 @@ def city_destination(request, ciudad: str):
         key=lambda v: -v.diferencia_pct,
     )[:MAX_ASIMETRIAS]
 
+    # Cuando ningún origen tiene un tramo caro, la página decía «Ir y volver
+    # cuestan parecido» en 13 de las 18 ciudades: la misma frase en trece
+    # páginas. Ahora se lee el perfil del viaje principal y se cuenta lo que
+    # sí lo distingue: qué tramo cerrar hoy, si baja o no, y su puesto entre
+    # los viajes del mismo origen.
+    observaciones_viaje = []
+    if viajes and not asimetrias:
+        principal = next(o for o in origenes if o["viaje"])
+        observaciones_viaje = lectura.leer_viaje_parejo(
+            principal["viaje"],
+            principal["tramo_ida"],
+            principal["tramo_vuelta"],
+            lectura.puesto_del_viaje(
+                publicadas, principal["route"].origin_id, airport.iata_code
+            ),
+        )
+
     return render(request, "web/destino.html", {
         "airport": airport,
         "origenes": origenes,
@@ -348,6 +366,7 @@ def city_destination(request, ciudad: str):
         "mas_barato": con_precio[0] if con_precio else None,
         "viajes": viajes,
         "asimetrias": asimetrias,
+        "observaciones_viaje": observaciones_viaje,
         "indexable": queries.destino_indexable(llegadas, salidas),
         "tiene_hub": bool(salidas),
         "otros_destinos": [
