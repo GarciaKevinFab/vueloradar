@@ -501,6 +501,16 @@ completo analizado; lo que cambia decisiones:
   para volver puede caer antes que el más barato para ir, y esa suma sería un
   viaje imposible. `lectura.Viaje` / `lectura.viaje_completo`, mismo umbral de
   asimetría (15%) que la ficha; como mucho `MAX_ASIMETRIAS = 3` frases.
+- **Las ciudades parejas no repiten frase (2026-10-07).** La primera versión
+  publicaba «Ir y volver cuestan parecido» en 13 de las 18 páginas.
+  `lectura.leer_viaje_parejo` elige por el perfil, igual que `leer_ruta`: qué
+  tramo cerrar hoy (15 puntos de diferencia en fechas baratas), los dos
+  tramos baratos o caros a la vez, si el viaje casi no baja (rebaja menor al
+  25%) o da caídas grandes (55% o más), y el puesto del viaje completo entre
+  los destinos del mismo origen, dicho desde el extremo más cercano.
+  Verificado en vivo sobre las 18: cero párrafos repetidos y la genérica en
+  ninguna. Algunos titulares coinciden (cerrar primero la vuelta, en tres)
+  porque es la misma situación; los párrafos llevan las cifras de cada una.
 - **Indexación con la misma regla en página y sitemap**
   (`queries.destino_indexable`): dos orígenes o más, o uno solo con la vuelta
   publicada. Sin vuelta y con un origen sería la ficha repetida: noindex.
